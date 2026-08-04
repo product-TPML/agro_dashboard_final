@@ -1201,10 +1201,7 @@
 
   function getHistoryRows(selectedRow) {
     const windowDays = selectedRow.perishability === "perishable" ? 7 : 30;
-    const endDate = new Date(`${selectedRow.reportDate}T00:00:00`);
-    const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - (windowDays - 1));
-
+    const today = getLocalDateKey();
     const matchingRows = state.baseRows
       .filter((row) => {
         if (row.commodity !== selectedRow.commodity) return false;
@@ -1212,20 +1209,84 @@
         if (row.variety !== selectedRow.variety) return false;
         if (!isMarketSearchCommodityView() && row.sourceId !== selectedRow.sourceId) return false;
         if (!isMarketSearchCommodityView() && row.grade !== selectedRow.grade) return false;
-        const currentDate = new Date(`${row.reportDate}T00:00:00`);
-        return currentDate >= startDate && currentDate <= endDate;
+        return row.reportDate && row.reportDate <= today;
       });
 
-    if (!isMarketSearchCommodityView()) {
-      return matchingRows.sort((left, right) => left.reportDate.localeCompare(right.reportDate));
+    if (!matchingRows.length) {
+      return [];
     }
 
+    const actualRows = matchingRows.sort((left, right) => left.reportDate.localeCompare(right.reportDate));
+    const latestActualDate = actualRows[actualRows.length - 1].reportDate;
+    const normalStartDate = addDateDays(today, -(windowDays - 1));
+    const recentActualRows = actualRows.filter((row) => row.reportDate >= normalStartDate);
+    const chartStartDate = latestActualDate < normalStartDate
+      ? addDateDays(latestActualDate, -(windowDays - 1))
+      : recentActualRows[0].reportDate;
+
+    return buildForwardFilledHistoryRows(actualRows, chartStartDate, today);
+  }
+
+  function buildForwardFilledHistoryRows(actualRows, startDate, endDate) {
     const rowsByDate = new Map();
-    matchingRows.forEach((row) => {
-      rowsByDate.set(row.reportDate, pickPreferredRepresentativeRow(rowsByDate.get(row.reportDate), row));
+    const marketView = isMarketSearchCommodityView();
+
+    actualRows.forEach((row) => {
+      if (marketView) {
+        rowsByDate.set(row.reportDate, pickPreferredRepresentativeRow(rowsByDate.get(row.reportDate), row));
+        return;
+      }
+
+      const rowsForDate = rowsByDate.get(row.reportDate) || [];
+      rowsForDate.push(row);
+      rowsByDate.set(row.reportDate, rowsForDate);
     });
 
-    return [...rowsByDate.values()].sort((left, right) => left.reportDate.localeCompare(right.reportDate));
+    const historyRows = [];
+    let previousActualRow = null;
+    let currentDate = startDate;
+
+    while (currentDate <= endDate) {
+      const rowsForDate = rowsByDate.get(currentDate);
+      if (rowsForDate) {
+        const actualDateRows = Array.isArray(rowsForDate) ? rowsForDate : [rowsForDate];
+        actualDateRows.forEach((row) => {
+          historyRows.push({
+            ...row,
+            isCarriedForward: false,
+            sourceReportDate: row.reportDate,
+          });
+        });
+        previousActualRow = actualDateRows[actualDateRows.length - 1];
+      } else if (previousActualRow) {
+        historyRows.push({
+          ...previousActualRow,
+          rowKey: `${previousActualRow.rowKey}|carried-forward|${currentDate}`,
+          reportDate: currentDate,
+          isCarriedForward: true,
+          sourceReportDate: previousActualRow.reportDate,
+        });
+      }
+
+      currentDate = addDateDays(currentDate, 1);
+    }
+
+    return historyRows;
+  }
+
+  function getLocalDateKey(date = new Date()) {
+    return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+  }
+
+  function addDateDays(dateKey, days) {
+    const parts = getDisplayDateParts(dateKey);
+    if (!parts) {
+      return dateKey;
+    }
+
+    const date = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+    date.setDate(date.getDate() + days);
+    return getLocalDateKey(date);
   }
 
   function getAvailableFilters(rows, candidates) {
@@ -2757,6 +2818,7 @@
             </div>
             <div class="history-chart-panel">
               <p class="chart-scroll-note">${escapeHtml(getUiText("chart_scroll_note", "<-- Scroll horizontally to see all dates -->"))}</p>
+              ${renderChartLegend()}
               ${renderChart(historyRows, activePoint, row.rowKey)}
             </div>
             <div class="axis-note">${escapeHtml(getTrendNote(row))}</div>
@@ -2861,10 +2923,16 @@
     const pointTargets = chartRows.map((row, index) => {
       const x = toX(index);
       const isActive = !row.isBaseline && row.reportDate === activePoint.reportDate;
+      const pointTitle = row.isCarriedForward
+        ? `${formatDateFull(row.reportDate)} - ${getUiText("carried_forward_from", "Carried forward from")} ${formatDateFull(row.sourceReportDate)}`
+        : `${formatDateFull(row.reportDate)} - ${getUiText("actual_update", "Actual update")}`;
       return `
         <g${row.isBaseline ? "" : ` data-chart-date="${escapeAttribute(row.reportDate)}"`} class="chart-point-group ${isActive ? "is-active" : ""} ${row.isBaseline ? "is-baseline" : ""}">
+          <title>${escapeHtml(pointTitle)}</title>
           <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="${isActive ? "#adb7d8" : "transparent"}" stroke-dasharray="5 5" />
-          ${chartMetricKeys.map((metric) => renderChartPointCircle(x, toY(row[metric.key]), metric.color, isActive)).join("")}
+          ${chartMetricKeys.map((metric) => row.isCarriedForward
+            ? renderChartPointDiamond(x, toY(row[metric.key]), metric.color, isActive)
+            : renderChartPointCircle(x, toY(row[metric.key]), metric.color, isActive)).join("")}
           <rect x="${x - 20}" y="${paddingTop}" width="40" height="${height - paddingTop - paddingBottom}" fill="transparent" />
         </g>
       `;
@@ -2907,10 +2975,17 @@
     }
 
     const profile = getRowPriceProfile(row);
+    const sourceNote = activePoint.isCarriedForward
+      ? `<span class="chart-summary-source">${escapeHtml(getUiText("carried_forward_from", "Carried forward from"))} ${escapeHtml(formatDateFull(activePoint.sourceReportDate))}</span>`
+      : `<span class="chart-summary-source is-actual">${escapeHtml(getUiText("actual_update", "Actual update"))}</span>`;
+
     return `
       <div class="chart-summary">
         <div class="chart-summary-date">
-          <span class="chart-summary-date-label">${escapeHtml(getUiText("selected_date", "Selected Date"))}</span>
+          <div class="chart-summary-date-copy">
+            <span class="chart-summary-date-label">${escapeHtml(getUiText("selected_date", "Selected Date"))}</span>
+            ${sourceNote}
+          </div>
           <strong class="chart-summary-date-value">${escapeHtml(formatDateFull(activePoint.reportDate))}</strong>
         </div>
         <div class="chart-summary-metrics">
@@ -2943,6 +3018,27 @@
 
   function renderChartPointCircle(x, y, color, isActive) {
     return `<circle cx="${x}" cy="${y}" r="${isActive ? 5.5 : 4}" fill="${isActive ? color : "#fffaf6"}" stroke="${color}" stroke-width="2.25" />`;
+  }
+
+  function renderChartPointDiamond(x, y, color, isActive) {
+    const radius = isActive ? 6.5 : 4.75;
+    const fill = isActive ? color : "#fffaf6";
+    return `<polygon points="${x},${y - radius} ${x + radius},${y} ${x},${y + radius} ${x - radius},${y}" fill="${fill}" stroke="${color}" stroke-width="2.25" />`;
+  }
+
+  function renderChartLegend() {
+    return `
+      <div class="chart-legend" aria-label="${escapeAttribute(getUiText("chart_legend_aria", "Price history point types"))}">
+        <span class="chart-legend-item">
+          <span class="chart-legend-marker chart-legend-marker-actual" aria-hidden="true"></span>
+          <span>${escapeHtml(getUiText("actual_update", "Actual update"))}</span>
+        </span>
+        <span class="chart-legend-item">
+          <span class="chart-legend-marker chart-legend-marker-carried" aria-hidden="true"></span>
+          <span>${escapeHtml(getUiText("carried_forward", "Carried-forward price"))}</span>
+        </span>
+      </div>
+    `;
   }
 
   function buildChartScale(values) {
@@ -2983,7 +3079,12 @@
     }
 
     const matched = rows.find((row) => row.reportDate === state.activeChartDate);
-    return matched || rows[rows.length - 1];
+    if (matched) {
+      return matched;
+    }
+
+    const actualRows = rows.filter((row) => !row.isCarriedForward);
+    return actualRows[actualRows.length - 1] || rows[rows.length - 1];
   }
 
   function buildLinePath(points) {

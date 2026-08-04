@@ -1459,6 +1459,40 @@ select {
   line-height: 1.4;
 }
 
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chart-legend-marker {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  box-sizing: border-box;
+  background: #fffaf6;
+  border: 2px solid var(--muted);
+}
+
+.chart-legend-marker-actual {
+  border-radius: 50%;
+}
+
+.chart-legend-marker-carried {
+  transform: rotate(45deg);
+}
+
 .chart-layout {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
@@ -1537,6 +1571,12 @@ select {
   flex-wrap: nowrap;
 }
 
+.chart-summary-date-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
 .chart-summary-date-label {
   color: var(--muted);
   font-size: 13px;
@@ -1546,6 +1586,16 @@ select {
   font-size: 16px;
   margin-left: auto;
   text-align: right;
+}
+
+.chart-summary-source {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.chart-summary-source.is-actual {
+  color: var(--green);
 }
 
 .chart-summary-metrics {

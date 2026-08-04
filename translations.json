@@ -305,6 +305,22 @@
       "en": "Selected Date",
       "kn": "ಆಯ್ಕೆ ಮಾಡಿದ ದಿನಾಂಕ"
     },
+    "actual_update": {
+      "en": "Actual update",
+      "kn": "ನಿಜವಾದ ನವೀಕರಣ"
+    },
+    "carried_forward": {
+      "en": "Carried-forward price",
+      "kn": "ಮುಂದುವರಿಸಿದ ಬೆಲೆ"
+    },
+    "carried_forward_from": {
+      "en": "Carried forward from",
+      "kn": "ಇದರ ಬೆಲೆಯನ್ನು ಮುಂದುವರಿಸಲಾಗಿದೆ"
+    },
+    "chart_legend_aria": {
+      "en": "Price history point types",
+      "kn": "ಬೆಲೆ ಇತಿಹಾಸದ ಬಿಂದುಗಳ ವಿಧಗಳು"
+    },
     "max_short": {
       "en": "Max",
       "kn": "ಗರಿಷ್ಠ"
