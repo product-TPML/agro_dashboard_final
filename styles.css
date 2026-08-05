@@ -1430,7 +1430,7 @@ select {
 }
 
 .result-card-history {
-  padding: 0 8px 14px;
+  padding: 0 0 14px;
   background: transparent;
 }
 
@@ -1490,7 +1490,18 @@ select {
 }
 
 .chart-legend-marker-carried {
-  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.chart-legend-line {
+  width: 24px;
+  height: 0;
+  display: inline-block;
+  border-top: 3px solid var(--muted);
+}
+
+.chart-legend-line-dotted {
+  border-top-style: dashed;
 }
 
 .chart-layout {
@@ -1575,6 +1586,7 @@ select {
   display: grid;
   gap: 3px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .chart-summary-date-label {
@@ -1586,6 +1598,8 @@ select {
   font-size: 16px;
   margin-left: auto;
   text-align: right;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .chart-summary-source {
@@ -1645,7 +1659,7 @@ select {
 
 .chart-metric-line-modal {
   border-color: var(--price-modal);
-  border-top-style: dashed;
+  border-top-style: solid;
 }
 
 .chart-metric-value {
@@ -2065,7 +2079,7 @@ select {
   }
 
   .result-card-history {
-    padding: 0 4px 10px;
+    padding: 0 0 10px;
   }
 
   .result-card-identity {
@@ -2183,7 +2197,7 @@ select {
     gap: 10px;
     align-items: baseline;
     justify-content: space-between;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-summary-date-label {
@@ -2192,7 +2206,7 @@ select {
 
 .history-layout[data-chart-summary-layout="mobile"] .chart-summary-date-value {
   font-size: 15px;
-  margin-left: 0;
+  margin-left: auto;
 }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-summary-metrics {
@@ -2243,9 +2257,9 @@ select {
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .history-chart-panel {
-    padding: 12px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    padding: 12px 0 0;
+    border: 0;
+    border-radius: 0;
     background: #fff;
   }
 
@@ -3688,10 +3702,10 @@ body {
 }
 
 .graph-panel {
-  margin: 12px 16px 0;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: #f3f4f6;
+  margin: 12px 0 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .graph-panel .history-card,

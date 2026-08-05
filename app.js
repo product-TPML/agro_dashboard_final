@@ -1435,7 +1435,7 @@
             label: buildRsPerUnitLabel("Average Price", priceUnit),
             color: PRICE_COLORS.modal,
             strokeWidth: "3",
-            dashArray: "10 6",
+            dashArray: "",
           },
           {
             kind: "min",
@@ -1467,7 +1467,7 @@
           label: buildRsPerUnitLabel("Modal Price", priceUnit),
           color: PRICE_COLORS.modal,
           strokeWidth: "3",
-          dashArray: "10 6",
+          dashArray: "",
         },
         {
           kind: "min",
@@ -2895,10 +2895,16 @@
       return height - paddingBottom - normalized * (height - paddingTop - paddingBottom);
     };
 
-    const metricPaths = chartMetricKeys.map((metric) => ({
-      ...metric,
-      path: buildLinePath(chartRows.map((entry, index) => [toX(index), toY(entry[metric.key])])),
-    }));
+    const latestActualDate = chartRows
+      .filter((row) => !row.isCarriedForward)
+      .reduce((latest, row) => row.reportDate > latest ? row.reportDate : latest, "");
+    const lineSegments = renderChartLineSegments(
+      chartRows,
+      chartMetricKeys,
+      toX,
+      toY,
+      latestActualDate
+    );
     const activeIndex = chartRows.findIndex((row) => !row.isBaseline && row.reportDate === activePoint.reportDate);
     const activeX = toX(activeIndex);
     const labels = chartRows.map((row, index) => `
@@ -2931,7 +2937,7 @@
           <title>${escapeHtml(pointTitle)}</title>
           <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="${isActive ? "#adb7d8" : "transparent"}" stroke-dasharray="5 5" />
           ${chartMetricKeys.map((metric) => row.isCarriedForward
-            ? renderChartPointDiamond(x, toY(row[metric.key]), metric.color, isActive)
+            ? renderChartPointSquare(x, toY(row[metric.key]), metric.color, isActive)
             : renderChartPointCircle(x, toY(row[metric.key]), metric.color, isActive)).join("")}
           <rect x="${x - 20}" y="${paddingTop}" width="40" height="${height - paddingTop - paddingBottom}" fill="transparent" />
         </g>
@@ -2958,9 +2964,7 @@
         >
           <svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${escapeAttribute(getUiText("price_history_aria", "Price history"))}" data-chart-root="true">
             ${gridLines}
-            ${metricPaths.map((metric) => `
-              <path d="${metric.path}" fill="none" stroke="${metric.color}" stroke-width="${metric.strokeWidth}"${metric.dashArray ? ` stroke-dasharray="${metric.dashArray}"` : ""} />
-            `).join("")}
+            ${lineSegments}
             ${pointTargets}
             ${labels}
           </svg>
@@ -3017,18 +3021,142 @@
   }
 
   function renderChartPointCircle(x, y, color, isActive) {
-    return `<circle cx="${x}" cy="${y}" r="${isActive ? 5.5 : 4}" fill="${isActive ? color : "#fffaf6"}" stroke="${color}" stroke-width="2.25" />`;
+    return `<circle cx="${x}" cy="${y}" r="${isActive ? 6.5 : 5.25}" fill="${isActive ? color : "#fffaf6"}" stroke="${color}" stroke-width="2.25" />`;
   }
 
-  function renderChartPointDiamond(x, y, color, isActive) {
-    const radius = isActive ? 6.5 : 4.75;
+  function renderChartLineSegments(rows, metrics, toX, toY, latestActualDate) {
+    return rows.slice(0, -1).map((leftRow, index) => {
+      const rightRow = rows[index + 1];
+      const x1 = toX(index);
+      const x2 = toX(index + 1);
+      const segmentGroups = getChartSegmentMetricGroups(leftRow, rightRow, metrics);
+      const isTrailingCarrySegment = Boolean(
+        latestActualDate
+        && rightRow.isCarriedForward
+        && leftRow.reportDate >= latestActualDate
+      );
+
+      return segmentGroups.map((group) => {
+        const y1 = toY(leftRow[group[0].key]);
+        const y2 = toY(rightRow[group[0].key]);
+
+        if (group.length === 1) {
+          return renderChartSegmentPath(
+            x1,
+            y1,
+            x2,
+            y2,
+            group[0].color,
+            group[0].strokeWidth,
+            isTrailingCarrySegment
+          );
+        }
+
+        return isTrailingCarrySegment
+          ? renderChartColoredDottedSegment(x1, y1, x2, y2, group)
+          : renderChartColoredBlockSegment(x1, y1, x2, y2, group);
+      }).join("");
+    }).join("");
+  }
+
+  function getChartSegmentMetricGroups(leftRow, rightRow, metrics) {
+    const grouped = new Map();
+
+    metrics.forEach((metric) => {
+      const leftValue = getComparableChartValue(leftRow[metric.key]);
+      const rightValue = getComparableChartValue(rightRow[metric.key]);
+      if (leftValue === null || rightValue === null) {
+        return;
+      }
+
+      const groupKey = `${leftValue}|${rightValue}`;
+      if (!grouped.has(groupKey)) {
+        grouped.set(groupKey, []);
+      }
+      grouped.get(groupKey).push(metric);
+    });
+
+    const groups = [...grouped.values()].filter((group) => group.length > 1);
+    const singles = [];
+    metrics.forEach((metric) => {
+      const isGrouped = groups.some((group) => group.includes(metric));
+      if (!isGrouped) {
+        singles.push([metric]);
+      }
+    });
+
+    return [...groups, ...singles];
+  }
+
+  function getComparableChartValue(value) {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+  }
+
+  function renderChartSegmentPath(x1, y1, x2, y2, color, strokeWidth, isDotted) {
+    return `
+      <path
+        d="M ${x1} ${y1} L ${x2} ${y2}"
+        fill="none"
+        stroke="${color}"
+        stroke-width="${strokeWidth}"
+        stroke-linecap="round"
+        ${isDotted ? 'stroke-dasharray="8 8"' : ""}
+      />
+    `;
+  }
+
+  function renderChartColoredBlockSegment(x1, y1, x2, y2, metrics) {
+    return renderChartColoredSubsegments(x1, y1, x2, y2, metrics, 10, false);
+  }
+
+  function renderChartColoredDottedSegment(x1, y1, x2, y2, metrics) {
+    return renderChartColoredSubsegments(x1, y1, x2, y2, metrics, 8, true);
+  }
+
+  function renderChartColoredSubsegments(x1, y1, x2, y2, metrics, subsegmentLength, includeGaps) {
+    const distance = Math.hypot(x2 - x1, y2 - y1);
+    const interval = includeGaps ? subsegmentLength * 2 : subsegmentLength;
+    const output = [];
+
+    for (let offset = 0, segmentIndex = 0; offset < distance; offset += interval, segmentIndex += 1) {
+      const visibleLength = Math.min(subsegmentLength, distance - offset);
+      const startRatio = offset / distance;
+      const endRatio = (offset + visibleLength) / distance;
+      const startX = x1 + (x2 - x1) * startRatio;
+      const startY = y1 + (y2 - y1) * startRatio;
+      const endX = x1 + (x2 - x1) * endRatio;
+      const endY = y1 + (y2 - y1) * endRatio;
+      const metric = metrics[segmentIndex % metrics.length];
+
+      output.push(`
+        <path
+          d="M ${startX} ${startY} L ${endX} ${endY}"
+          fill="none"
+          stroke="${metric.color}"
+          stroke-width="${metric.strokeWidth}"
+          stroke-linecap="${includeGaps ? "round" : "butt"}"
+        />
+      `);
+    }
+
+    return output.join("");
+  }
+
+  function renderChartPointSquare(x, y, color, isActive) {
+    const size = isActive ? 5.5 : 4.5;
     const fill = isActive ? color : "#fffaf6";
-    return `<polygon points="${x},${y - radius} ${x + radius},${y} ${x},${y + radius} ${x - radius},${y}" fill="${fill}" stroke="${color}" stroke-width="2.25" />`;
+    const strokeWidth = isActive ? 2.25 : 1.75;
+    return `<rect x="${x - size}" y="${y - size}" width="${size * 2}" height="${size * 2}" rx="1.5" fill="${fill}" stroke="${color}" stroke-width="${strokeWidth}" />`;
   }
 
   function renderChartLegend() {
     return `
-      <div class="chart-legend" aria-label="${escapeAttribute(getUiText("chart_legend_aria", "Price history point types"))}">
+      <div class="chart-legend" aria-label="${escapeAttribute(getUiText("chart_legend_aria", "Price history point and line types"))}">
         <span class="chart-legend-item">
           <span class="chart-legend-marker chart-legend-marker-actual" aria-hidden="true"></span>
           <span>${escapeHtml(getUiText("actual_update", "Actual update"))}</span>
@@ -3036,6 +3164,14 @@
         <span class="chart-legend-item">
           <span class="chart-legend-marker chart-legend-marker-carried" aria-hidden="true"></span>
           <span>${escapeHtml(getUiText("carried_forward", "Carried-forward price"))}</span>
+        </span>
+        <span class="chart-legend-item">
+          <span class="chart-legend-line chart-legend-line-solid" aria-hidden="true"></span>
+          <span>${escapeHtml(getUiText("actual_line", "Historical price"))}</span>
+        </span>
+        <span class="chart-legend-item">
+          <span class="chart-legend-line chart-legend-line-dotted" aria-hidden="true"></span>
+          <span>${escapeHtml(getUiText("carried_line", "Carried-forward line"))}</span>
         </span>
       </div>
     `;

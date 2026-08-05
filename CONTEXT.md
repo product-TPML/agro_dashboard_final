@@ -1,131 +1,174 @@
 # Agro Dashboard Lite Context
 
-## Overview
+## Purpose and architecture
 
-This repository is the integrated static implementation of the Namma Krishi Prices UI. It serves a browser-only dashboard from `index.html`, `app.js`, and `styles.css`, while reading prebuilt JSON payloads from `data/`.
+This repository is the static Namma Krishi Prices dashboard. It is a browser-only single-page application built with plain HTML, JavaScript, CSS, generated JSON, and local image/font assets. It is not a React, Vite, or server-rendered application.
 
-It is not a React/Vite app. The frontend is a plain JavaScript single-page experience with:
+The runtime entry point is `index.html`, which mounts the application into `#app`. `app.js` owns route state, rendering, search, filtering, localization, card expansion, and chart interactions. The browser fetches generated data files; it never queries SQLite directly.
 
-- Home page with hero search and category rails
-- Results page with cards-only commodity listings
-- Search overlay with typed suggestion states
-- Filter modal with draft/apply behavior
-- English and Kannada localization
+The active results presentation is cards-only. There are older table/layout helpers and route parameters in `app.js`, but the active `getActiveResultsLayout()` forces cards. Do not assume the table UI is enabled without deliberately reworking that code path. The README still mentions cards and tables, so it is not the authoritative description of the active result layout.
 
-## Stack
+## Main files
 
-- Plain HTML in `index.html`
-- One main browser script in `app.js`
-- One main stylesheet in `styles.css`
-- Localization strings in `translations.json`
-- Static browser payloads in `data/*.json`
-- SQLite snapshot source in `data/agro_dashboard.db`
-- Data rebuild script in `scripts/build_static_site.js`
+- `index.html` — static shell and `#app` mount point
+- `app.js` — application state, routing, rendering, interactions, search, filters, cards, and charts
+- `styles.css` — visual system, responsive layout, cards, overlays, and chart styles
+- `translations.json` — UI copy plus commodity, market, and variety translations for English/Kannada
+- `data/observations.json` — browser-ready price observations
+- `data/search-index.json` — commodity, market, and variety search index
+- `data/categories.json` — category definitions and commodity lists
+- `data/metadata.json` — generated counts and timestamp
+- `data/agro_dashboard.db` — SQLite source snapshot used only by the build script
+- `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above
+- `assets/` — UI assets, category badges, icons, fallback images, and commodity-specific thumbnails
+- `fonts/` — bundled fonts
+- `.github/workflows/deploy-pages.yml` — GitHub Pages deployment workflow
 
-## Runtime Shape
+## Current data snapshot
 
-- `index.html` mounts the app into `#app`
-- `app.js` owns routing, rendering, interaction, filtering, search, localization, and card expansion
-- The browser fetches:
-  - `translations.json`
-  - `data/search-index.json`
-  - `data/categories.json`
-  - `data/observations.json`
-- `data/metadata.json` is generated for rebuild metadata but is not the primary UI driver
+The checked-in JSON was refreshed from the SQLite snapshot on 4 August 2026. `data/metadata.json` currently reports:
 
-The app is effectively a two-view SPA:
+- 64,390 observations
+- 147 commodities
+- 178 markets
+- 367 varieties
+- generated at `2026-08-04T09:57:50.631Z`
 
-- Home view: hero, search, sticky category rail, commodity tiles
-- Results view: sticky red header, search/filter controls, applied filter summary, result cards, expandable history
+Latest report dates in this snapshot by source are:
 
-## Data Flow
+| Source | Latest report date |
+| --- | --- |
+| Krama (`krama`) | 2026-08-03 |
+| Central Silk Board (`csb_silk`) | 2026-08-03 |
+| Coffee Board (`coffee_board`) | 2026-08-03 |
+| NECC eggs (`necc_egg`) | 2026-08-04 |
+| Spices Board (`spices_board`) | 2026-07-31 |
+| Rubber Board (`rubber_board`) | 2026-07-27 |
 
-- SQLite is not queried in the browser
-- `npm run build:data` reads `data/agro_dashboard.db` and rewrites:
-  - `data/observations.json`
-  - `data/search-index.json`
-  - `data/categories.json`
-  - `data/metadata.json`
-- `app.js` normalizes those payloads and derives:
-  - search suggestions
-  - category rails
-  - results context
-  - filter options
-  - card data and history state
+`build_static_site.js` reads `data/agro_dashboard.db` and rewrites only:
 
-## Current Interaction Model
+```text
+data/observations.json
+data/search-index.json
+data/categories.json
+data/metadata.json
+```
 
-- Search works across commodity, market, and variety
-- Search from home routes into results context
-- Results page uses cards only; table layout is intentionally disabled
-- Filter modal uses draft state before apply
-- Applied filters are shown in the sticky summary row
-- Search and filter overlays lock body scroll
-- Header hides on downward scroll and reappears on upward scroll
-- Search suggestions scroll inside their own panel while page scroll stays locked
+The export normalizes report dates to `YYYY-MM-DD`, preserves source/commodity/market/variety/grade/arrival fields, and adds display-unit information. It also excludes `Egg` from the category gallery. The database WAL/SHM sidecar files are ignored by `.gitignore`.
 
-## Current UI Decisions
+## Views and navigation
 
-- Font family is Prajavani Text everywhere
-- Main header is a sticky red bar
-- Hero search behavior follows the prototype:
-  - large search field in hero
-  - header search appears only after scrolling past hero search
-- Search suggestions include empty, loading, and unavailable states
-- Result cards show market-level pricing, metadata, and expandable history
-- Empty chart state uses a neutral grey icon and message
+### Home
 
-## Filter-Specific Notes
+- Hero section with responsive background artwork and search.
+- Five category tabs: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, and Miscellaneous.
+- Category-specific commodity gallery with counts and real commodity thumbnails.
+- Selecting a commodity opens its results view.
+- The top-bar search appears after the hero search scrolls out of view.
 
-- The active filter implementation is the later `renderFilterModal()` / `renderFilterField()` path near the bottom of `app.js`
-- Filter behavior separates:
-  - applied filters in `state.filters`
-  - draft filters in `state.filterDrafts`
-- Filter section heading tones intentionally match search suggestion tones:
-  - market: gold
-  - variety: blue
-  - default/commodity-like: green
-- Filter chips are expected to follow the same field tone everywhere they appear
-- Filter chip close buttons are expected to use the red close affordance everywhere they appear
-- Selected options in the modal use the prototype-style green square checkbox with white check
+### Results
 
-## Important Files
+- Sticky red results header with home/back control and language toggle.
+- Search and filter controls, active-filter chips, and cards for the latest comparable row in each result group.
+- Cards show source, freshness status, source-specific price metrics, price delta from the previous comparable update, metadata, arrivals/units when available, latest update, and previous update.
+- “See Price History” expands an inline chart without navigating away.
+- A market navigator is available for home-origin commodity results with multiple markets; it scrolls to and briefly highlights the selected card.
+- A floating back-to-top control appears for longer card lists.
+- Empty and loading states use the bundled neutral empty-state artwork.
 
-- `app.js`: main rendering and interaction logic
-- `styles.css`: full visual system and responsive behavior
-- `translations.json`: UI, entity, and locale copy
-- `scripts/build_static_site.js`: rebuilds browser data from SQLite
+## Search and filters
 
-## Commands
+Search is local and uses `data/search-index.json`.
+
+- Searches commodity, market, and variety names.
+- Suggestions require at least three characters and show the matched entity type and context.
+- Matching text is highlighted.
+- The overlay has idle, loading, ready, empty, unavailable, and retry states.
+- Selecting a commodity, market, or variety creates a URL-backed results route.
+- A commodity selected from a market suggestion keeps the market context and changes the card presentation accordingly.
+
+Filters are cascading and multi-select where the current result context supports the field. The modal keeps draft selections separate from applied selections, constrains options to valid combinations, supports option search, clear/apply actions, and exposes applied values as removable chips. Search, filter, and market-jump overlays lock body scrolling and preserve relevant input/scroll state while rendering.
+
+## Price and history behavior
+
+Price display is source-aware rather than one universal three-price layout:
+
+- Standard Krama rows use max, modal, and min prices.
+- Coffee rows use max/min prices.
+- Silk rows use max/average/min prices.
+- NECC egg, Spices Board, and Rubber Board rows use one canonical price.
+- Labels and units are derived from the row/source data, including quintal, kg, 50 kg, 100 kg, 100 pieces, and piece-style units.
+
+Price deltas compare the displayed row against the previous comparable actual database update. History is rendered as custom responsive inline SVG; no chart library is used. The chart supports the relevant one-, two-, or three-metric price series, hover/click date selection, an active-point summary, horizontal scrolling, responsive summary layouts, and an explanatory trend note.
+
+### Missing-date chart points
+
+The chart now includes calendar dates with no database update through the browser’s local current date:
+
+- Perishable commodities use a normal seven-day window.
+- Other commodities use a normal 30-day window.
+- An actual update is shown with a circular marker.
+- A missing date after an actual update is forward-filled from the last actual price and shown with a diamond marker.
+- The legend, point tooltip, and selected-date summary distinguish “Actual update” from “Carried-forward price” and identify the source report date.
+- Forward-filled rows are derived in memory only; they are not written to JSON or SQLite.
+- For stale data, the chart extends backwards from the latest actual point far enough to provide the normal window, then carries the price forward to today.
+
+## Localization and visual system
+
+- English and Kannada are supported.
+- The selected locale is stored in `localStorage` under `commodity-dashboard-locale`.
+- UI labels and entity names are translated through `translations.json`; the document `lang` and `data-locale` attributes are updated at runtime.
+- Prajavani Text is the primary font family.
+- The UI uses the red sticky header, green category/selection accents, field-specific filter tones, responsive cards, and bundled prototype artwork.
+- Commodity thumbnails are mapped explicitly in `BAKED_COMMODITY_THUMBS`; new commodity names need a corresponding asset/mapping or an intentional fallback.
+
+## Local development
+
+Install the build dependency once:
+
+```bash
+npm install
+```
+
+Run syntax checks:
 
 ```bash
 npm run check
+```
+
+Refresh the browser JSON from the checked-in SQLite snapshot:
+
+```bash
 npm run build:data
 ```
 
-For local viewing, the repo can be served as static files. In this workspace it was being served from:
+Serve the repository over HTTP; do not open `index.html` directly because the browser `fetch()` calls need an HTTP origin. For example:
 
-```text
-http://127.0.0.1:4173
+```bash
+python -m http.server 4173
 ```
 
-## Known Constraints
+Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-- Most logic lives in one large `app.js` file
-- There are legacy render/style paths in the file from earlier iterations; the later render functions near the bottom are the active ones for the current UI
-- Visual regressions often come from updating one render path but missing another duplicated helper path
-- There is no framework-level state management, routing library, or component system
+## GitHub Pages deployment
 
-## Recommended Caution Areas
+The repository is intended to deploy from the `main` branch using GitHub Actions:
 
-- When changing filter UI, update both:
-  - initial modal render markup
-  - any helper that re-renders chips/options after interaction
-- When changing chip colors, verify:
-  - modal draft chips
-  - applied filter summary chips
-  - hover states
-- When changing search UI, verify:
-  - home hero search
-  - floating overlay search
-  - locked page scroll behavior
+- In repository Settings → Pages, set the source to **GitHub Actions**.
+- `.github/workflows/deploy-pages.yml` runs on pushes to `main` or manually, uploads the repository root as the Pages artifact, and deploys it.
+- `index.html` must remain at the repository root.
+- The suggested “Static HTML” workflow is an alternative, not something to run alongside the existing custom workflow; duplicate workflows can cause confusing deployments.
+- A `configure-pages` 404 means Pages has not been enabled/configured for the repository yet. Enable Pages with GitHub Actions selected, then rerun the workflow.
+- No Node build step is required for deployment because the checked-in site is already static.
+
+## Known constraints and caution areas
+
+- Most application logic is in one large `app.js` file.
+- `app.js` contains duplicate/legacy render and helper paths from earlier iterations. Later function declarations are the active ones; changing an earlier duplicate may have no visible effect.
+- There is no framework-level state manager, routing library, component system, automated browser test suite, or chart dependency.
+- The app depends on relative paths, so GitHub Pages/base-path changes should be tested with the deployed repository URL.
+- Updating data requires keeping the JSON files, search index, categories, and metadata generated from the same SQLite snapshot.
+- When changing chart behavior, keep actual and forward-filled rows distinguishable and do not persist derived carry-forward dates.
+- When changing filters or search, verify both the initial markup and the post-interaction rerender paths, plus body-scroll locking and input/scroll restoration.
+- When changing commodity imagery, update both the asset file and the `BAKED_COMMODITY_THUMBS` mapping, then test every category rail.
+- `npm run check` performs syntax checks only; it does not validate data shape, visual regressions, or deployment.

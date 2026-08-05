@@ -318,8 +318,16 @@
       "kn": "ಇದರ ಬೆಲೆಯನ್ನು ಮುಂದುವರಿಸಲಾಗಿದೆ"
     },
     "chart_legend_aria": {
-      "en": "Price history point types",
+      "en": "Price history point and line types",
       "kn": "ಬೆಲೆ ಇತಿಹಾಸದ ಬಿಂದುಗಳ ವಿಧಗಳು"
+    },
+    "actual_line": {
+      "en": "Historical price",
+      "kn": "à²¹à²¿à²‚à²¦à²¿à²¨ à²¬à³†à²²à³†"
+    },
+    "carried_line": {
+      "en": "Carried-forward line",
+      "kn": "à²®à³à²‚à²¦à³à²µà²°à²¿à²¸à²¿à²¦ à²²à³ˆà²¨à³"
     },
     "max_short": {
       "en": "Max",
