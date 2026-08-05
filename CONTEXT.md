@@ -72,7 +72,9 @@ The export normalizes report dates to `YYYY-MM-DD`, preserves source/commodity/m
 - Search and filter controls, active-filter chips, and cards for the latest comparable row in each result group.
 - Cards show source, freshness status, source-specific price metrics, price delta from the previous comparable update, metadata, arrivals/units when available, latest update, and previous update.
 - “See Price History” expands an inline chart without navigating away.
-- A market navigator is available for home-origin commodity results with multiple markets; it scrolls to and briefly highlights the selected card.
+- Results are sorted by latest report date, newest first. Rows with the same report date retain the existing contextual commodity/market/variety ordering; rows without a valid report date are placed last.
+- Freshness badges are calculated from the browser's current local date: 0-2 days is "Recently updated," 3-7 days is "Updated this week," and anything older (or invalid/missing) is "Older update." There are no commodity-specific freshness exceptions.
+- A market navigator is available in card-based home-origin commodity results and variety search results when more than one market is visible; it scrolls to and briefly highlights the selected card. It is hidden for single-market results and non-card layouts.
 - A floating back-to-top control appears for longer card lists.
 - Empty and loading states use the bundled neutral empty-state artwork.
 
@@ -112,6 +114,15 @@ The chart now includes calendar dates with no database update through the browse
 - The legend, point tooltip, and selected-date summary distinguish “Actual update” from “Carried-forward price” and identify the source report date.
 - Forward-filled rows are derived in memory only; they are not written to JSON or SQLite.
 - For stale data, the chart extends backwards from the latest actual point far enough to provide the normal window, then carries the price forward to today.
+
+### Chart line and mobile presentation
+
+- Historical segments are solid, including modal-price lines.
+- From the latest actual report date through today, carried-forward segments use a dashed/dotted treatment while historical segments remain solid.
+- When two or more metrics share the same segment values, the segment is rendered as sequential metric-colored subsegments so overlapping max/modal/min lines remain distinguishable. Carried-forward overlapping segments retain the gaps of the dotted treatment.
+- Actual update points use circles; carried-forward points use squares. Active markers are emphasized, and circles are intentionally larger/heavier than carried-forward squares for mobile readability.
+- On narrow screens, the selected date stays on one line at the right edge of the summary panel. The summary and chart use the full available card width, while the chart itself remains horizontally scrollable.
+- The chart legend and selected-date summary identify actual versus carried-forward points, and carried-forward selections identify the source report date.
 
 ## Localization and visual system
 
@@ -169,6 +180,7 @@ The repository is intended to deploy from the `main` branch using GitHub Actions
 - The app depends on relative paths, so GitHub Pages/base-path changes should be tested with the deployed repository URL.
 - Updating data requires keeping the JSON files, search index, categories, and metadata generated from the same SQLite snapshot.
 - When changing chart behavior, keep actual and forward-filled rows distinguishable and do not persist derived carry-forward dates.
+- When changing chart rendering, preserve solid historical lines, the dotted carried-forward tail, overlap color sequencing, marker hierarchy, full-width mobile layout, and horizontal scroll anchoring.
 - When changing filters or search, verify both the initial markup and the post-interaction rerender paths, plus body-scroll locking and input/scroll restoration.
 - When changing commodity imagery, update both the asset file and the `BAKED_COMMODITY_THUMBS` mapping, then test every category rail.
 - `npm run check` performs syntax checks only; it does not validate data shape, visual regressions, or deployment.

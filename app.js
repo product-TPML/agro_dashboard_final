@@ -7,7 +7,6 @@
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
   const SEARCH_INPUT_DEBOUNCE_MS = 120;
   const SEARCH_MIN_QUERY_LENGTH = 3;
-  const FRESH_STATUS_PREVIEW_COMMODITY = "Arecanut";
   const PRICE_COLORS = {
     max: "#1E3A8A",
     min: "#C2410C",
@@ -1055,6 +1054,12 @@
       && route.origin === "home";
   }
 
+  function isVarietyResultsView(route = state.route) {
+    return route.view === "table"
+      && route.type === "variety"
+      && !route.market;
+  }
+
   function pickPreferredRepresentativeRow(existing, candidate) {
     if (!existing) {
       return candidate;
@@ -1102,9 +1107,9 @@
     });
 
     const sortedRows = [...latestRows.values()].sort((left, right) => {
-      const deltaCompare = getRowSortPriceDelta(right) - getRowSortPriceDelta(left);
-      if (deltaCompare !== 0) {
-        return deltaCompare;
+      const reportDateCompare = compareRowsByLatestReportDate(left, right);
+      if (reportDateCompare !== 0) {
+        return reportDateCompare;
       }
 
       return compareRowsForCurrentView(left, right);
@@ -1143,10 +1148,21 @@
     return left.grade.localeCompare(right.grade);
   }
 
-  function getRowSortPriceDelta(row) {
-    const previousRow = getPreviousComparableRow(row);
-    const delta = getPreviousPriceDelta(row, getCanonicalPriceKey(row), previousRow);
-    return Number.isFinite(delta) ? delta : Number.NEGATIVE_INFINITY;
+  function compareRowsByLatestReportDate(left, right) {
+    const leftDate = normalizeReportDateValue(left.reportDate);
+    const rightDate = normalizeReportDateValue(right.reportDate);
+
+    if (leftDate && !rightDate) {
+      return -1;
+    }
+    if (!leftDate && rightDate) {
+      return 1;
+    }
+    if (leftDate === rightDate) {
+      return 0;
+    }
+
+    return rightDate.localeCompare(leftDate);
   }
 
   function buildLatestRowGroupKey(row) {
@@ -2144,7 +2160,7 @@
   }
 
   function canRenderMarketJump(rows) {
-    return isHomeCommodityResultsView()
+    return (isHomeCommodityResultsView() || isVarietyResultsView())
       && getActiveResultsLayout() === "cards"
       && getMarketJumpTargets(rows).length > 1;
   }
@@ -5267,7 +5283,7 @@
     const presentation = getCardPresentation(row);
     const previousRow = getPreviousComparableRow(row);
     const priceColumns = getRowPriceProfile(row).columns;
-    const freshnessMeta = getFreshnessMeta(row.reportDate, row);
+    const freshnessMeta = getFreshnessMeta(row.reportDate);
     const detailEntries = buildCardDetailEntries(row, previousRow, presentation);
 
     return `
@@ -5437,12 +5453,9 @@
     return raw.split(" ").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
   }
 
-  function getFreshnessMeta(reportDate, row = null) {
-    if (row && row.commodity === FRESH_STATUS_PREVIEW_COMMODITY) {
-      return { tone: "fresh", label: "Recently updated" };
-    }
-
-    const now = new Date("2026-07-17T00:00:00");
+  function getFreshnessMeta(reportDate) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
     const then = new Date(`${normalizeReportDateValue(reportDate)}T00:00:00`);
     const diffDays = Number.isNaN(then.getTime()) ? 999 : Math.max(0, Math.floor((now.getTime() - then.getTime()) / 86400000));
 
