@@ -53,6 +53,14 @@
       "en": "Grains and Pulses",
       "kn": "ಧಾನ್ಯಗಳು ಮತ್ತು ಬೇಳೆಕಾಳುಗಳು"
     },
+    "category_spices": {
+      "en": "Spices",
+      "kn": "ಮಸಾಲೆಗಳು"
+    },
+    "category_livestock_and_poultry": {
+      "en": "Livestock and Poultry",
+      "kn": "ಜಾನುವಾರು ಮತ್ತು ಕೋಳಿ"
+    },
     "category_miscellaneous": {
       "en": "Miscellaneous",
       "kn": "ಇತರೇ"
@@ -582,6 +590,10 @@
     "Ginger": {
       "en": "Ginger",
       "kn": "ಶುಂಠಿ"
+    },
+    "Egg": {
+      "en": "Egg",
+      "kn": "ಮೊಟ್ಟೆ"
     },
     "Goat (For Each)": {
       "en": "Goat (For Each)",

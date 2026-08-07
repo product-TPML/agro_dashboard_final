@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260724-2";
+  const APP_DATA_VERSION = "20260806-1";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -24,6 +24,9 @@
     grains_and_pulses: "🌾",
     miscellaneous: "🧺",
   };
+  CATEGORY_ICONS.spices = "\u{1F336}\uFE0F";
+  CATEGORY_ICONS.livestock_and_poultry = "\u{1F404}";
+
   const COMMODITY_ICONS = {
     Apple: "🍎",
     Banana: "🍌",
@@ -252,6 +255,10 @@
     suggestionVariety: "./assets/suggestion-variety.svg",
   };
 
+  ASSETS.categorySpicesBadge = "./assets/category-spices-badge.png";
+  ASSETS.categoryLivestockPoultryBadge = "./assets/category-livestock-poultry-badge.png";
+  ASSETS.eggThumb = "./assets/egg-thumb-real.png";
+
   const CATEGORY_TAB_THUMBS = {
     fruits: ASSETS.categoryFruitsBadge,
     vegetables: ASSETS.categoryVegetablesBadge,
@@ -259,6 +266,9 @@
     grains_and_pulses: ASSETS.categoryGrainsPulsesBadge,
     miscellaneous: ASSETS.categoryMiscBadge,
   };
+
+  CATEGORY_TAB_THUMBS.spices = ASSETS.categorySpicesBadge;
+  CATEGORY_TAB_THUMBS.livestock_and_poultry = ASSETS.categoryLivestockPoultryBadge;
 
   const BAKED_COMMODITY_THUMBS = {
     Apple: ASSETS.appleThumb,
@@ -405,6 +415,9 @@
     Soapnut: ASSETS.soapnutThumb,
     Turmeric: ASSETS.turmericThumb,
   };
+
+  BAKED_COMMODITY_THUMBS.Egg = ASSETS.eggThumb;
+  COMMODITY_ICONS.Egg = "\u{1F95A}";
 
   const state = {
     route: parseRoute(),

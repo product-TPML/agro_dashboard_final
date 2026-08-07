@@ -14,6 +14,28 @@ const SOURCE_PRICE_DISPLAY_UNITS = {
   rubber_board: "per 100 kg",
 };
 
+const CATEGORY_OVERRIDES = {
+  Clove: "spices",
+  "Dry Chillies": "spices",
+  Mace: "spices",
+  Nutmeg: "spices",
+  Pepper: "spices",
+  Turmeric: "spices",
+  "Bull (For Each)": "livestock_and_poultry",
+  "Calf (For Each)": "livestock_and_poultry",
+  "Cow (For Each)": "livestock_and_poultry",
+  "Goat (For Each)": "livestock_and_poultry",
+  "He Baffalo (For Each)": "livestock_and_poultry",
+  Egg: "livestock_and_poultry",
+  "Ox (For Each)": "livestock_and_poultry",
+  "Ram (For Each)": "livestock_and_poultry",
+  "She Baffalo (For Each)": "livestock_and_poultry",
+  "She Goat (For Each)": "livestock_and_poultry",
+  "Sheep (For Each)": "livestock_and_poultry",
+  Bullar: "grains_and_pulses",
+  Sajje: "grains_and_pulses",
+};
+
 function main() {
   if (!fs.existsSync(DB_PATH)) {
     throw new Error(`Database not found: ${DB_PATH}`);
@@ -116,6 +138,8 @@ function buildCategoryData(db) {
     { id: "vegetables", label: "Vegetables" },
     { id: "nuts_and_seeds", label: "Nuts and Seeds" },
     { id: "grains_and_pulses", label: "Grains and Pulses" },
+    { id: "spices", label: "Spices" },
+    { id: "livestock_and_poultry", label: "Livestock and Poultry" },
     { id: "miscellaneous", label: "Miscellaneous" },
   ];
   const rows = db.prepare(`
@@ -129,13 +153,14 @@ function buildCategoryData(db) {
   const grouped = new Map();
 
   rows.forEach((row) => {
-    if (!row.category || row.commodity === "Egg") {
+    const category = CATEGORY_OVERRIDES[row.commodity] || row.category;
+    if (!category) {
       return;
     }
-    if (!grouped.has(row.category)) {
-      grouped.set(row.category, []);
+    if (!grouped.has(category)) {
+      grouped.set(category, []);
     }
-    grouped.get(row.category).push(row.commodity);
+    grouped.get(category).push(row.commodity);
   });
 
   return {

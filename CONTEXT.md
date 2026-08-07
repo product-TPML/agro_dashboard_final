@@ -19,8 +19,8 @@ The active results presentation is cards-only. There are older table/layout help
 - `data/categories.json` — category definitions and commodity lists
 - `data/metadata.json` — generated counts and timestamp
 - `data/agro_dashboard.db` — SQLite source snapshot used only by the build script
-- `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above
-- `assets/` — UI assets, category badges, icons, fallback images, and commodity-specific thumbnails
+- `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above and applies the dashboard category overrides
+- `assets/` — UI assets, category badges, icons, fallback images, and commodity-specific thumbnails, including `category-spices-badge.png`, `category-livestock-poultry-badge.png`, and `egg-thumb-real.png`
 - `fonts/` — bundled fonts
 - `.github/workflows/deploy-pages.yml` — GitHub Pages deployment workflow
 
@@ -54,17 +54,27 @@ data/categories.json
 data/metadata.json
 ```
 
-The export normalizes report dates to `YYYY-MM-DD`, preserves source/commodity/market/variety/grade/arrival fields, and adds display-unit information. It also excludes `Egg` from the category gallery. The database WAL/SHM sidecar files are ignored by `.gitignore`.
+The export normalizes report dates to `YYYY-MM-DD`, preserves source/commodity/market/variety/grade/arrival fields, and adds display-unit information. Category generation applies explicit overrides for the dashboard taxonomy and includes `Egg` in the category gallery. The database WAL/SHM sidecar files are ignored by `.gitignore`.
+
+The checked-in browser payload remains the 4 August 2026 snapshot above. On 6 August 2026, a full rebuild from the checked-in SQLite file produced 51,456 observations and 360 varieties instead of the checked-in 64,390 observations and 367 varieties, so do not run `npm run build:data` casually until the source/data snapshot discrepancy is resolved. The category override logic is still kept in the build script so future intentional rebuilds preserve the new taxonomy.
 
 ## Views and navigation
 
 ### Home
 
 - Hero section with responsive background artwork and search.
-- Five category tabs: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, and Miscellaneous.
+- Seven category tabs, in order: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, Spices, Livestock and Poultry, and Miscellaneous.
 - Category-specific commodity gallery with counts and real commodity thumbnails.
 - Selecting a commodity opens its results view.
 - The top-bar search appears after the hero search scrolls out of view.
+
+The current category assignments are:
+
+- `spices`: `Clove`, `Dry Chillies`, `Mace`, `Nutmeg`, `Pepper`, and `Turmeric`
+- `livestock_and_poultry`: `Bull (For Each)`, `Calf (For Each)`, `Cow (For Each)`, `Egg`, `Goat (For Each)`, `He Baffalo (For Each)`, `Ox (For Each)`, `Ram (For Each)`, `She Baffalo (For Each)`, `She Goat (For Each)`, and `Sheep (For Each)`
+- `grains_and_pulses` additionally contains `Bullar` and `Sajje`
+
+The repository preserves these canonical source names, including the existing `He Baffalo (For Each)` and `She Baffalo (For Each)` spellings, for search, filters, translations, assets, and URL compatibility.
 
 ### Results
 
@@ -131,7 +141,8 @@ The chart now includes calendar dates with no database update through the browse
 - UI labels and entity names are translated through `translations.json`; the document `lang` and `data-locale` attributes are updated at runtime.
 - Prajavani Text is the primary font family.
 - The UI uses the red sticky header, green category/selection accents, field-specific filter tones, responsive cards, and bundled prototype artwork.
-- Commodity thumbnails are mapped explicitly in `BAKED_COMMODITY_THUMBS`; new commodity names need a corresponding asset/mapping or an intentional fallback.
+- Commodity thumbnails are mapped explicitly in `BAKED_COMMODITY_THUMBS`; `Egg` uses `assets/egg-thumb-real.png`. New commodity names need a corresponding asset/mapping or an intentional fallback.
+- Category rail badges are mapped explicitly in `CATEGORY_TAB_THUMBS`; the new Spices and Livestock and Poultry categories use dedicated generated badges.
 
 ## Local development
 
@@ -153,13 +164,15 @@ Refresh the browser JSON from the checked-in SQLite snapshot:
 npm run build:data
 ```
 
-Serve the repository over HTTP; do not open `index.html` directly because the browser `fetch()` calls need an HTTP origin. For example:
+Serve the repository over HTTP; do not open `index.html` directly because the browser `fetch()` calls need an HTTP origin. With Node/npm available, use:
 
 ```bash
-python -m http.server 4173
+npx --yes http-server . -p 4173
 ```
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
+
+Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 
 ## GitHub Pages deployment
 
@@ -178,7 +191,8 @@ The repository is intended to deploy from the `main` branch using GitHub Actions
 - `app.js` contains duplicate/legacy render and helper paths from earlier iterations. Later function declarations are the active ones; changing an earlier duplicate may have no visible effect.
 - There is no framework-level state manager, routing library, component system, automated browser test suite, or chart dependency.
 - The app depends on relative paths, so GitHub Pages/base-path changes should be tested with the deployed repository URL.
-- Updating data requires keeping the JSON files, search index, categories, and metadata generated from the same SQLite snapshot.
+- Updating data requires keeping the JSON files, search index, categories, and metadata generated from the same SQLite snapshot. The checked-in JSON currently intentionally preserves a newer snapshot than the checked-in SQLite export; resolve that discrepancy before performing a full data refresh.
+- Category reassignments must be made through `CATEGORY_OVERRIDES` in `scripts/build_static_site.js` and reflected in `data/categories.json`; do not edit only the generated category JSON if the change should survive a future rebuild.
 - When changing chart behavior, keep actual and forward-filled rows distinguishable and do not persist derived carry-forward dates.
 - When changing chart rendering, preserve solid historical lines, the dotted carried-forward tail, overlap color sequencing, marker hierarchy, full-width mobile layout, and horizontal scroll anchoring.
 - When changing filters or search, verify both the initial markup and the post-interaction rerender paths, plus body-scroll locking and input/scroll restoration.
