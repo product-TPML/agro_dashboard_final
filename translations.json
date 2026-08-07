@@ -9,6 +9,22 @@
       "en": "Namma Krishi Prices",
       "kn": "ನಮ್ಮ ಕೃಷಿ ಬೆಲೆಗಳು"
     },
+    "share_card": {
+      "en": "Share",
+      "kn": "ಹಂಚಿಕೊಳ್ಳಿ"
+    },
+    "copy_link": {
+      "en": "Copy link",
+      "kn": "ಲಿಂಕ್ ನಕಲಿಸಿ"
+    },
+    "link_copied": {
+      "en": "Link copied",
+      "kn": "ಲಿಂಕ್ ನಕಲಿಸಲಾಗಿದೆ"
+    },
+    "unable_to_share": {
+      "en": "Unable to share or copy the link",
+      "kn": "ಹಂಚಿಕೊಳ್ಳಲು ಅಥವಾ ನಕಲಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ"
+    },
     "home_intro": {
       "en": "Use the search bar to search for prices of commodities, markets, or varieties of your choice. Use filters to narrow down your search.",
       "kn": "ನಿಮ್ಮ ಆಯ್ಕೆಯ ಸರಕುಗಳು, ಮಾರುಕಟ್ಟೆಗಳು ಅಥವಾ ತಳಿಗಳ ಬೆಲೆಗಳನ್ನು ಹುಡುಕಲು ಹುಡುಕಾಟ ಪಟ್ಟಿಯನ್ನು ಬಳಸಿ. ನಿಮ್ಮ ಹುಡುಕಾಟವನ್ನು ಸುಗಮಗೊಳಿಸಲು ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಬಳಸಿ."

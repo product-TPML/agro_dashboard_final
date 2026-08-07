@@ -17,6 +17,10 @@ The hosted dashboard includes:
 
 The map and scraper workflows are intentionally excluded.
 
+## Social previews
+
+`index.html` provides one static Open Graph/Twitter preview image at `assets/OG Image.png`. Because this is a client-only SPA, social crawlers cannot receive card-specific server-rendered previews unless the deployment later adds pre-rendered pages. The image must be deployed at the same public site URL; it does not need a separate image host.
+
 ## Rebuild Static Data
 
 Install the only build dependency and regenerate the browser payloads:

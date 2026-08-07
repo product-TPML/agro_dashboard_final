@@ -1,10 +1,11 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260806-1";
+  const APP_DATA_VERSION = "20260807-5";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
+  const CARD_TARGET_HIGHLIGHT_DURATION_MS = 2200;
   const SEARCH_INPUT_DEBOUNCE_MS = 120;
   const SEARCH_MIN_QUERY_LENGTH = 3;
   const PRICE_COLORS = {
@@ -419,8 +420,9 @@
   BAKED_COMMODITY_THUMBS.Egg = ASSETS.eggThumb;
   COMMODITY_ICONS.Egg = "\u{1F95A}";
 
+  const initialRoute = parseRoute();
   const state = {
-    route: parseRoute(),
+    route: initialRoute,
     query: "",
     suggestions: [],
     context: null,
@@ -463,6 +465,8 @@
     cachedVisibleRows: [],
     cachedFilterOptions: {},
     cachedMarketCommodityLookup: null,
+    cardTargetAppliedKey: "",
+    shareFeedback: null,
   };
 
   let filterHintTimer = null;
@@ -475,6 +479,8 @@
   let topbarVisibilityCleanup = null;
   let lockedBodyScrollY = null;
   let marketJumpHighlightTimer = null;
+  let cardTargetHighlightTimer = null;
+  let shareFeedbackTimer = null;
 
   document.addEventListener("click", handleDocumentClick);
   window.addEventListener("popstate", handlePopState);
@@ -600,6 +606,7 @@
       market: params.get("market") || "",
       variety: params.get("variety") || "",
       origin: params.get("origin") || "",
+      card: params.get("card") || "",
     };
   }
 
@@ -620,6 +627,9 @@
       }
       if (route.origin) {
         params.set("origin", route.origin);
+      }
+      if (route.card) {
+        params.set("card", route.card);
       }
     }
     const query = params.toString();
@@ -646,6 +656,7 @@
     state.shouldPrimeExpandedHistory = false;
     state.activeChartDate = null;
     state.expandedRowKey = null;
+    state.cardTargetAppliedKey = "";
     state.suggestions = [];
     invalidateDerivedDataCaches();
     if (route.view === "table") {
@@ -678,6 +689,7 @@
     state.shouldPrimeExpandedHistory = false;
     state.activeChartDate = null;
     state.expandedRowKey = null;
+    state.cardTargetAppliedKey = "";
     state.suggestions = [];
     invalidateDerivedDataCaches();
     if (state.route.view === "table") {
@@ -1665,6 +1677,7 @@
           </section>
         </main>
         ${renderFilterModal()}
+        ${renderShareFeedback()}
       </div>
     `;
 
@@ -2276,6 +2289,18 @@
             <button type="button" class="clear-button filter-apply-button" data-apply-filter-drafts="true">${escapeHtml(getUiText("apply_filters", "Apply Filters"))}</button>
           </div>
         </section>
+      </div>
+    `;
+  }
+
+  function renderShareFeedback() {
+    if (!state.shareFeedback) {
+      return "";
+    }
+
+    return `
+      <div class="share-feedback share-feedback-${escapeAttribute(state.shareFeedback.tone || "success")}" role="status" aria-live="polite">
+        ${escapeHtml(state.shareFeedback.message)}
       </div>
     `;
   }
@@ -3392,6 +3417,17 @@
       button.addEventListener("click", clearFilterDrafts);
     });
 
+    document.querySelectorAll("[data-share-card]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = getRowsForCurrentView().find((candidate) => candidate.rowKey === button.dataset.shareCard);
+        if (row) {
+          shareResultCard(row);
+        }
+      });
+    });
+
     document.querySelectorAll("[data-toggle-history]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -3560,6 +3596,8 @@
       updateTableWrapHeight();
     }
 
+    syncCardTarget();
+
     if (state.isSearchOpen) {
       const searchInput = document.querySelector("[data-search-autofocus='true']");
       if (searchInput && document.activeElement !== searchInput) {
@@ -3568,6 +3606,53 @@
         searchInput.setSelectionRange(length, length);
       }
     }
+  }
+
+  function syncCardTarget() {
+    const targetKey = state.route.card;
+    if (state.route.view !== "table" || !state.context || !targetKey || state.cardTargetAppliedKey === targetKey) {
+      return;
+    }
+
+    const target = [...document.querySelectorAll("[data-row-key]")]
+      .find((node) => node.dataset.rowKey === targetKey);
+    state.cardTargetAppliedKey = targetKey;
+    if (!target) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      if (state.route.card !== targetKey || !document.body.contains(target)) {
+        return;
+      }
+
+      const topbar = document.querySelector(".topbar");
+      const toolbar = document.querySelector(".results-toolbar");
+      const topInset = Math.ceil((topbar ? topbar.getBoundingClientRect().height : 0)
+        + (toolbar ? toolbar.getBoundingClientRect().height : 0) + 16);
+      const bottomInset = 16;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const availableHeight = Math.max(0, viewportHeight - topInset - bottomInset);
+      const targetHeight = target.getBoundingClientRect().height;
+      const targetViewportTop = targetHeight <= availableHeight
+        ? topInset + Math.max(0, (availableHeight - targetHeight) / 2)
+        : topInset;
+      const targetTop = target.getBoundingClientRect().top + window.scrollY - targetViewportTop;
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        left: 0,
+        behavior: "smooth",
+      });
+      target.classList.add("card-target-highlight");
+      if (cardTargetHighlightTimer !== null) {
+        window.clearTimeout(cardTargetHighlightTimer);
+      }
+      cardTargetHighlightTimer = window.setTimeout(() => {
+        target.classList.remove("card-target-highlight");
+        cardTargetHighlightTimer = null;
+      }, CARD_TARGET_HIGHLIGHT_DURATION_MS);
+    });
   }
 
   function syncPageOverlayLock() {
@@ -4770,6 +4855,7 @@
         ${renderSearchOverlay()}
         ${renderFilterModal()}
         ${renderMarketJumpModal(rows)}
+        ${renderShareFeedback()}
       </div>
     `;
 
@@ -5307,6 +5393,14 @@
             <div class="card-title-stack">
               <h3>${escapeHtml(presentation.titleValue)}</h3>
             </div>
+            <button type="button" class="card-share-button" data-share-card="${escapeAttribute(row.rowKey)}" aria-label="${escapeAttribute(getUiText("share_card", "Share"))}">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8.5 12.1 15.3 8.2M8.5 13.9l6.8 3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                <circle cx="6" cy="13" r="3" fill="#fff" stroke="currentColor" stroke-width="2"></circle>
+                <circle cx="18" cy="6.5" r="3" fill="#fff" stroke="currentColor" stroke-width="2"></circle>
+                <circle cx="18" cy="19.5" r="3" fill="#fff" stroke="currentColor" stroke-width="2"></circle>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -5346,6 +5440,125 @@
         </button>
       </article>
     `;
+  }
+
+  function buildCardShareUrl(row) {
+    const route = {
+      ...state.route,
+      view: "table",
+      layout: "cards",
+      card: row.rowKey,
+    };
+    return new URL(buildRouteUrl(route), window.location.href).href;
+  }
+
+  function getCardSharePrice(row) {
+    const firstColumn = getRowPriceProfile(row).columns[0];
+    return firstColumn ? formatCurrencyDisplay(row[firstColumn.key]) : "-";
+  }
+
+  function getCardSharePayload(row) {
+    const commodity = translateEntity("commodity", row.commodity);
+    const market = translateEntity("market", row.market);
+    const context = getResultsHeadingText() || commodity || market;
+    const title = `${getUiText("app_title", "Namma Krishi Prices")}: ${context}`;
+    const textParts = [commodity, market];
+    if (row.variety && state.context && state.context.type === "variety") {
+      textParts.push(translateEntity("variety", row.variety));
+    }
+    textParts.push(getCardSharePrice(row));
+    return {
+      title,
+      text: textParts.filter(Boolean).join(" · "),
+      url: buildCardShareUrl(row),
+    };
+  }
+
+  async function shareResultCard(row) {
+    const payload = getCardSharePayload(row);
+    let nativeShareFailed = false;
+
+    if (navigator.share) {
+      try {
+        await navigator.share(payload);
+        return;
+      } catch (error) {
+        if (error && (error.name === "AbortError" || error.code === 20)) {
+          return;
+        }
+        nativeShareFailed = true;
+      }
+    }
+
+    if (!navigator.share || nativeShareFailed) {
+      const copied = await copyTextToClipboard(payload.url);
+      setShareFeedback(copied
+        ? { tone: "success", message: getUiText("link_copied", "Link copied") }
+        : { tone: "error", message: getUiText("unable_to_share", "Unable to share or copy the link") });
+    }
+  }
+
+  async function copyTextToClipboard(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (error) {
+        // Continue with the legacy fallback when Clipboard API access is denied.
+      }
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    let copied = false;
+    try {
+      copied = typeof document.execCommand === "function" && document.execCommand("copy");
+    } catch (error) {
+      copied = false;
+    }
+    textarea.remove();
+    return copied;
+  }
+
+  function setShareFeedback(feedback) {
+    if (shareFeedbackTimer !== null) {
+      window.clearTimeout(shareFeedbackTimer);
+      shareFeedbackTimer = null;
+    }
+    state.shareFeedback = feedback;
+    syncShareFeedbackNode();
+    shareFeedbackTimer = window.setTimeout(() => {
+      state.shareFeedback = null;
+      shareFeedbackTimer = null;
+      const feedbackNode = document.querySelector(".share-feedback");
+      if (feedbackNode) {
+        feedbackNode.remove();
+      }
+      scheduleRender();
+    }, 2600);
+  }
+
+  function syncShareFeedbackNode() {
+    if (!state.shareFeedback) {
+      return;
+    }
+
+    let feedbackNode = document.querySelector(".share-feedback");
+    if (!feedbackNode) {
+      feedbackNode = document.createElement("div");
+      feedbackNode.setAttribute("role", "status");
+      feedbackNode.setAttribute("aria-live", "polite");
+      document.body.appendChild(feedbackNode);
+    }
+    feedbackNode.className = `share-feedback share-feedback-${state.shareFeedback.tone || "success"}`;
+    feedbackNode.textContent = state.shareFeedback.message;
   }
 
   function getCardTitleIcon(titleKind, commodity) {
