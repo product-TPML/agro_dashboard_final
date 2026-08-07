@@ -22,6 +22,7 @@ The active results presentation is cards-only. There are older table/layout help
 - `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above and applies the dashboard category overrides
 - `assets/` — UI assets, category badges, icons, fallback images, and commodity-specific thumbnails, including `category-spices-badge.png`, `category-livestock-poultry-badge.png`, and `egg-thumb-real.png`
 - `fonts/` — bundled fonts
+- `assets/OG Image.png` — static Open Graph/Twitter preview image
 - `.github/workflows/deploy-pages.yml` — GitHub Pages deployment workflow
 
 ## Current data snapshot
@@ -88,6 +89,14 @@ The repository preserves these canonical source names, including the existing `H
 - A floating back-to-top control appears for longer card lists.
 - Empty and loading states use the bundled neutral empty-state artwork.
 
+### Card sharing and deep links
+
+- Every active result card has an accessible Share button in the card header. Native `navigator.share()` is preferred; unsupported or failed native-share flows fall back to Clipboard API copying and then a textarea/legacy copy fallback.
+- Share payloads include a localized results-context title, concise commodity/market/price text, and a canonical URL containing the exact card `rowKey` in the `card` query parameter.
+- Shared URLs preserve the results context (`commodity`, `market`, or `variety`), relevant `origin`, and `layout=cards`, but intentionally omit active filters and locale. The recipient uses their saved locale.
+- On arrival, a valid `card` key is centered in the viewport with space for the sticky header and briefly highlighted. Missing or invalid keys leave the normal results page intact, without expanding price history.
+- Market titles wrap naturally, remain left-aligned beside the market icon, and are vertically centered with it. The share control remains an independent tappable region with a simple three-node share glyph.
+
 ## Search and filters
 
 Search is local and uses `data/search-index.json`.
@@ -132,13 +141,17 @@ The chart now includes calendar dates with no database update through the browse
 - When two or more metrics share the same segment values, the segment is rendered as sequential metric-colored subsegments so overlapping max/modal/min lines remain distinguishable. Carried-forward overlapping segments retain the gaps of the dotted treatment.
 - Actual update points use circles; carried-forward points use squares. Active markers are emphasized, and circles are intentionally larger/heavier than carried-forward squares for mobile readability.
 - On narrow screens, the selected date stays on one line at the right edge of the summary panel. The summary and chart use the full available card width, while the chart itself remains horizontally scrollable.
+- The Max, Modal, and Min chart lines and selected-price summary markers use the same red, brown/gold, and blue palette as the result-card prices. The three selected-price metrics remain side by side on mobile.
+- When a history chart opens, its horizontal viewport is anchored around the selected latest actual-update point so that point and its summary are visible immediately. Later rerenders preserve the user’s manual chart scroll position.
 - The chart legend and selected-date summary identify actual versus carried-forward points, and carried-forward selections identify the source report date.
+- Opening a history chart from either a card or table row keeps the selected latest actual-update point, its date, and its price legend visible in the initial horizontal viewport. Hovering or clicking another point updates the selected-date legend, while later rerenders preserve manual chart scrolling.
 
 ## Localization and visual system
 
 - English and Kannada are supported.
 - The selected locale is stored in `localStorage` under `commodity-dashboard-locale`.
 - UI labels and entity names are translated through `translations.json`; the document `lang` and `data-locale` attributes are updated at runtime.
+- Share, copy-link, link-copied, and share/copy failure labels are localized in English and Kannada.
 - Prajavani Text is the primary font family.
 - The UI uses the red sticky header, green category/selection accents, field-specific filter tones, responsive cards, and bundled prototype artwork.
 - Commodity thumbnails are mapped explicitly in `BAKED_COMMODITY_THUMBS`; `Egg` uses `assets/egg-thumb-real.png`. New commodity names need a corresponding asset/mapping or an intentional fallback.
@@ -172,6 +185,8 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
+The current browser/data cache version is `20260807-7`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 
 ## GitHub Pages deployment
@@ -181,6 +196,7 @@ The repository is intended to deploy from the `main` branch using GitHub Actions
 - In repository Settings → Pages, set the source to **GitHub Actions**.
 - `.github/workflows/deploy-pages.yml` runs on pushes to `main` or manually, uploads the repository root as the Pages artifact, and deploys it.
 - `index.html` must remain at the repository root.
+- `index.html` exposes one static Open Graph/Twitter preview using `assets/OG Image.png`. The image is deployed with the repository and does not require a separate image host; social crawlers must be able to reach the deployed site publicly. Card-specific previews still require pre-rendered pages.
 - The suggested “Static HTML” workflow is an alternative, not something to run alongside the existing custom workflow; duplicate workflows can cause confusing deployments.
 - A `configure-pages` 404 means Pages has not been enabled/configured for the repository yet. Enable Pages with GitHub Actions selected, then rerun the workflow.
 - No Node build step is required for deployment because the checked-in site is already static.

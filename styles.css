@@ -1669,15 +1669,15 @@ select {
 }
 
 .chart-metric-line-max {
-  border-color: var(--price-max);
+  border-color: #c2410c;
 }
 
 .chart-metric-line-min {
-  border-color: var(--price-min);
+  border-color: #1e3a8a;
 }
 
 .chart-metric-line-modal {
-  border-color: var(--price-modal);
+  border-color: #9a7041;
   border-top-style: solid;
 }
 
@@ -1688,18 +1688,18 @@ select {
 }
 
 .chart-metric-max {
-  background: rgba(30, 58, 138, 0.12);
-  color: var(--price-max);
+  background: rgba(194, 65, 12, 0.12);
+  color: #c2410c;
 }
 
 .chart-metric-min {
-  background: rgba(194, 65, 12, 0.12);
-  color: var(--price-min);
+  background: rgba(30, 58, 138, 0.12);
+  color: #1e3a8a;
 }
 
 .chart-metric-modal {
   background: rgba(154, 112, 65, 0.12);
-  color: var(--price-modal);
+  color: #9a7041;
 }
 
 .chart-metric-slot-max {
@@ -2229,41 +2229,41 @@ select {
 }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-summary-metrics {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-metric {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    justify-items: stretch;
-    gap: 12px;
+    gap: 5px;
+    align-items: start;
+    justify-items: center;
     min-width: 0;
-    padding: 10px 12px;
+    padding: 9px 4px;
     border-radius: 14px;
     width: 100%;
-    text-align: left;
+    text-align: center;
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-metric-label {
-    gap: 6px;
-    justify-content: flex-start;
-    font-size: 11px;
+    gap: 4px;
+    justify-content: center;
+    font-size: 10px;
     line-height: 1.2;
+    white-space: nowrap;
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-metric-line {
-    width: 16px;
+    width: 14px;
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-metric-value {
-    font-size: 20px;
-    justify-self: end;
+    font-size: clamp(14px, 4vw, 18px);
+    justify-self: center;
+    white-space: nowrap;
   }
 
   .history-layout[data-chart-summary-layout="mobile"] .chart-metric-slot-modal {
-    grid-column: auto;
     justify-self: stretch;
     width: 100%;
   }

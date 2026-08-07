@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260807-5";
+  const APP_DATA_VERSION = "20260807-7";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -9,9 +9,9 @@
   const SEARCH_INPUT_DEBOUNCE_MS = 120;
   const SEARCH_MIN_QUERY_LENGTH = 3;
   const PRICE_COLORS = {
-    max: "#1E3A8A",
-    min: "#C2410C",
-    modal: "#CC9900",
+    max: "#C2410C",
+    min: "#1E3A8A",
+    modal: "#9A7041",
   };
   const SEARCH_RESULT_TYPE_LABELS = {
     commodity: "Commodity",
@@ -1856,7 +1856,7 @@
     }
 
     if (chartScroll.dataset.chartInitialPosition === "right") {
-      if (getActiveResultsLayout() === "table" && chartScroll.dataset.chartActiveX) {
+      if (chartScroll.dataset.chartActiveX) {
         chartScroll.scrollLeft = getChartAnchoredScrollLeft(chartScroll);
         return;
       }
