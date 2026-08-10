@@ -1,13 +1,14 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260807-7";
+  const APP_DATA_VERSION = "20260810-1";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
   const CARD_TARGET_HIGHLIGHT_DURATION_MS = 2200;
   const SEARCH_INPUT_DEBOUNCE_MS = 120;
   const SEARCH_MIN_QUERY_LENGTH = 3;
+  const FUZZY_SEARCH_MIN_TERM_LENGTH = 3;
   const PRICE_COLORS = {
     max: "#C2410C",
     min: "#1E3A8A",
@@ -465,6 +466,7 @@
     cachedVisibleRows: [],
     cachedFilterOptions: {},
     cachedMarketCommodityLookup: null,
+    cachedSearchCandidates: null,
     cardTargetAppliedKey: "",
     shareFeedback: null,
   };
@@ -519,6 +521,11 @@
         markets: payload.markets || {},
         varieties: payload.varieties || {},
       };
+      invalidateDerivedDataCaches();
+      syncSearchResultsForQuery(state.query);
+      if (state.isSearchOpen) {
+        syncSearchSuggestionsUi();
+      }
     } catch (error) {
       state.translations = {
         ui: {},
@@ -538,6 +545,7 @@
         markets: payload.markets || [],
         varieties: payload.varieties || [],
       };
+      state.cachedSearchCandidates = null;
       state.searchIndexStatus = "ready";
     } catch (error) {
       state.searchIndex = {
@@ -2044,11 +2052,18 @@
     if (result.type === "market") {
       return translateEntity("market", result.market);
     }
+    if (isCommodityVarietySuggestion(result)) {
+      return `${translateEntity("commodity", result.commodity)} / ${translateEntity("variety", result.variety)}`;
+    }
     return translateEntity("variety", result.variety);
   }
 
   function isMarketCommoditySuggestion(result) {
     return result && result.type === "commodity" && result.matchType === "market" && Boolean(result.market);
+  }
+
+  function isCommodityVarietySuggestion(result) {
+    return result && result.type === "variety" && result.matchType === "commodity-variety";
   }
 
   function getSuggestionDisplayType(value) {
@@ -4490,6 +4505,7 @@
     state.cachedVisibleRows = [];
     state.cachedFilterOptions = {};
     state.cachedMarketCommodityLookup = null;
+    state.cachedSearchCandidates = null;
   }
 
   function getMarketCommodityLookup() {
@@ -4608,16 +4624,17 @@
   function buildLocalizedSearchResults(query) {
     const normalizedQuery = normalizeSearchText(query);
     const queryTerms = getSearchQueryTerms(normalizedQuery);
-    const commodityResults = state.searchIndex.commodities
-      .map((name) => buildCommoditySearchResult(name, normalizedQuery))
+    const candidates = getLocalizedSearchCandidates();
+    const commodityResults = candidates.commodities
+      .map((candidate) => buildCommoditySearchResult(candidate, normalizedQuery))
       .filter(Boolean)
       .sort(compareLocalizedSearchResults)
       .slice(0, 6);
 
     const marketResults = buildMarketCommoditySearchResults(normalizedQuery, queryTerms);
 
-    const varietyResults = state.searchIndex.varieties
-      .map((item) => buildVarietySearchResult(item, normalizedQuery))
+    const varietyResults = candidates.varieties
+      .map((candidate) => buildVarietySearchResult(candidate, normalizedQuery, queryTerms))
       .filter(Boolean)
       .sort(compareLocalizedSearchResults)
       .slice(0, 8);
@@ -4625,34 +4642,39 @@
     return [...commodityResults, ...marketResults, ...varietyResults].slice(0, 12);
   }
 
-  function buildCommoditySearchResult(name, query) {
-    const score = getLocalizedMatchScore([
-      name,
-      translateEntityWithLocale("commodity", name, "en"),
-      translateEntityWithLocale("commodity", name, "kn"),
-    ], query);
-    return score ? { type: "commodity", commodity: name, score } : null;
+  function buildCommoditySearchResult(candidate, query) {
+    const score = getLocalizedMatchScore(candidate.aliases, query);
+    return score ? { type: "commodity", commodity: candidate.name, score } : null;
   }
 
   function buildMarketCommoditySearchResults(query, queryTerms = getSearchQueryTerms(query)) {
     const marketCommodityLookup = getMarketCommodityLookup();
-    const results = state.searchIndex.markets.flatMap((name) => {
-      const marketResult = buildMarketSearchResult(name, query);
+    const candidates = getLocalizedSearchCandidates();
+    const results = candidates.markets.flatMap((marketCandidate) => {
+      const marketResult = buildMarketSearchResult(marketCandidate, query);
       const isCompositeQuery = queryTerms.length > 1;
       if (!marketResult && !isCompositeQuery) {
         return [];
       }
 
-      const commodities = marketCommodityLookup.get(name) || [];
+      const commodities = marketCommodityLookup.get(marketCandidate.name) || [];
       if (!commodities.length) {
-        return [marketResult];
+        return marketResult ? [marketResult] : [];
       }
 
       return commodities
         .map((commodity) => {
+          const commodityCandidate = candidates.commodityByName.get(commodity);
           const score = marketResult
             ? marketResult.score
-            : getMarketCommodityMatchScore(name, commodity, query, queryTerms);
+            : commodityCandidate
+              ? getCompositeSearchMatchScore(
+                marketCandidate.aliases,
+                commodityCandidate.aliases,
+                query,
+                queryTerms
+              )
+              : null;
 
           if (!score) {
             return null;
@@ -4661,7 +4683,7 @@
           return {
             type: "commodity",
             commodity,
-            market: name,
+            market: marketCandidate.name,
             matchType: "market",
             score,
           };
@@ -4674,28 +4696,30 @@
       .slice(0, 8);
   }
 
-  function buildMarketSearchResult(name, query) {
-    const score = getLocalizedMatchScore([
-      name,
-      translateEntityWithLocale("market", name, "en"),
-      translateEntityWithLocale("market", name, "kn"),
-    ], query);
-    return score ? { type: "market", market: name, score } : null;
+  function buildMarketSearchResult(candidate, query) {
+    const score = getLocalizedMatchScore(candidate.aliases, query);
+    return score ? { type: "market", market: candidate.name, score } : null;
   }
 
-  function buildVarietySearchResult(item, query) {
-    const score = getLocalizedMatchScore([
-      item.variety,
-      item.commodity,
-      translateEntityWithLocale("variety", item.variety, "en"),
-      translateEntityWithLocale("variety", item.variety, "kn"),
-      translateEntityWithLocale("commodity", item.commodity, "en"),
-      translateEntityWithLocale("commodity", item.commodity, "kn"),
-    ], query);
+  function buildVarietySearchResult(candidate, query, queryTerms) {
+    const directScore = getLocalizedMatchScore(
+      [...candidate.varietyAliases, ...candidate.commodityAliases],
+      query
+    );
+    const compositeScore = queryTerms.length > 1
+      ? getCompositeSearchMatchScore(
+        candidate.commodityAliases,
+        candidate.varietyAliases,
+        query,
+        queryTerms
+      )
+      : null;
+    const score = pickBetterMatchScore(compositeScore, directScore);
     return score ? {
       type: "variety",
-      commodity: item.commodity,
-      variety: item.variety,
+      commodity: candidate.commodity,
+      variety: candidate.variety,
+      matchType: compositeScore && score === compositeScore ? "commodity-variety" : "variety",
       score,
     } : null;
   }
@@ -4706,76 +4730,249 @@
       .filter(Boolean);
   }
 
-  function getMarketCommodityMatchScore(market, commodity, query, queryTerms = getSearchQueryTerms(query)) {
-    const orderedCandidates = [
-      `${market} ${commodity}`,
-      `${commodity} ${market}`,
-      `${translateEntityWithLocale("market", market, "en")} ${translateEntityWithLocale("commodity", commodity, "en")}`,
-      `${translateEntityWithLocale("commodity", commodity, "en")} ${translateEntityWithLocale("market", market, "en")}`,
-      `${translateEntityWithLocale("market", market, "kn")} ${translateEntityWithLocale("commodity", commodity, "kn")}`,
-      `${translateEntityWithLocale("commodity", commodity, "kn")} ${translateEntityWithLocale("market", market, "kn")}`,
-    ];
-    const directScore = getLocalizedMatchScore(orderedCandidates, query);
-    if (directScore) {
-      return directScore;
+  function getLocalizedSearchCandidates() {
+    if (state.cachedSearchCandidates) {
+      return state.cachedSearchCandidates;
     }
 
+    const commodityCandidates = state.searchIndex.commodities.map((name) => ({
+      name,
+      aliases: getSearchAliases("commodity", name),
+    }));
+    const marketCandidates = state.searchIndex.markets.map((name) => ({
+      name,
+      aliases: getSearchAliases("market", name),
+    }));
+    const varietyCandidates = state.searchIndex.varieties.map((item) => ({
+      commodity: item.commodity,
+      variety: item.variety,
+      commodityAliases: getSearchAliases("commodity", item.commodity),
+      varietyAliases: getSearchAliases("variety", item.variety),
+    }));
+
+    state.cachedSearchCandidates = {
+      commodities: commodityCandidates,
+      commodityByName: new Map(commodityCandidates.map((candidate) => [candidate.name, candidate])),
+      markets: marketCandidates,
+      varieties: varietyCandidates,
+    };
+    return state.cachedSearchCandidates;
+  }
+
+  function getSearchAliases(field, value) {
+    return [...new Set([
+      value,
+      translateEntityWithLocale(field, value, "en"),
+      translateEntityWithLocale(field, value, "kn"),
+    ].map(normalizeSearchText).filter(Boolean))];
+  }
+
+  function getCompositeSearchMatchScore(leftAliases, rightAliases, query, queryTerms = getSearchQueryTerms(query)) {
     if (queryTerms.length < 2) {
       return null;
     }
 
-    const fieldCandidates = [
-      market,
-      commodity,
-      translateEntityWithLocale("market", market, "en"),
-      translateEntityWithLocale("market", market, "kn"),
-      translateEntityWithLocale("commodity", commodity, "en"),
-      translateEntityWithLocale("commodity", commodity, "kn"),
-    ].map((value) => normalizeSearchText(value));
+    const combinedAliases = [];
+    leftAliases.forEach((leftAlias) => {
+      rightAliases.forEach((rightAlias) => {
+        combinedAliases.push(`${leftAlias} ${rightAlias}`);
+        combinedAliases.push(`${rightAlias} ${leftAlias}`);
+      });
+    });
 
-    if (!queryTerms.every((term) => fieldCandidates.some((candidate) => candidate.includes(term)))) {
+    const directScore = getLocalizedMatchScore(combinedAliases, query);
+    const termMatches = queryTerms.map((term) => ({
+      left: getBestTermMatchForAliases(term, leftAliases),
+      right: getBestTermMatchForAliases(term, rightAliases),
+    }));
+
+    if (termMatches.some((match) => !match.left && !match.right)) {
       return null;
     }
 
-    const combined = normalizeSearchText(orderedCandidates.join(" "));
-    const firstPosition = queryTerms.reduce((best, term) => {
-      const index = combined.indexOf(term);
-      return index === -1 ? best : Math.min(best, index);
-    }, Number.POSITIVE_INFINITY);
-    const totalPosition = queryTerms.reduce((total, term) => {
-      const index = combined.indexOf(term);
-      return total + (index === -1 ? combined.length : index);
-    }, 0);
+    let bestAssignment = null;
+    for (let leftIndex = 0; leftIndex < termMatches.length; leftIndex += 1) {
+      for (let rightIndex = 0; rightIndex < termMatches.length; rightIndex += 1) {
+        if (leftIndex === rightIndex || !termMatches[leftIndex].left || !termMatches[rightIndex].right) {
+          continue;
+        }
 
-    return {
-      startsWith: firstPosition === 0 ? 0 : 1,
-      position: totalPosition,
-      length: combined.length,
-    };
+        const assignment = termMatches.map((match, index) => {
+          if (index === leftIndex) {
+            return match.left;
+          }
+          if (index === rightIndex) {
+            return match.right;
+          }
+          return pickBetterTermMatch(match.left, match.right);
+        });
+
+        if (assignment.some((match) => !match)) {
+          continue;
+        }
+
+        const score = {
+          matchRank: assignment.some((match) => match.matchRank === 2) ? 2 : 1,
+          fuzzyDistance: assignment.reduce((total, match) => total + match.distance, 0),
+          fieldCoverage: 2,
+          startsWith: Math.min(...assignment.map((match) => match.startsWith)),
+          position: assignment.reduce((total, match) => total + match.position, 0),
+          length: Math.min(...combinedAliases.map((alias) => alias.length)),
+        };
+
+        if (!bestAssignment || compareMatchScore(score, bestAssignment) < 0) {
+          bestAssignment = score;
+        }
+      }
+    }
+
+    return pickBetterMatchScore(directScore, bestAssignment);
   }
 
   function getLocalizedMatchScore(candidates, query) {
-    let best = null;
+    const normalizedQuery = normalizeSearchText(query);
+    const queryTerms = getSearchQueryTerms(normalizedQuery);
+    if (!normalizedQuery || !queryTerms.length) {
+      return null;
+    }
 
-    candidates.forEach((candidate) => {
-      const normalizedCandidate = normalizeSearchText(candidate);
-      const index = normalizedCandidate.indexOf(query);
-      if (index === -1) {
-        return;
-      }
+    return candidates.reduce((best, candidate) => {
+      const score = getAliasMatchScore(normalizeSearchText(candidate), normalizedQuery, queryTerms);
+      return pickBetterMatchScore(score, best);
+    }, null);
+  }
 
-      const score = {
-        startsWith: index === 0 ? 0 : 1,
-        position: index,
-        length: normalizedCandidate.length,
+  function getAliasMatchScore(candidate, normalizedQuery, queryTerms) {
+    const exactIndex = candidate.indexOf(normalizedQuery);
+    if (exactIndex !== -1) {
+      return {
+        matchRank: candidate === normalizedQuery ? 0 : 1,
+        fuzzyDistance: 0,
+        fieldCoverage: 1,
+        startsWith: exactIndex === 0 ? 0 : 1,
+        position: exactIndex,
+        length: candidate.length,
       };
+    }
 
-      if (!best || compareMatchScore(score, best) < 0) {
-        best = score;
+    const termMatches = queryTerms.map((term) => getBestTermMatch(term, candidate));
+    if (termMatches.some((match) => !match)) {
+      return null;
+    }
+
+    return {
+      matchRank: termMatches.some((match) => match.matchRank === 2) ? 2 : 1,
+      fuzzyDistance: termMatches.reduce((total, match) => total + match.distance, 0),
+      fieldCoverage: 1,
+      startsWith: Math.min(...termMatches.map((match) => match.startsWith)),
+      position: termMatches.reduce((total, match) => total + match.position, 0),
+      length: candidate.length,
+    };
+  }
+
+  function getBestTermMatchForAliases(term, aliases) {
+    return aliases.reduce((best, alias) => {
+      return pickBetterTermMatch(getBestTermMatch(term, alias), best);
+    }, null);
+  }
+
+  function getBestTermMatch(term, candidate) {
+    const candidateParts = [...new Set([candidate, ...getSearchQueryTerms(candidate)])];
+    return candidateParts.reduce((best, part) => {
+      const exactIndex = part.indexOf(term);
+      if (exactIndex !== -1) {
+        const score = {
+          matchRank: 0,
+          distance: 0,
+          startsWith: exactIndex === 0 ? 0 : 1,
+          position: exactIndex,
+          length: part.length,
+        };
+        return pickBetterTermMatch(score, best);
       }
+
+      if (term.length < FUZZY_SEARCH_MIN_TERM_LENGTH || part.length < FUZZY_SEARCH_MIN_TERM_LENGTH) {
+        return best;
+      }
+
+      const distance = getDamerauLevenshteinDistance(term, part);
+      if (distance > getFuzzySearchMaxDistance(term.length)) {
+        return best;
+      }
+
+      return pickBetterTermMatch({
+        matchRank: 2,
+        distance,
+        startsWith: 1,
+        position: 0,
+        length: part.length,
+      }, best);
+    }, null);
+  }
+
+  function getFuzzySearchMaxDistance(termLength) {
+    return termLength <= 5 ? 1 : 2;
+  }
+
+  function getDamerauLevenshteinDistance(left, right) {
+    const matrix = Array.from({ length: left.length + 1 }, (_, row) => {
+      return Array.from({ length: right.length + 1 }, (_, column) => row === 0 ? column : column === 0 ? row : 0);
     });
 
-    return best;
+    for (let row = 1; row <= left.length; row += 1) {
+      for (let column = 1; column <= right.length; column += 1) {
+        const substitutionCost = left[row - 1] === right[column - 1] ? 0 : 1;
+        matrix[row][column] = Math.min(
+          matrix[row - 1][column] + 1,
+          matrix[row][column - 1] + 1,
+          matrix[row - 1][column - 1] + substitutionCost
+        );
+
+        if (row > 1 && column > 1
+          && left[row - 1] === right[column - 2]
+          && left[row - 2] === right[column - 1]) {
+          matrix[row][column] = Math.min(matrix[row][column], matrix[row - 2][column - 2] + 1);
+        }
+      }
+    }
+
+    return matrix[left.length][right.length];
+  }
+
+  function pickBetterTermMatch(left, right) {
+    if (!left) {
+      return right;
+    }
+    if (!right) {
+      return left;
+    }
+    return compareTermMatches(left, right) <= 0 ? left : right;
+  }
+
+  function compareTermMatches(left, right) {
+    if (left.matchRank !== right.matchRank) {
+      return left.matchRank - right.matchRank;
+    }
+    if (left.distance !== right.distance) {
+      return left.distance - right.distance;
+    }
+    if (left.startsWith !== right.startsWith) {
+      return left.startsWith - right.startsWith;
+    }
+    if (left.position !== right.position) {
+      return left.position - right.position;
+    }
+    return left.length - right.length;
+  }
+
+  function pickBetterMatchScore(left, right) {
+    if (!left) {
+      return right;
+    }
+    if (!right) {
+      return left;
+    }
+    return compareMatchScore(left, right) <= 0 ? left : right;
   }
 
   function compareLocalizedSearchResults(left, right) {
@@ -4787,6 +4984,15 @@
   }
 
   function compareMatchScore(left, right) {
+    if ((left.matchRank ?? 0) !== (right.matchRank ?? 0)) {
+      return (left.matchRank ?? 0) - (right.matchRank ?? 0);
+    }
+    if ((left.fuzzyDistance ?? left.distance ?? 0) !== (right.fuzzyDistance ?? right.distance ?? 0)) {
+      return (left.fuzzyDistance ?? left.distance ?? 0) - (right.fuzzyDistance ?? right.distance ?? 0);
+    }
+    if ((right.fieldCoverage ?? 1) !== (left.fieldCoverage ?? 1)) {
+      return (right.fieldCoverage ?? 1) - (left.fieldCoverage ?? 1);
+    }
     if (left.startsWith !== right.startsWith) {
       return left.startsWith - right.startsWith;
     }

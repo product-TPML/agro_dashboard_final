@@ -104,6 +104,8 @@ Search is local and uses `data/search-index.json`.
 - Searches commodity, market, and variety names.
 - Suggestions require at least three characters and show the matched entity type and context.
 - Matching text is highlighted.
+- Search accepts commodity + variety combinations in either order, such as `Tomato Hybrid` or `Hybrid Tomato`, and routes a selected pair to the canonical variety page.
+- Search uses localized English/Kannada aliases plus bounded typo-tolerant ranking for commodities, markets, varieties, and valid composite pairs. Fuzzy results remain suggestion-first; ambiguous variety names do not auto-select a commodity.
 - The overlay has idle, loading, ready, empty, unavailable, and retry states.
 - Selecting a commodity, market, or variety creates a URL-backed results route.
 - A commodity selected from a market suggestion keeps the market context and changes the card presentation accordingly.
@@ -185,7 +187,7 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-The current browser/data cache version is `20260807-7`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+The current browser/data cache version is `20260810-1`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
 
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 
