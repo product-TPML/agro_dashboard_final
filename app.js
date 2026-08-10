@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260810-1";
+  const APP_DATA_VERSION = "20260810-2";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -459,6 +459,14 @@
       markets: [],
       varieties: [],
     },
+    searchAliases: {
+      commodities: {},
+      varieties: {},
+    },
+    searchTransliterations: {
+      commodities: {},
+      varieties: {},
+    },
     categoryGroups: [],
     activeHomeCategoryId: "",
     shouldRevealActiveHomeCategory: false,
@@ -500,6 +508,8 @@
     await Promise.all([
       loadTranslations(),
       loadSearchIndex(),
+      loadSearchAliases(),
+      loadSearchTransliterations(),
       loadCategoryGroups(),
       loadObservations(),
     ]);
@@ -3623,6 +3633,42 @@
     }
   }
 
+  async function loadSearchAliases() {
+    try {
+      const payload = await fetchJson(`./data/search-aliases.json?v=${APP_DATA_VERSION}`);
+      state.searchAliases = normalizeSearchAliasesPayload(payload);
+    } catch (error) {
+      state.searchAliases = {
+        commodities: {},
+        varieties: {},
+      };
+    }
+
+    state.cachedSearchCandidates = null;
+    syncSearchResultsForQuery(state.query);
+    if (state.isSearchOpen) {
+      syncSearchSuggestionsUi();
+    }
+  }
+
+  async function loadSearchTransliterations() {
+    try {
+      const payload = await fetchJson(`./data/search-transliterations.json?v=${APP_DATA_VERSION}`);
+      state.searchTransliterations = normalizeSearchTransliterationsPayload(payload);
+    } catch (error) {
+      state.searchTransliterations = {
+        commodities: {},
+        varieties: {},
+      };
+    }
+
+    state.cachedSearchCandidates = null;
+    syncSearchResultsForQuery(state.query);
+    if (state.isSearchOpen) {
+      syncSearchSuggestionsUi();
+    }
+  }
+
   function syncCardTarget() {
     const targetKey = state.route.card;
     if (state.route.view !== "table" || !state.context || !targetKey || state.cardTargetAppliedKey === targetKey) {
@@ -4747,7 +4793,7 @@
       commodity: item.commodity,
       variety: item.variety,
       commodityAliases: getSearchAliases("commodity", item.commodity),
-      varietyAliases: getSearchAliases("variety", item.variety),
+      varietyAliases: getSearchAliases("variety", item.variety, item.commodity),
     }));
 
     state.cachedSearchCandidates = {
@@ -4759,12 +4805,236 @@
     return state.cachedSearchCandidates;
   }
 
-  function getSearchAliases(field, value) {
+  function getSearchAliases(field, value, relatedValue = "") {
+    const kannadaTranslation = translateEntityWithLocale(field, value, "kn");
+    const curatedAliases = getCuratedSearchAliases(field, value, relatedValue);
+    const generatedTransliteration = getGeneratedSearchTransliteration(field, value, relatedValue);
+    const romanizedKannada = transliterateKannada(kannadaTranslation);
     return [...new Set([
       value,
       translateEntityWithLocale(field, value, "en"),
-      translateEntityWithLocale(field, value, "kn"),
+      kannadaTranslation,
+      generatedTransliteration,
+      romanizedKannada,
+      ...curatedAliases,
     ].map(normalizeSearchText).filter(Boolean))];
+  }
+
+  function getCuratedSearchAliases(field, value, relatedValue = "") {
+    const group = field === "commodity"
+      ? state.searchAliases.commodities
+      : field === "variety"
+        ? state.searchAliases.varieties
+        : {};
+    const key = field === "variety"
+      ? `${relatedValue}::${value}`
+      : String(value);
+    const aliases = group && Array.isArray(group[key]) ? group[key] : [];
+    return aliases.filter((alias) => typeof alias === "string");
+  }
+
+  function normalizeSearchAliasesPayload(payload) {
+    const source = payload && typeof payload === "object" && !Array.isArray(payload)
+      ? payload
+      : {};
+    return {
+      commodities: normalizeSearchAliasGroup(source.commodities),
+      varieties: normalizeSearchAliasGroup(source.varieties),
+    };
+  }
+
+  function normalizeSearchAliasGroup(group) {
+    if (!group || typeof group !== "object" || Array.isArray(group)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(group)
+        .filter(([, aliases]) => Array.isArray(aliases))
+        .map(([key, aliases]) => [
+          key,
+          aliases.filter((alias) => typeof alias === "string"),
+        ])
+    );
+  }
+
+  function normalizeSearchTransliterationsPayload(payload) {
+    const source = payload && typeof payload === "object" && !Array.isArray(payload)
+      ? payload
+      : {};
+    return {
+      commodities: normalizeSearchTransliterationGroup(source.commodities),
+      varieties: normalizeSearchTransliterationGroup(source.varieties),
+    };
+  }
+
+  function normalizeSearchTransliterationGroup(group) {
+    if (!group || typeof group !== "object" || Array.isArray(group)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(group)
+        .filter(([, alias]) => typeof alias === "string")
+        .map(([key, alias]) => [key, normalizeSearchText(alias)])
+        .filter(([, alias]) => Boolean(alias))
+    );
+  }
+
+  function getGeneratedSearchTransliteration(field, value, relatedValue = "") {
+    const group = field === "commodity"
+      ? state.searchTransliterations.commodities
+      : field === "variety"
+        ? state.searchTransliterations.varieties
+        : {};
+    const key = field === "variety"
+      ? `${relatedValue}::${value}`
+      : String(value);
+    return group && typeof group[key] === "string" ? group[key] : "";
+  }
+
+  const KANNADA_INDEPENDENT_VOWELS = {
+    "ಅ": "a",
+    "ಆ": "a",
+    "ಇ": "i",
+    "ಈ": "i",
+    "ಉ": "u",
+    "ಊ": "u",
+    "ಋ": "ru",
+    "ೠ": "ru",
+    "ಎ": "e",
+    "ಏ": "e",
+    "ಐ": "ai",
+    "ಒ": "o",
+    "ಓ": "o",
+    "ಔ": "au",
+  };
+
+  const KANNADA_CONSONANTS = {
+    "ಕ": "k",
+    "ಖ": "kh",
+    "ಗ": "g",
+    "ಘ": "gh",
+    "ಙ": "ng",
+    "ಚ": "ch",
+    "ಛ": "chh",
+    "ಜ": "j",
+    "ಝ": "jh",
+    "ಞ": "ny",
+    "ಟ": "t",
+    "ಠ": "th",
+    "ಡ": "d",
+    "ಢ": "dh",
+    "ಣ": "n",
+    "ತ": "t",
+    "ಥ": "th",
+    "ದ": "d",
+    "ಧ": "dh",
+    "ನ": "n",
+    "ಪ": "p",
+    "ಫ": "ph",
+    "ಬ": "b",
+    "ಭ": "bh",
+    "ಮ": "m",
+    "ಯ": "y",
+    "ರ": "r",
+    "ಲ": "l",
+    "ವ": "v",
+    "ಶ": "sh",
+    "ಷ": "sh",
+    "ಸ": "s",
+    "ಹ": "h",
+    "ಳ": "l",
+  };
+
+  const KANNADA_VOWEL_SIGNS = {
+    "ಾ": "a",
+    "ಿ": "i",
+    "ೀ": "i",
+    "ು": "u",
+    "ೂ": "u",
+    "ೃ": "ru",
+    "ೆ": "e",
+    "ೇ": "e",
+    "ೈ": "ai",
+    "ೊ": "o",
+    "ೋ": "o",
+    "ೌ": "au",
+  };
+
+  const KANNADA_ANUSVARA_GROUPS = {
+    "ಕಖಗಘಙ": "n",
+    "ಚಛಜಝಞ": "n",
+    "ಟಠಡಢಣ": "n",
+    "ತಥದಧನ": "n",
+    "ಪಫಬಭಮ": "m",
+  };
+
+  function transliterateKannada(value) {
+    const chars = Array.from(String(value || ""));
+    if (!chars.some((char) => isKannadaCharacter(char))) {
+      return "";
+    }
+
+    let result = "";
+    for (let index = 0; index < chars.length; index += 1) {
+      const char = chars[index];
+      if (KANNADA_INDEPENDENT_VOWELS[char]) {
+        result += KANNADA_INDEPENDENT_VOWELS[char];
+        continue;
+      }
+
+      if (KANNADA_CONSONANTS[char]) {
+        result += KANNADA_CONSONANTS[char];
+        const nextChar = chars[index + 1];
+        if (nextChar === "್") {
+          index += 1;
+        } else if (!KANNADA_VOWEL_SIGNS[nextChar]) {
+          result += "a";
+        }
+        continue;
+      }
+
+      if (KANNADA_VOWEL_SIGNS[char]) {
+        result += KANNADA_VOWEL_SIGNS[char];
+        continue;
+      }
+
+      if (char === "ಂ") {
+        result += getKannadaAnusvaraAlias(chars[index + 1]);
+        continue;
+      }
+
+      if (char === "ಃ") {
+        result += "h";
+        continue;
+      }
+
+      if (char === "್" || char === "಼") {
+        continue;
+      }
+
+      result += char;
+    }
+
+    return result
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function isKannadaCharacter(char) {
+    if (!char) {
+      return false;
+    }
+    const codePoint = char.codePointAt(0);
+    return codePoint >= 0x0C80 && codePoint <= 0x0CFF;
+  }
+
+  function getKannadaAnusvaraAlias(nextChar) {
+    const group = Object.entries(KANNADA_ANUSVARA_GROUPS)
+      .find(([characters]) => characters.includes(nextChar));
+    return group ? group[1] : "m";
   }
 
   function getCompositeSearchMatchScore(leftAliases, rightAliases, query, queryTerms = getSearchQueryTerms(query)) {

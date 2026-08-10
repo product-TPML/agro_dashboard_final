@@ -101,11 +101,16 @@ The repository preserves these canonical source names, including the existing `H
 
 Search is local and uses `data/search-index.json`.
 
+- Romanized Kannada is a matching-only alias for commodities and varieties. It is generated client-side from Kannada translations and cached with the search candidates; displayed labels and canonical English route values are unchanged.
+- `data/search-aliases.json` contains optional curated commodity aliases and `commodity::variety` aliases for preferred spellings or exceptions. Missing or invalid alias data falls back to normal English/Kannada search, and markets remain unchanged in this first release.
+- `data/search-transliterations.json` is generated from `translations.json` with `indic-transliteration` 2.3.82 using its `optitrans-lay-indian` scheme. Run `py scripts/generate_search_transliterations.py` when translation or search-index data changes; the browser consumes the checked-in JSON and retains the lightweight client transliterator as a fallback.
+
 - Searches commodity, market, and variety names.
 - Suggestions require at least three characters and show the matched entity type and context.
 - Matching text is highlighted.
 - Search accepts commodity + variety combinations in either order, such as `Tomato Hybrid` or `Hybrid Tomato`, and routes a selected pair to the canonical variety page.
-- Search uses localized English/Kannada aliases plus bounded typo-tolerant ranking for commodities, markets, varieties, and valid composite pairs. Fuzzy results remain suggestion-first; ambiguous variety names do not auto-select a commodity.
+- Search uses canonical English names, localized English/Kannada aliases, automatic Romanized Kannada aliases, and optional curated overrides for commodities, varieties, and valid composite pairs.
+- Bounded typo-tolerant ranking remains in place for all supported aliases: for example, `sebu` matches `sebbu`, `seboo`, and `seebu` through the existing fuzzy threshold. Fuzzy results remain suggestion-first; ambiguous variety names do not auto-select a commodity.
 - The overlay has idle, loading, ready, empty, unavailable, and retry states.
 - Selecting a commodity, market, or variety creates a URL-backed results route.
 - A commodity selected from a market suggestion keeps the market context and changes the card presentation accordingly.
@@ -187,7 +192,7 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-The current browser/data cache version is `20260810-1`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+The current browser/data cache version is `20260810-2`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
 
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 

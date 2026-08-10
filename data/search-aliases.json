@@ -1,0 +1,8 @@
+{
+  "commodities": {
+    "Apple": ["sebu"]
+  },
+  "varieties": {
+    "Tomato::Hybrid": ["haibrid"]
+  }
+}
