@@ -65,6 +65,7 @@ The checked-in browser payload is the 10 August 2026 merged snapshot above. On 6
 ### Home
 
 - Hero section with responsive background artwork and search.
+- The header and hero brand use `assets/commodity-logo.svg`; the logo is a clickable home link and is constrained per placement so it does not bleed into adjacent controls.
 - Seven category tabs, in order: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, Spices, Livestock and Poultry, and Miscellaneous.
 - Category-specific commodity gallery with counts and real commodity thumbnails.
 - Desktop category rails use a small left gutter and start from the left so the first category remains fully visible when the rail overflows.
@@ -82,7 +83,7 @@ The repository preserves these canonical source names, including the existing `H
 
 ### Results
 
-- Sticky red results header with home/back control and language toggle.
+- Sticky red results header with centered clickable logo home control, language toggle, and search. The old left-side back button is intentionally removed.
 - Search and filter controls, active-filter chips, and cards for the latest comparable row in each result group.
 - Cards show source, freshness status, source-specific price metrics, price delta from the previous comparable update, metadata, arrivals/units when available, latest update, and previous update.
 - Results-toolbar commodity headings use a generous line box so Kannada glyphs with marks above or below the baseline are not clipped on mobile.
@@ -197,7 +198,7 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-The current browser/data cache version is `20260811-3`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+The current browser/data cache version is `20260811-4`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
 
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 

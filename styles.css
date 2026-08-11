@@ -2442,7 +2442,10 @@ body {
 }
 
 .results-topbar-inner {
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 8px;
+  justify-content: normal;
 }
 
 .topbar-left-slot {
@@ -2458,6 +2461,14 @@ body {
   gap: 8px;
 }
 
+.topbar-side-spacer {
+  min-width: 0;
+}
+
+.results-topbar-inner .topbar-actions {
+  justify-self: end;
+}
+
 .topbar-search-trigger {
   position: absolute;
   right: 12px;
@@ -2468,17 +2479,39 @@ body {
 .brand-inline {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   min-width: 0;
   color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  text-align: center;
+  text-decoration: none;
 }
 
-.brand-inline img {
-  width: 26px;
-  height: 26px;
+.brand-home-link {
+  border-radius: 8px;
+  line-height: 0;
+  outline: none;
+}
+
+.brand-home-link:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.72);
+}
+
+.topbar-brand-link {
+  --brand-link-max-width: 42vw;
+  width: 126px;
+  max-width: min(100%, var(--brand-link-max-width));
+  height: 38px;
+}
+
+.results-brand-link {
+  --brand-link-max-width: 31vw;
+  width: 112px;
+  justify-self: center;
+}
+
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -2566,12 +2599,16 @@ body {
   padding: 24px 16px;
 }
 
-.hero-copy h1 {
+.hero-logo-heading {
   margin: 0 0 12px;
-  color: #fff;
-  font-size: 28px;
-  line-height: 1.2;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  line-height: 0;
+}
+
+.hero-brand-link {
+  width: 240px;
+  max-width: 72vw;
+  height: 86px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.42));
 }
 
 .hero-subcopy {
@@ -4356,17 +4393,20 @@ body {
     right: 16px;
   }
 
-  .brand-inline {
-    font-size: 20px;
+  .topbar-brand-link {
+    width: 148px;
+    height: 44px;
   }
 
-  .brand-inline img {
-    width: 32px;
-    height: 32px;
+  .results-brand-link {
+    --brand-link-max-width: 30vw;
+    width: 136px;
+    height: 42px;
   }
 
-  .hero-copy h1 {
-    font-size: 30px;
+  .hero-brand-link {
+    width: 280px;
+    height: 100px;
   }
 
   .category-tabs {
@@ -4466,7 +4506,7 @@ html::-webkit-scrollbar {
 
 .brand-inline {
   min-width: 0;
-  max-width: 100%;
+  max-width: min(100%, var(--brand-link-max-width, 100%));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4501,8 +4541,9 @@ html::-webkit-scrollbar {
     padding: 16px 12px;
   }
 
-  .hero-copy h1 {
-    font-size: 24px;
+  .hero-brand-link {
+    width: 224px;
+    height: 80px;
   }
 
   .commodity-tile p {
@@ -4633,9 +4674,15 @@ html::-webkit-scrollbar {
     right: 8px;
   }
 
-  .brand-inline {
-    max-width: 42%;
-    font-size: 14px;
+  .topbar-brand-link {
+    --brand-link-max-width: 36vw;
+    width: 112px;
+    height: 34px;
+  }
+
+  .results-brand-link {
+    --brand-link-max-width: 28vw;
+    width: 92px;
   }
 
   .results-toolbar-inner {

@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260811-3";
+  const APP_DATA_VERSION = "20260811-4";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -93,7 +93,7 @@
   };
 
   const ASSETS = {
-    logo: "./assets/logo.svg",
+    logo: `./assets/commodity-logo.svg?v=${APP_DATA_VERSION}`,
     search: "./assets/search.svg",
     back: "./assets/back.svg",
     filter: "./assets/filter.svg",
@@ -927,7 +927,11 @@
   function handleHomeClick() {
     state.query = "";
     state.isSearchOpen = false;
-    navigate({
+    navigate(getHomeRoute());
+  }
+
+  function getHomeRoute() {
+    return {
       view: "home",
       layout: "cards",
       type: "",
@@ -935,7 +939,7 @@
       market: "",
       variety: "",
       origin: "",
-    });
+    };
   }
 
   function openFilterModal() {
@@ -2022,7 +2026,6 @@
     return `
       <div class="shell-top-inner">
         <div class="shell-top-left">
-          ${state.route.view === "table" ? `<button type="button" class="back-button shell-home-button" id="backHome">${escapeHtml(getUiText("home_button"))}</button>` : ""}
         </div>
         ${renderLocaleToggle()}
       </div>
@@ -3306,16 +3309,25 @@
   }
 
   function bindEvents() {
-    const backHome = document.getElementById("backHome");
-    if (backHome) {
-      const handleBackHome = (event) => {
+    document.querySelectorAll("[data-home-link]").forEach((homeLink) => {
+      const handleHomeLink = (event) => {
+        if (
+          event.defaultPrevented
+          || (typeof event.button === "number" && event.button !== 0)
+          || event.metaKey
+          || event.ctrlKey
+          || event.shiftKey
+          || event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
         event.stopPropagation();
         handleHomeClick();
       };
 
-      backHome.addEventListener("pointerdown", handleBackHome);
-      backHome.addEventListener("click", handleBackHome);
-    }
+      homeLink.addEventListener("click", handleHomeLink);
+    });
 
     document.querySelectorAll("[data-global-search]").forEach((input) => {
       input.addEventListener("input", handleSearchInput);
@@ -5353,7 +5365,7 @@
           <img src="${escapeAttribute(ASSETS.heroBgMobile)}" alt="">
         </picture>
         <div class="hero-copy ${state.isSearchOpen ? "search-active" : ""}">
-          <h1>${escapeHtml(getUiText("app_title", "Namma Krishi Prices"))}</h1>
+          <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link")}</h1>
           <p class="hero-subcopy">${escapeHtml(getUiText("home_intro", "Search for commodity, market, or variety prices."))}</p>
           ${renderSearchField({ entryMode: "hero" })}
         </div>
@@ -5540,16 +5552,24 @@
     `;
   }
 
+  function renderBrandHomeLink(extraClass = "") {
+    const appTitle = getUiText("app_title", "Namma Krishi Prices");
+    const homeLabel = getUiText("home_button", "Home");
+    const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).join(" ");
+    return `
+      <a class="${escapeAttribute(classes)}" href="${escapeAttribute(buildRouteUrl(getHomeRoute()))}" data-home-link="true" aria-label="${escapeAttribute(homeLabel)}">
+        <img class="brand-logo" src="${escapeAttribute(ASSETS.logo)}" alt="${escapeAttribute(appTitle)}">
+      </a>
+    `;
+  }
+
   function renderTopBar() {
     if (state.route.view === "home") {
       return `
         <div class="topbar-left-slot">
           ${renderLocaleToggle()}
         </div>
-        <div class="brand-inline">
-          <img src="${escapeAttribute(ASSETS.logo)}" alt="">
-          <span>${escapeHtml(getUiText("app_title", "Namma Krishi Prices"))}</span>
-        </div>
+        ${renderBrandHomeLink("topbar-brand-link")}
         ${state.showHomeTopbarSearch ? `
           <button type="button" class="icon-button topbar-search-trigger" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">
             <img src="${escapeAttribute(ASSETS.search)}" alt="">
@@ -5559,13 +5579,8 @@
     }
 
     return `
-      <button type="button" class="icon-button" id="backHome" aria-label="${escapeAttribute(getUiText("home_button", "Home"))}">
-        <img src="${escapeAttribute(ASSETS.back)}" alt="">
-      </button>
-      <div class="brand-inline">
-        <img src="${escapeAttribute(ASSETS.logo)}" alt="">
-        <span>${escapeHtml(getUiText("app_title", "Namma Krishi Prices"))}</span>
-      </div>
+      <div class="topbar-side-spacer" aria-hidden="true"></div>
+      ${renderBrandHomeLink("topbar-brand-link results-brand-link")}
       <div class="topbar-actions">
         ${renderLocaleToggle()}
         <button type="button" class="icon-button" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">
