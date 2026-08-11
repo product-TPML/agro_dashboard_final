@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260811-4";
+  const APP_DATA_VERSION = "20260811-5";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -94,6 +94,7 @@
 
   const ASSETS = {
     logo: `./assets/commodity-logo.svg?v=${APP_DATA_VERSION}`,
+    heroLogo: `./assets/pv-square-logo.svg?v=${APP_DATA_VERSION}`,
     search: "./assets/search.svg",
     back: "./assets/back.svg",
     filter: "./assets/filter.svg",
@@ -5365,7 +5366,7 @@
           <img src="${escapeAttribute(ASSETS.heroBgMobile)}" alt="">
         </picture>
         <div class="hero-copy ${state.isSearchOpen ? "search-active" : ""}">
-          <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link")}</h1>
+          <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link", ASSETS.heroLogo, getUiText("app_title", "Namma Krishi Prices"))}</h1>
           <p class="hero-subcopy">${escapeHtml(getUiText("home_intro", "Search for commodity, market, or variety prices."))}</p>
           ${renderSearchField({ entryMode: "hero" })}
         </div>
@@ -5552,13 +5553,13 @@
     `;
   }
 
-  function renderBrandHomeLink(extraClass = "") {
+  function renderBrandHomeLink(extraClass = "", logoSrc = ASSETS.logo, logoAlt = getUiText("app_title", "Namma Krishi Prices")) {
     const appTitle = getUiText("app_title", "Namma Krishi Prices");
     const homeLabel = getUiText("home_button", "Home");
     const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).join(" ");
     return `
       <a class="${escapeAttribute(classes)}" href="${escapeAttribute(buildRouteUrl(getHomeRoute()))}" data-home-link="true" aria-label="${escapeAttribute(homeLabel)}">
-        <img class="brand-logo" src="${escapeAttribute(ASSETS.logo)}" alt="${escapeAttribute(appTitle)}">
+        <img class="brand-logo" src="${escapeAttribute(logoSrc)}" alt="${escapeAttribute(logoAlt || appTitle)}">
       </a>
     `;
   }

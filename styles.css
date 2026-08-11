@@ -2605,9 +2605,9 @@ body {
 }
 
 .hero-brand-link {
-  width: 240px;
-  max-width: 72vw;
-  height: 86px;
+  width: 96px;
+  max-width: 34vw;
+  height: 96px;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.42));
 }
 
@@ -4405,8 +4405,9 @@ body {
   }
 
   .hero-brand-link {
-    width: 280px;
-    height: 100px;
+    width: 132px;
+    max-width: 18vw;
+    height: 132px;
   }
 
   .category-tabs {
@@ -4542,8 +4543,9 @@ html::-webkit-scrollbar {
   }
 
   .hero-brand-link {
-    width: 224px;
-    height: 80px;
+    width: 88px;
+    max-width: 32vw;
+    height: 88px;
   }
 
   .commodity-tile p {
