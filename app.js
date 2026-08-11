@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260810-2";
+  const APP_DATA_VERSION = "20260811-3";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -973,6 +973,13 @@
   }
 
   function closeSearchPanel() {
+    state.isSearchOpen = false;
+    state.suggestions = [];
+    scheduleRender();
+  }
+
+  function clearSearchAndClose() {
+    state.query = "";
     state.isSearchOpen = false;
     state.suggestions = [];
     scheduleRender();
@@ -3244,14 +3251,6 @@
           <span class="chart-legend-marker chart-legend-marker-carried" aria-hidden="true"></span>
           <span>${escapeHtml(getUiText("carried_forward", "Carried-forward price"))}</span>
         </span>
-        <span class="chart-legend-item">
-          <span class="chart-legend-line chart-legend-line-solid" aria-hidden="true"></span>
-          <span>${escapeHtml(getUiText("actual_line", "Historical price"))}</span>
-        </span>
-        <span class="chart-legend-item">
-          <span class="chart-legend-line chart-legend-line-dotted" aria-hidden="true"></span>
-          <span>${escapeHtml(getUiText("carried_line", "Carried-forward line"))}</span>
-        </span>
       </div>
     `;
   }
@@ -3336,6 +3335,10 @@
 
     document.querySelectorAll("[data-close-search]").forEach((button) => {
       button.addEventListener("click", closeSearchPanel);
+    });
+
+    document.querySelectorAll("[data-clear-search]").forEach((button) => {
+      button.addEventListener("click", clearSearchAndClose);
     });
 
     bindSearchStateEvents();
@@ -5386,7 +5389,7 @@
           </span>
         </div>
         ${canClose ? `
-          <button type="button" class="search-close" data-close-search="true" aria-label="${escapeAttribute(getUiText("close_search_aria", "Close search"))}">
+          <button type="button" class="search-close" data-clear-search="true" aria-label="${escapeAttribute(getUiText("close_search_aria", "Close search"))}">
             <img src="${escapeAttribute(ASSETS.close)}" alt="">
           </button>
         ` : ""}

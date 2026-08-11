@@ -3137,7 +3137,7 @@ body {
   gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .toolbar-support {
@@ -3146,9 +3146,9 @@ body {
   justify-content: center;
   gap: 4px;
   flex: 1 1 auto;
-  min-height: 53px;
+  min-height: 64px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .toolbar-support h2,
@@ -3159,7 +3159,7 @@ body {
   white-space: nowrap;
   margin: 0;
   font-size: 22px;
-  line-height: 1.1;
+  line-height: 1.5;
 }
 
 .results-count-copy {
@@ -4370,9 +4370,9 @@ body {
   }
 
   .category-tabs {
-    justify-content: center;
+    justify-content: flex-start;
     gap: 16px;
-    padding-inline: 136px;
+    padding-inline: 16px;
   }
 
   .commodity-gallery {

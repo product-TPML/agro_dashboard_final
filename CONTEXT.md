@@ -18,6 +18,7 @@ The active results presentation is cards-only. There are older table/layout help
 - `data/search-index.json` — commodity, market, and variety search index
 - `data/categories.json` — category definitions and commodity lists
 - `data/metadata.json` — generated counts and timestamp
+- `scripts/merge_sister_price_data.js` — merges sister-repo SQLite price rows into the checked-in observations while keeping the current taxonomy authoritative
 - `data/agro_dashboard.db` — SQLite source snapshot used only by the build script
 - `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above and applies the dashboard category overrides
 - `assets/` — UI assets, category badges, icons, fallback images, and commodity-specific thumbnails, including `category-spices-badge.png`, `category-livestock-poultry-badge.png`, and `egg-thumb-real.png`
@@ -27,23 +28,23 @@ The active results presentation is cards-only. There are older table/layout help
 
 ## Current data snapshot
 
-The checked-in JSON was refreshed from the SQLite snapshot on 4 August 2026. `data/metadata.json` currently reports:
+The checked-in JSON was merged from the sister repository's SQLite snapshot on 10 August 2026. The current repo's categories remain authoritative; rows for commodities outside the current taxonomy are excluded, and sister-repo category values are replaced with the current category assignments. `data/metadata.json` currently reports:
 
-- 64,390 observations
+- 68,369 observations
 - 147 commodities
 - 178 markets
 - 367 varieties
-- generated at `2026-08-04T09:57:50.631Z`
+- generated at `2026-08-10T09:33:41.205Z`
 
 Latest report dates in this snapshot by source are:
 
 | Source | Latest report date |
 | --- | --- |
-| Krama (`krama`) | 2026-08-03 |
-| Central Silk Board (`csb_silk`) | 2026-08-03 |
-| Coffee Board (`coffee_board`) | 2026-08-03 |
-| NECC eggs (`necc_egg`) | 2026-08-04 |
-| Spices Board (`spices_board`) | 2026-07-31 |
+| Krama (`krama`) | 2026-08-10 |
+| Central Silk Board (`csb_silk`) | 2026-08-09 |
+| Coffee Board (`coffee_board`) | 2026-08-07 |
+| NECC eggs (`necc_egg`) | 2026-08-10 |
+| Spices Board (`spices_board`) | 2026-08-06 |
 | Rubber Board (`rubber_board`) | 2026-07-27 |
 
 `build_static_site.js` reads `data/agro_dashboard.db` and rewrites only:
@@ -57,7 +58,7 @@ data/metadata.json
 
 The export normalizes report dates to `YYYY-MM-DD`, preserves source/commodity/market/variety/grade/arrival fields, and adds display-unit information. Category generation applies explicit overrides for the dashboard taxonomy and includes `Egg` in the category gallery. The database WAL/SHM sidecar files are ignored by `.gitignore`.
 
-The checked-in browser payload remains the 4 August 2026 snapshot above. On 6 August 2026, a full rebuild from the checked-in SQLite file produced 51,456 observations and 360 varieties instead of the checked-in 64,390 observations and 367 varieties, so do not run `npm run build:data` casually until the source/data snapshot discrepancy is resolved. The category override logic is still kept in the build script so future intentional rebuilds preserve the new taxonomy.
+The checked-in browser payload is the 10 August 2026 merged snapshot above. On 6 August 2026, a full rebuild from the checked-in SQLite file produced 51,456 observations and 360 varieties instead of the newer browser payload, and `npm run build:data` still reads that older local database. Do not run `npm run build:data` casually; use `node scripts/merge_sister_price_data.js` after intentionally refreshing the sister database, or update the local SQLite source first. The category override logic remains in the build script so future intentional rebuilds preserve the new taxonomy.
 
 ## Views and navigation
 
@@ -66,6 +67,8 @@ The checked-in browser payload remains the 4 August 2026 snapshot above. On 6 Au
 - Hero section with responsive background artwork and search.
 - Seven category tabs, in order: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, Spices, Livestock and Poultry, and Miscellaneous.
 - Category-specific commodity gallery with counts and real commodity thumbnails.
+- Desktop category rails use a small left gutter and start from the left so the first category remains fully visible when the rail overflows.
+- The search overlay X closes the overlay and clears the active search term; clicking outside the overlay only closes it.
 - Selecting a commodity opens its results view.
 - The top-bar search appears after the hero search scrolls out of view.
 
@@ -82,6 +85,7 @@ The repository preserves these canonical source names, including the existing `H
 - Sticky red results header with home/back control and language toggle.
 - Search and filter controls, active-filter chips, and cards for the latest comparable row in each result group.
 - Cards show source, freshness status, source-specific price metrics, price delta from the previous comparable update, metadata, arrivals/units when available, latest update, and previous update.
+- Results-toolbar commodity headings use a generous line box so Kannada glyphs with marks above or below the baseline are not clipped on mobile.
 - “See Price History” expands an inline chart without navigating away.
 - Results are sorted by latest report date, newest first. Rows with the same report date retain the existing contextual commodity/market/variety ordering; rows without a valid report date are placed last.
 - Freshness badges are calculated from the browser's current local date: 0-2 days is "Recently updated," 3-7 days is "Updated this week," and anything older (or invalid/missing) is "Older update." There are no commodity-specific freshness exceptions.
@@ -138,6 +142,7 @@ The chart now includes calendar dates with no database update through the browse
 - An actual update is shown with a circular marker.
 - A missing date after an actual update is forward-filled from the last actual price and shown with a diamond marker.
 - The legend, point tooltip, and selected-date summary distinguish “Actual update” from “Carried-forward price” and identify the source report date.
+- The chart guide shows only actual-update and carried-forward point markers; historical and carried-forward line styles remain rendered in the chart without separate legend labels.
 - Forward-filled rows are derived in memory only; they are not written to JSON or SQLite.
 - For stale data, the chart extends backwards from the latest actual point far enough to provide the normal window, then carries the price forward to today.
 
@@ -192,7 +197,7 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-The current browser/data cache version is `20260810-2`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+The current browser/data cache version is `20260811-3`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
 
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 
