@@ -3739,15 +3739,8 @@
       const topbar = document.querySelector(".topbar");
       const toolbar = document.querySelector(".results-toolbar");
       const topInset = Math.ceil((topbar ? topbar.getBoundingClientRect().height : 0)
-        + (toolbar ? toolbar.getBoundingClientRect().height : 0) + 16);
-      const bottomInset = 16;
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      const availableHeight = Math.max(0, viewportHeight - topInset - bottomInset);
-      const targetHeight = target.getBoundingClientRect().height;
-      const targetViewportTop = targetHeight <= availableHeight
-        ? topInset + Math.max(0, (availableHeight - targetHeight) / 2)
-        : topInset;
-      const targetTop = target.getBoundingClientRect().top + window.scrollY - targetViewportTop;
+        + (toolbar ? toolbar.getBoundingClientRect().height : 0) + 12);
+      const targetTop = target.getBoundingClientRect().top + window.scrollY - topInset;
 
       window.scrollTo({
         top: Math.max(0, targetTop),
@@ -5659,14 +5652,14 @@
     }
 
     return `
+      <div class="topbar-left-slot">
+        ${renderLocaleToggle()}
+      </div>
       <div class="topbar-side-spacer" aria-hidden="true"></div>
       ${renderBrandHomeLink("topbar-brand-link results-brand-link")}
-      <div class="topbar-actions">
-        ${renderLocaleToggle()}
-        <button type="button" class="icon-button" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">
-          <img src="${escapeAttribute(ASSETS.search)}" alt="">
-        </button>
-      </div>
+      <button type="button" class="icon-button topbar-search-trigger" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">
+        <img src="${escapeAttribute(ASSETS.search)}" alt="">
+      </button>
     `;
   }
 
