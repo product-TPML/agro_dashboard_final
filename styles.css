@@ -2817,7 +2817,7 @@ body {
   position: fixed;
   left: 16px;
   right: 16px;
-  bottom: 16px;
+  bottom: auto;
   z-index: 111;
   display: flex;
   flex-direction: column;
@@ -2827,10 +2827,12 @@ body {
 
 .home-search {
   top: 108px;
+  max-height: calc(var(--visual-viewport-height, 100vh) - 124px);
 }
 
 .results-search {
   top: 72px;
+  max-height: calc(var(--visual-viewport-height, 100vh) - 88px);
   max-width: 1040px;
   margin: 0 auto;
 }
@@ -4442,6 +4444,7 @@ body {
 
   .floating-search-panel.results-search {
     top: 86px;
+    max-height: calc(var(--visual-viewport-height, 100vh) - 102px);
     width: min(calc(100vw - 32px), 1040px);
     max-width: none;
   }
@@ -4520,8 +4523,7 @@ html::-webkit-scrollbar {
 .floating-search-panel {
   left: max(16px, env(safe-area-inset-left, 16px));
   right: max(16px, env(safe-area-inset-right, 16px));
-  bottom: max(16px, env(safe-area-inset-bottom, 16px));
-  max-height: calc(var(--visual-viewport-height, 100vh) - 32px);
+  bottom: auto;
 }
 
 .search-suggestions-region.is-scrollable {
@@ -4779,7 +4781,6 @@ html::-webkit-scrollbar {
   .floating-search-panel {
     left: 50%;
     right: 16px;
-    bottom: 16px;
-    max-height: none;
+    bottom: auto;
   }
 }

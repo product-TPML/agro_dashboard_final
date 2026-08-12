@@ -6,9 +6,27 @@
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
   const CARD_TARGET_HIGHLIGHT_DURATION_MS = 2200;
-  const SEARCH_INPUT_DEBOUNCE_MS = 120;
+  const SEARCH_INPUT_DEBOUNCE_MS = 350;
   const SEARCH_MIN_QUERY_LENGTH = 3;
   const FUZZY_SEARCH_MIN_TERM_LENGTH = 3;
+  const SEARCH_CONNECTIVE_WORDS = new Set([
+    "a",
+    "an",
+    "and",
+    "around",
+    "at",
+    "by",
+    "for",
+    "from",
+    "in",
+    "near",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "with",
+  ]);
   const PRICE_COLORS = {
     max: "#C2410C",
     min: "#1E3A8A",
@@ -887,17 +905,15 @@
   }
 
   function handleDocumentClick(event) {
-    if (event.target.closest(".shell-top")) {
+    if (event.target.closest("[data-open-search]")) {
       return;
     }
 
-    if (!event.target.closest("[data-search-root]")) {
-      if (state.suggestions.length) {
-        state.suggestions = [];
-        syncSearchSuggestionsUi();
-        return;
-      }
+    if (!state.isSearchOpen || event.target.closest("[data-search-root]")) {
+      return;
     }
+
+    closeSearchPanel();
   }
 
   function handleSearchInput(event) {
@@ -973,17 +989,34 @@
 
     state.isMarketJumpOpen = false;
     state.isSearchOpen = true;
-    syncSearchResultsForQuery(state.query);
+    const trimmedQuery = state.query.trim();
+    const shouldRefreshQuery = trimmedQuery.length >= SEARCH_MIN_QUERY_LENGTH
+      && (state.searchUiState === "loading" || !state.suggestions.length);
+    if (shouldRefreshQuery) {
+      setPendingSearchUiState(state.query);
+    }
     scheduleRender();
+
+    if (shouldRefreshQuery) {
+      window.setTimeout(() => {
+        if (!state.isSearchOpen) {
+          return;
+        }
+
+        syncSearchResultsForQuery(state.query);
+        syncSearchSuggestionsUi();
+      }, 0);
+    }
   }
 
   function closeSearchPanel() {
+    cancelSearchInputWork();
     state.isSearchOpen = false;
-    state.suggestions = [];
     scheduleRender();
   }
 
   function clearSearchAndClose() {
+    cancelSearchInputWork();
     state.query = "";
     state.isSearchOpen = false;
     state.suggestions = [];
@@ -4486,9 +4519,7 @@
   }
 
   function scheduleSearchInputWork(query) {
-    if (searchInputTimer !== null) {
-      window.clearTimeout(searchInputTimer);
-    }
+    cancelSearchInputWork();
 
     const trimmedQuery = query.trim();
     if (!trimmedQuery || trimmedQuery.length < SEARCH_MIN_QUERY_LENGTH) {
@@ -4500,6 +4531,15 @@
       searchInputTimer = null;
       search(query);
     }, SEARCH_INPUT_DEBOUNCE_MS);
+  }
+
+  function cancelSearchInputWork() {
+    if (searchInputTimer === null) {
+      return;
+    }
+
+    window.clearTimeout(searchInputTimer);
+    searchInputTimer = null;
   }
 
   function scheduleRender() {
@@ -4685,21 +4725,37 @@
 
   function buildLocalizedSearchResults(query) {
     const normalizedQuery = normalizeSearchText(query);
-    const queryTerms = getSearchQueryTerms(normalizedQuery);
+    const queryTerms = getMeaningfulSearchQueryTerms(normalizedQuery);
+    const effectiveQuery = queryTerms.join(" ") || normalizedQuery;
     const candidates = getLocalizedSearchCandidates();
-    const commodityResults = candidates.commodities
-      .map((candidate) => buildCommoditySearchResult(candidate, normalizedQuery))
+    let commodityResults = candidates.commodities
+      .map((candidate) => buildCommoditySearchResult(candidate, effectiveQuery))
       .filter(Boolean)
       .sort(compareLocalizedSearchResults)
       .slice(0, 6);
 
-    const marketResults = buildMarketCommoditySearchResults(normalizedQuery, queryTerms);
+    const marketResults = buildMarketCommoditySearchResults(effectiveQuery, queryTerms);
 
     const varietyResults = candidates.varieties
-      .map((candidate) => buildVarietySearchResult(candidate, normalizedQuery, queryTerms))
+      .map((candidate) => buildVarietySearchResult(candidate, effectiveQuery, queryTerms))
       .filter(Boolean)
       .sort(compareLocalizedSearchResults)
       .slice(0, 8);
+
+    const hasCompositeResult = marketResults.some((result) => result.matchType === "market")
+      || varietyResults.some((result) => result.matchType === "commodity-variety");
+    if (queryTerms.length > 1 && !hasCompositeResult) {
+      const existingCommodityNames = new Set(
+        commodityResults.map((result) => normalizeSearchText(result.commodity || "")),
+      );
+      commodityResults = [
+        ...commodityResults,
+        ...buildCommodityFallbackSearchResults(candidates.commodities, queryTerms)
+          .filter((result) => !existingCommodityNames.has(normalizeSearchText(result.commodity || ""))),
+      ]
+        .sort(compareLocalizedSearchResults)
+        .slice(0, 6);
+    }
 
     return [...commodityResults, ...marketResults, ...varietyResults].slice(0, 12);
   }
@@ -4707,6 +4763,24 @@
   function buildCommoditySearchResult(candidate, query) {
     const score = getLocalizedMatchScore(candidate.aliases, query);
     return score ? { type: "commodity", commodity: candidate.name, score } : null;
+  }
+
+  function buildCommodityFallbackSearchResults(candidates, queryTerms) {
+    return candidates
+      .map((candidate) => {
+        const score = queryTerms.reduce((best, term) => {
+          const termScore = getLocalizedMatchScore(candidate.aliases, term);
+          if (!termScore || termScore.matchRank > 1) {
+            return best;
+          }
+          return pickBetterMatchScore(termScore, best);
+        }, null);
+        return score
+          ? { type: "commodity", commodity: candidate.name, matchType: "commodity-fallback", score }
+          : null;
+      })
+      .filter(Boolean)
+      .sort(compareLocalizedSearchResults);
   }
 
   function buildMarketCommoditySearchResults(query, queryTerms = getSearchQueryTerms(query)) {
@@ -4790,6 +4864,11 @@
     return normalizeSearchText(query)
       .split(/\s+/)
       .filter(Boolean);
+  }
+
+  function getMeaningfulSearchQueryTerms(query) {
+    return getSearchQueryTerms(query)
+      .filter((term) => !SEARCH_CONNECTIVE_WORDS.has(term));
   }
 
   function getLocalizedSearchCandidates() {

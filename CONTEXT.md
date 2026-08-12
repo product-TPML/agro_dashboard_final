@@ -70,6 +70,7 @@ The checked-in browser payload is the 10 August 2026 merged snapshot above. On 6
 - Category-specific commodity gallery with counts and real commodity thumbnails.
 - Desktop category rails use a small left gutter and start from the left so the first category remains fully visible when the rail overflows.
 - The search overlay X closes the overlay and clears the active search term; clicking outside the overlay only closes it.
+- Clicking the inline hero search or top-bar search opens the floating search panel and keeps it open; clicks inside any search root do not count as outside clicks.
 - Selecting a commodity opens its results view.
 - The top-bar search appears after the hero search scrolls out of view.
 
@@ -112,10 +113,13 @@ Search is local and uses `data/search-index.json`.
 
 - Searches commodity, market, and variety names.
 - Suggestions require at least three characters and show the matched entity type and context.
+- Search input is debounced in the browser with a 600 ms delay once the query reaches the three-character threshold; it does not recompute on every keystroke.
 - Matching text is highlighted.
 - Search accepts commodity + variety combinations in either order, such as `Tomato Hybrid` or `Hybrid Tomato`, and routes a selected pair to the canonical variety page.
+- Search also accepts common connector words in multi-term queries, such as `tomato in mysuru`, `tomato from mysuru`, `tomato at mysuru`, and similar phrases, by ignoring a bounded list of connective words during matching.
 - Search uses canonical English names, localized English/Kannada aliases, automatic Romanized Kannada aliases, and optional curated overrides for commodities, varieties, and valid composite pairs.
 - Bounded typo-tolerant ranking remains in place for all supported aliases: for example, `sebu` matches `sebbu`, `seboo`, and `seebu` through the existing fuzzy threshold. Fuzzy results remain suggestion-first; ambiguous variety names do not auto-select a commodity.
+- If a composite commodity + market or commodity + variety phrase does not map to a valid pair, the search falls back to a standalone commodity suggestion rather than returning an empty list. This fallback is intentionally stricter than the normal fuzzy path so near-neighbor commodities like `Potato` do not displace the intended `Tomato` anchor.
 - The overlay has idle, loading, ready, empty, unavailable, and retry states.
 - Selecting a commodity, market, or variety creates a URL-backed results route.
 - A commodity selected from a market suggestion keeps the market context and changes the card presentation accordingly.
@@ -225,5 +229,6 @@ The repository is intended to deploy from the `main` branch using GitHub Actions
 - When changing chart behavior, keep actual and forward-filled rows distinguishable and do not persist derived carry-forward dates.
 - When changing chart rendering, preserve solid historical lines, the dotted carried-forward tail, overlap color sequencing, marker hierarchy, full-width mobile layout, and horizontal scroll anchoring.
 - When changing filters or search, verify both the initial markup and the post-interaction rerender paths, plus body-scroll locking and input/scroll restoration.
+- Search open/close behavior depends on `[data-search-root]`, `[data-open-search]`, and the floating overlay path in `handleDocumentClick()`. Re-check hero-search click, top-bar-search click, outside-click close, and delayed suggestion rendering together when editing this area.
 - When changing commodity imagery, update both the asset file and the `BAKED_COMMODITY_THUMBS` mapping, then test every category rail.
 - `npm run check` performs syntax checks only; it does not validate data shape, visual regressions, or deployment.
