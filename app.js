@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260811-5";
+  const APP_DATA_VERSION = "20260812-1";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -5416,6 +5416,8 @@
           </main>
         `}
 
+        ${renderSiteFooter()}
+
         ${renderSearchOverlay()}
         ${renderFilterModal()}
         ${renderMarketJumpModal(rows)}
@@ -5628,11 +5630,28 @@
   function renderBrandHomeLink(extraClass = "", logoSrc = ASSETS.logo, logoAlt = getUiText("app_title", "Namma Krishi Prices")) {
     const appTitle = getUiText("app_title", "Namma Krishi Prices");
     const homeLabel = getUiText("home_button", "Home");
-    const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).join(" ");
+const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).join(" ");
     return `
       <a class="${escapeAttribute(classes)}" href="${escapeAttribute(buildRouteUrl(getHomeRoute()))}" data-home-link="true" aria-label="${escapeAttribute(homeLabel)}">
         <img class="brand-logo" src="${escapeAttribute(logoSrc)}" alt="${escapeAttribute(logoAlt || appTitle)}">
       </a>
+    `;
+  }
+
+  function renderSiteFooter() {
+    return `
+      <footer class="app-footer">
+        <div class="app-footer-inner">
+          <div class="footer-brand-row">
+            ${renderBrandHomeLink("footer-brand-link", ASSETS.logo, getUiText("footer_brand_aria", "Namma Krishi Prices home"))}
+          </div>
+          <p class="footer-disclaimer">${escapeHtml(getUiText("footer_disclaimer", "All prices are sourced from official websites, sources of which are mentioned on each commodity card"))}</p>
+          <nav class="footer-links" aria-label="${escapeAttribute(getUiText("footer_nav_aria", "Footer links"))}">
+            <a class="footer-link" href="https://prajavani.net" target="_blank" rel="noopener noreferrer">${escapeHtml(getUiText("footer_back_to_prajavani", "Back to Prajavani"))}</a>
+            <span class="footer-link footer-link-muted" role="link" aria-disabled="true" title="${escapeAttribute(getUiText("footer_feedback_tooltip", "Coming soon"))}">${escapeHtml(getUiText("footer_submit_feedback", "Submit your feedback"))}</span>
+          </nav>
+        </div>
+      </footer>
     `;
   }
 

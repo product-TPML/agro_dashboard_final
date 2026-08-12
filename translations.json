@@ -85,6 +85,30 @@
       "en": "Home",
       "kn": "ಮುಖಪುಟ"
     },
+    "footer_disclaimer": {
+      "en": "All prices are sourced from official websites, sources of which are mentioned on each commodity card",
+      "kn": "ಎಲ್ಲಾ ಬೆಲೆಗಳನ್ನು ಅಧಿಕೃತ ವೆಬ್‌ಸೈಟ್‌ಗಳಿಂದ ಪಡೆಯಲಾಗಿದೆ, ಆ ಮೂಲಗಳನ್ನು ಪ್ರತಿ ಸರಕಿನ ಕಾರ್ಡ್‌ನಲ್ಲಿ ಉಲ್ಲೇಖಿಸಲಾಗಿದೆ"
+    },
+    "footer_back_to_prajavani": {
+      "en": "Back to Prajavani",
+      "kn": "ಪ್ರಜಾವಾಣಿಗೆ ಹಿಂತಿರುಗಿ"
+    },
+    "footer_submit_feedback": {
+      "en": "Submit your feedback",
+      "kn": "ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ ಸಲ್ಲಿಸಿ"
+    },
+    "footer_feedback_tooltip": {
+      "en": "Coming soon",
+      "kn": "ಶೀಘ್ರದಲ್ಲೇ"
+    },
+    "footer_brand_aria": {
+      "en": "Namma Krishi Prices home",
+      "kn": "ನಮ್ಮ ಕೃಷಿ ಬೆಲೆಗಳ ಮುಖಪುಟ"
+    },
+    "footer_nav_aria": {
+      "en": "Footer links",
+      "kn": "ಫುಟರ್ ಲಿಂಕ್‌ಗಳು"
+    },
     "results_intro_table": {
       "en": "Use the filters to narrow the list. Click any row to view the recent price trend for that exact commodity entry.",
       "kn": "ಪಟ್ಟಿಯನ್ನು ಸುಗಮಗೊಳಿಸಲು ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಬಳಸಿ. ಆ ನಿರ್ದಿಷ್ಟ ಸರಕಿನ ಇತ್ತೀಚಿನ ಬೆಲೆಯ ಪ್ರವೃತ್ತಿಯನ್ನು ವೀಕ್ಷಿಸಲು ಯಾವುದೇ ಸಾಲಿನ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ."
