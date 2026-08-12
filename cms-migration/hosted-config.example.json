@@ -1,0 +1,33 @@
+{
+  "_note": "Documentation/config manifest for the CMS/CDN migration of Namma Krishi Prices. Replace every https://YOUR-CMS-CDN.example URL with the real hosted URLs. This file is reference material; the app does not read it at runtime.",
+  "version": "20260812-1",
+  "baseUrls": {
+    "cdnRoot": "https://YOUR-CMS-CDN.example/agro-dashboard/",
+    "imageBaseUrl": "https://YOUR-CMS-CDN.example/agro-dashboard/assets/",
+    "dataBaseUrl": "https://YOUR-CMS-CDN.example/agro-dashboard/data/"
+  },
+  "entry": {
+    "html": "https://YOUR-CMS-CDN.example/agro-dashboard/index.html",
+    "appJs": "https://YOUR-CMS-CDN.example/agro-dashboard/app.js?v=20260812-1",
+    "css": "https://YOUR-CMS-CDN.example/agro-dashboard/styles.css?v=20260812-1",
+    "translations": "https://YOUR-CMS-CDN.example/agro-dashboard/translations.json?v=20260812-1"
+  },
+  "runtimeJson": {
+    "observations": "https://YOUR-CMS-CDN.example/agro-dashboard/data/observations.json?v=20260812-1",
+    "searchIndex": "https://YOUR-CMS-CDN.example/agro-dashboard/data/search-index.json?v=20260812-1",
+    "searchAliases": "https://YOUR-CMS-CDN.example/agro-dashboard/data/search-aliases.json?v=20260812-1",
+    "searchTransliterations": "https://YOUR-CMS-CDN.example/agro-dashboard/data/search-transliterations.json?v=20260812-1",
+    "categories": "https://YOUR-CMS-CDN.example/agro-dashboard/data/categories.json?v=20260812-1",
+    "metadata": "https://YOUR-CMS-CDN.example/agro-dashboard/data/metadata.json?v=20260812-1"
+  },
+  "assets": {
+    "font": "https://YOUR-CMS-CDN.example/agro-dashboard/fonts/PrajavaniTextRegular.woff2",
+    "ogImage": "https://YOUR-CMS-CDN.example/agro-dashboard/assets/OG%20Image.png",
+    "note": "All 168 files under assets/ (thumbnails, logos, icons, category badges) resolve relative to imageBaseUrl unless app.js is rewritten to absolute URLs."
+  },
+  "uploadDependencies": {
+    "assetsTreeMb": 245,
+    "observationsJsonMb": 26,
+    "note": "These payloads are not copied into cms-migration/; they must be uploaded/synced separately, mirroring the repo-relative layout."
+  }
+}

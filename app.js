@@ -2289,7 +2289,7 @@
     return `
       <button type="button" class="filter-fab market-jump-fab" data-open-market-jump="true" aria-label="${escapeAttribute(getUiText("market_jump_open_aria", "Open market navigator"))}">
         <span class="filter-fab-icon">
-          <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="">
+          <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="" loading="lazy" decoding="async">
         </span>
       </button>
     `;
@@ -2966,14 +2966,14 @@
             <p class="filter-header-copy">${escapeHtml(getUiText("market_jump_copy", `Choose a market for ${translateEntity("commodity", state.route.commodity || "")}.`))}</p>
           </div>
           <button type="button" class="icon-button close" data-close-market-jump="button" aria-label="${escapeAttribute(getUiText("market_jump_close_aria", "Close market navigator"))}">
-            <img src="${escapeAttribute(ASSETS.close)}" alt="">
+            <img src="${escapeAttribute(ASSETS.close)}" alt="" loading="lazy" decoding="async">
           </button>
         </div>
         <div class="market-jump-list">
           ${targets.map((target) => `
             <button type="button" class="market-jump-option" data-jump-market="${escapeAttribute(target.value)}">
               <span class="market-jump-option-icon" aria-hidden="true">
-                <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="">
+                <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="" loading="lazy" decoding="async">
               </span>
               <span class="market-jump-option-copy">
                 <span class="market-jump-option-label">${escapeHtml(target.label)}</span>
@@ -5437,7 +5437,7 @@
       <section class="hero-block">
         <picture class="hero-bg-img">
           <source media="(min-width: 768px)" srcset="${escapeAttribute(ASSETS.heroBg)}">
-          <img src="${escapeAttribute(ASSETS.heroBgMobile)}" alt="">
+          <img src="${escapeAttribute(ASSETS.heroBgMobile)}" alt="" fetchpriority="high" decoding="async">
         </picture>
         <div class="hero-copy ${state.isSearchOpen ? "search-active" : ""}">
           <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link", ASSETS.heroLogo, getUiText("app_title", "Namma Krishi Prices"))}</h1>
@@ -5521,7 +5521,7 @@
   function renderSearchIdleState() {
     return `
       <div class="search-state-panel search-idle-panel" aria-live="polite">
-        <img class="empty-state-icon search-state-icon" src="${escapeAttribute(ASSETS.search)}" alt="">
+        <img class="empty-state-icon search-state-icon" src="${escapeAttribute(ASSETS.search)}" alt="" loading="lazy" decoding="async">
         <strong>${escapeHtml(getUiText("type_to_search", "Type to search"))}</strong>
         <p>${escapeHtml(getUiText("search_idle_body", "Type at least 3 characters to see matching suggestions."))}</p>
       </div>
@@ -5541,7 +5541,7 @@
   function renderSearchEmptyState() {
     return `
       <div class="search-state-panel search-empty-panel" aria-live="polite">
-        <img class="empty-state-icon" src="${escapeAttribute(ASSETS.emptyState)}" alt="">
+        <img class="empty-state-icon" src="${escapeAttribute(ASSETS.emptyState)}" alt="" loading="lazy" decoding="async">
         <strong>${escapeHtml(getUiText("no_matching_options", "No matching options."))}</strong>
         <p>${escapeHtml(getUiText("search_no_results_body", "Try a different commodity, market, or variety name."))}</p>
       </div>
@@ -5551,7 +5551,7 @@
   function renderSearchUnavailableState() {
     return `
       <div class="search-state-panel search-unavailable-panel" aria-live="polite">
-        <img class="empty-state-icon" src="${escapeAttribute(ASSETS.emptyState)}" alt="">
+        <img class="empty-state-icon" src="${escapeAttribute(ASSETS.emptyState)}" alt="" loading="lazy" decoding="async">
         <strong>${escapeHtml(getUiText("search_unavailable_title", "Search is unavailable right now."))}</strong>
         <p>${escapeHtml(getUiText("search_unavailable_body", "We could not load suggestions. Please try again."))}</p>
         <button type="button" class="action-button ghost empty-state-button" data-retry-search-index="true">${escapeHtml(getUiText("retry", "Retry"))}</button>
@@ -5584,7 +5584,7 @@
                 role="tab"
                 aria-selected="${isActive ? "true" : "false"}"
               >
-                <img src="${escapeAttribute(getCategoryThumb(category.id))}" alt="">
+                <img src="${escapeAttribute(getCategoryThumb(category.id))}" alt="" loading="lazy" decoding="async">
                 <span>${escapeHtml(getCategoryLabel(category.id, category.label))}</span>
               </button>
             `;
@@ -5603,7 +5603,7 @@
                 data-home-commodity="${escapeAttribute(commodity)}"
               >
                 <div class="thumb-wrap ${escapeAttribute(getCommodityThumbWrapClass(commodity))}">
-                  <img src="${escapeAttribute(getCommodityThumb(commodity))}" alt="${escapeAttribute(translateEntity("commodity", commodity))}">
+                  <img src="${escapeAttribute(getCommodityThumb(commodity))}" alt="${escapeAttribute(translateEntity("commodity", commodity))}" loading="lazy" decoding="async">
                 </div>
                 <p>${escapeHtml(translateEntity("commodity", commodity))}</p>
               </button>
@@ -5688,12 +5688,12 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
         ${state.suggestions.map((result, index) => `
           <button type="button" class="suggestion-row" data-suggestion-index="${index}">
             <div class="thumb-wrap small ${escapeAttribute(getSuggestionDisplayType(result) === "market" && result.type === "market" ? "results-context-icon-market" : getCommodityThumbWrapClass(result.commodity))}">
-              <img src="${escapeAttribute(result.type === "market" ? ASSETS.suggestionMarket : getCommodityThumb(result.commodity))}" alt="">
+              <img src="${escapeAttribute(result.type === "market" ? ASSETS.suggestionMarket : getCommodityThumb(result.commodity))}" alt="" loading="lazy" decoding="async">
             </div>
             <div class="suggestion-copy">
               <strong>${highlightMatch(getSuggestionLabel(result), state.query)}</strong>
               <span class="suggestion-kind ${escapeAttribute(getSuggestionToneClass(result))}">
-                ${result.type === "market" ? "" : `<img src="${escapeAttribute(getSuggestionIcon(result))}" alt="">`}
+                ${result.type === "market" ? "" : `<img src="${escapeAttribute(getSuggestionIcon(result))}" alt="" loading="lazy" decoding="async">`}
                 ${escapeHtml(getSuggestionKindLabel(result))}
               </span>
             </div>
@@ -5838,7 +5838,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
           ${rows.map(({ field, values }) => `
             <div class="filter-summary-row ${escapeAttribute(field)}-filter-summary">
               <div class="filter-summary-label">
-                <img src="${escapeAttribute(getSuggestionIcon(field))}" alt="">
+                <img src="${escapeAttribute(getSuggestionIcon(field))}" alt="" loading="lazy" decoding="async">
                 <span>${escapeHtml(getFieldLabel(field))}</span>
               </div>
               <div class="chip-row filter-summary-chip-row">
@@ -5869,7 +5869,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
             <h3>${escapeHtml(getUiText("refine_results", "Refine results"))}</h3>
           </div>
           <button type="button" class="icon-button close" data-close-filter-modal="button" aria-label="${escapeAttribute(getUiText("close_filters_aria", "Close filters"))}">
-            <img src="${escapeAttribute(ASSETS.close)}" alt="">
+            <img src="${escapeAttribute(ASSETS.close)}" alt="" loading="lazy" decoding="async">
           </button>
         </div>
         <div class="filter-dialog-body" data-preserve-scroll-id="filter-modal-body">
@@ -5893,7 +5893,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <div class="filter-group filter-modal-group">
         <div class="filter-line">
           <span class="filter-line-label ${escapeAttribute(getFilterFieldToneClass(field))}">
-            ${field === "market" || field === "variety" ? `<img class="filter-line-icon" src="${escapeAttribute(getSuggestionIcon(field))}" alt="" aria-hidden="true">` : ""}
+            ${field === "market" || field === "variety" ? `<img class="filter-line-icon" src="${escapeAttribute(getSuggestionIcon(field))}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}
             <span>${escapeHtml(getFieldLabel(field))}</span>
           </span>
           <span class="line"></span>
@@ -5940,7 +5940,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (!rows.length) {
       return `
         <div class="empty-state">
-          <img class="empty-state-icon" src="${escapeAttribute(ASSETS.emptyState)}" alt="">
+          <img class="empty-state-icon" src="${escapeAttribute(ASSETS.emptyState)}" alt="" loading="lazy" decoding="async">
           <h3>${escapeHtml(getUiText("filters_label", "Filters"))}</h3>
           <p>${escapeHtml(getUiText("no_rows_match", "No rows match the current combination."))}</p>
         </div>
@@ -5975,7 +5975,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <article class="price-card result-card ${isExpanded ? "expanded is-expanded" : ""}" data-row-key="${escapeAttribute(row.rowKey)}" data-market-anchor="${escapeAttribute(row.market)}">
         <div class="card-header">
           <div class="card-market">
-            <img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="">
+            <img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async">
             <div class="card-title-stack">
               <h3>${escapeHtml(presentation.titleValue)}</h3>
             </div>
