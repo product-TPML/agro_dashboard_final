@@ -670,7 +670,7 @@
       }
     }
     const query = params.toString();
-    const basePath = window.location.pathname || "./";
+    const basePath = (window.location.origin || "") + (window.location.pathname || "./");
     return query ? `${basePath}?${query}` : basePath;
   }
 
