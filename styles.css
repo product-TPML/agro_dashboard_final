@@ -2458,6 +2458,26 @@ body {
   transform: translateY(-50%);
 }
 
+.pv-site-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 64px;
+  border-radius: 999px;
+  outline: none;
+}
+
+.pv-site-link .pv-site-logo {
+  width: 70px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.pv-site-link:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.72);
+}
+
 .topbar-actions {
   display: inline-flex;
   align-items: center;
@@ -4833,6 +4853,11 @@ html::-webkit-scrollbar {
   justify-content: center;
 }
 
+.footer-locale-row {
+  display: flex;
+  justify-content: center;
+}
+
 .footer-brand-link {
   width: 128px;
   height: 40px;
@@ -4894,6 +4919,16 @@ html::-webkit-scrollbar {
 }
 
 @media (max-width: 414px) {
+  .pv-site-link {
+    width: 52px;
+    height: 52px;
+  }
+
+  .pv-site-link .pv-site-logo {
+    width: 52px;
+    height: 36px;
+  }
+
   .app-footer-inner {
     padding: 26px 16px 34px;
   }

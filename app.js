@@ -5686,12 +5686,23 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     `;
   }
 
+  function renderPvSiteLink() {
+    return `
+      <a class="pv-site-link" href="https://prajavani.net" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttribute(getUiText("pv_site_aria", "Visit Prajavani"))}">
+        <img class="pv-site-logo" src="${escapeAttribute(ASSETS.heroLogo)}" alt="Prajavani">
+      </a>
+    `;
+  }
+
   function renderSiteFooter() {
     return `
       <footer class="app-footer">
         <div class="app-footer-inner">
           <div class="footer-brand-row">
             ${renderBrandHomeLink("footer-brand-link", ASSETS.logo, getUiText("footer_brand_aria", "Namma Krishi Prices home"))}
+          </div>
+          <div class="footer-locale-row">
+            ${renderLocaleToggle()}
           </div>
           <p class="footer-disclaimer">${escapeHtml(getUiText("footer_disclaimer", "All prices are sourced from official websites, sources of which are mentioned on each commodity card"))}</p>
           <nav class="footer-links" aria-label="${escapeAttribute(getUiText("footer_nav_aria", "Footer links"))}">
@@ -5707,7 +5718,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (state.route.view === "home") {
       return `
         <div class="topbar-left-slot">
-          ${renderLocaleToggle()}
+          ${renderPvSiteLink()}
         </div>
         ${renderBrandHomeLink("topbar-brand-link")}
         ${state.showHomeTopbarSearch ? `
@@ -5720,7 +5731,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
 
     return `
       <div class="topbar-left-slot">
-        ${renderLocaleToggle()}
+        ${renderPvSiteLink()}
       </div>
       <div class="topbar-side-spacer" aria-hidden="true"></div>
       ${renderBrandHomeLink("topbar-brand-link results-brand-link")}
