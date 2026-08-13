@@ -1959,7 +1959,8 @@
   }
 
   function canRenderMarketJump(rows) {
-    return (isHomeCommodityResultsView() || isVarietyResultsView())
+    return ((isHomeCommodityResultsView() || isVarietyResultsView())
+      || (state.route.view === "table" && state.route.type === "commodity" && !state.route.market))
       && getActiveResultsLayout() === "cards"
       && getMarketJumpTargets(rows).length > 1;
   }
