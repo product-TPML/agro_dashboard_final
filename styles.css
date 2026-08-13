@@ -2626,9 +2626,9 @@ body {
 }
 
 .hero-brand-link {
-  width: 96px;
-  max-width: 34vw;
-  height: 96px;
+  width: 216px;
+  max-width: 40vw;
+  height: auto;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.42));
 }
 
@@ -4457,9 +4457,9 @@ body {
   }
 
   .hero-brand-link {
-    width: 132px;
-    max-width: 18vw;
-    height: 132px;
+    width: 252px;
+    max-width: 30vw;
+    height: auto;
   }
 
   .category-tabs {
@@ -4595,9 +4595,9 @@ html::-webkit-scrollbar {
   }
 
   .hero-brand-link {
-    width: 88px;
-    max-width: 32vw;
-    height: 88px;
+    width: 144px;
+    max-width: 36vw;
+    height: auto;
   }
 
   .commodity-tile p {
