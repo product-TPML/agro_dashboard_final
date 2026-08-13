@@ -487,6 +487,7 @@
       varieties: {},
     },
     categoryGroups: [],
+    bootComplete: false,
     activeHomeCategoryId: "",
     shouldRevealActiveHomeCategory: false,
     cachedVisibleRowsKey: "",
@@ -532,6 +533,8 @@
       loadCategoryGroups(),
       loadObservations(),
     ]);
+
+    state.bootComplete = true;
 
     if (state.route.view === "table") {
       loadContext();
@@ -5473,8 +5476,7 @@
 
         ${state.route.view === "home" ? `
           <main class="page home-page">
-            ${renderHomeHero()}
-            ${renderCategorySection()}
+            ${state.bootComplete ? `${renderHomeHero()}${renderCategorySection()}` : renderHomeSkeleton()}
           </main>
         ` : `
           <main class="page results-page">
@@ -5519,6 +5521,31 @@
           ${renderSearchField({ entryMode: "hero" })}
         </div>
       </section>
+    `;
+  }
+
+  function renderHomeSkeleton() {
+    return `
+      <div class="home-skeleton" role="status" aria-live="polite">
+        <div class="skeleton-hero" aria-hidden="true">
+          <svg class="skeleton-sprout" viewBox="0 0 64 64" focusable="false">
+            <path d="M32 48V24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+            <path d="M32 33c-9-1-15-7-15-7s7-2 15 2" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+            <path d="M32 26c9-1 15-7 15-7s-7-2-15 2" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+            <path d="M20 54h24" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+          </svg>
+          <span class="skeleton-bar skeleton-bar-wide"></span>
+          <span class="skeleton-bar"></span>
+          <span class="skeleton-bar skeleton-bar-search"></span>
+        </div>
+        <div class="skeleton-tabs" aria-hidden="true">
+          <span class="skeleton-pill"></span><span class="skeleton-pill"></span><span class="skeleton-pill"></span><span class="skeleton-pill"></span><span class="skeleton-pill"></span><span class="skeleton-pill"></span><span class="skeleton-pill"></span>
+        </div>
+        <div class="skeleton-grid" aria-hidden="true">
+          <span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span><span class="skeleton-tile"></span>
+        </div>
+        <h3 class="skeleton-copy">${escapeHtml(getUiText("loading", "Loading..."))}</h3>
+      </div>
     `;
   }
 
