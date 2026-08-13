@@ -4,33 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CMS ENTRY POINT — this file is the shell for the Namma Krishi Prices SPA.
-         Replace every https://YOUR-CMS-CDN.example/... URL below with the real
-         hosted CMS/CDN URLs BEFORE publishing. Do not use relative ./ paths here. -->
+         It is intended to be pasted into the CMS as the page body/snippet, NOT
+         hosted as an Assettype object. Therefore there is no hosted URL for this
+         file itself; only its referenced JS/CSS/images live on Assettype.
+
+         Hosted base (settled): https://images.assettype.com/prajavani/
+         <cms-entry-path> below is the Assettype "entry" folder where the migrated
+         JS/CSS/font/image files are uploaded. Assettype assigns every uploaded
+         file its own generated URL (date/hash segments); replace each
+         <cms-entry-path>/<file> placeholder with the real per-file URL BEFORE
+         publishing. Do not use relative ./ paths here. -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Namma Krishi Prices">
     <meta property="og:description" content="Browse commodity, market, and variety prices from Karnataka.">
-    <!-- PLACEHOLDER: absolute CMS/CDN URL for the Open Graph preview image. -->
-    <meta property="og:image" content="https://YOUR-CMS-CDN.example/agro-dashboard/assets/OG%20Image.png">
+    <!-- PLACEHOLDER: real Assettype URL for the Open Graph preview image
+         (upload "OG Image.png" and paste the generated URL after /prajavani/). -->
+    <meta property="og:image" content="https://images.assettype.com/prajavani/<cms-entry-path>/og-image.png">
     <meta property="og:image:alt" content="Namma Krishi Prices">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Namma Krishi Prices">
     <meta name="twitter:description" content="Browse commodity, market, and variety prices from Karnataka.">
-    <!-- PLACEHOLDER: absolute CMS/CDN URL for the Twitter preview image. -->
-    <meta name="twitter:image" content="https://YOUR-CMS-CDN.example/agro-dashboard/assets/OG%20Image.png">
+    <!-- PLACEHOLDER: same Assettype URL as og:image (or a dedicated Twitter image). -->
+    <meta name="twitter:image" content="https://images.assettype.com/prajavani/<cms-entry-path>/og-image.png">
     <title>Commodity Dashboard Lite</title>
-    <!-- PERFORMANCE SAFEGUARD: uncomment with the real host before publishing.
-         Preconnects the CMS/CDN origin so the JS/CSS/asset connections warm up sooner.
-    <link rel="preconnect" href="https://YOUR-CMS-CDN.example" crossorigin>
+    <!-- PERFORMANCE SAFEGUARD: uncomment with the real hosted origin before publishing.
+         Preconnects https://images.assettype.com so the JS/CSS/asset connections warm up sooner.
+    <link rel="preconnect" href="https://images.assettype.com" crossorigin>
     -->
-    <!-- PLACEHOLDER: absolute CMS/CDN URL for the stylesheet.
+    <!-- PLACEHOLDER: real Assettype URL for the stylesheet.
          Keep ?v= in sync with APP_DATA_VERSION in the hosted app.js. -->
-    <link rel="stylesheet" href="https://YOUR-CMS-CDN.example/agro-dashboard/styles.css?v=20260812-1">
+    <link rel="stylesheet" href="https://images.assettype.com/prajavani/<cms-entry-path>/styles.css?v=20260812-1">
   </head>
   <body>
     <!-- The SPA mounts here. Keep this id="app" mount point unchanged. -->
     <div id="app"></div>
-    <!-- PLACEHOLDER: absolute CMS/CDN URL for the application script.
+    <!-- PLACEHOLDER: real Assettype URL for the application script.
          Keep ?v= in sync with APP_DATA_VERSION in app.js. -->
-    <script src="https://YOUR-CMS-CDN.example/agro-dashboard/app.js?v=20260812-1"></script>
+    <script src="https://images.assettype.com/prajavani/<cms-entry-path>/app.js?v=20260812-1"></script>
   </body>
 </html>

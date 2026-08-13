@@ -1,0 +1,41 @@
+{
+  "_note": "Production map template for cms-migration/generate_hosted_bundle.js. Copy this file to cms-migration/asset-map.json, then replace every <generated-suffix> with the REAL suffix Assettype assigned when the file was uploaded. The generator refuses to run while any placeholder or missing entry remains — it never fabricates URLs.",
+  "base": "https://images.assettype.com/prajavani/",
+  "valueShape": "Each suffixes value is the part of the hosted URL after /prajavani/ (example: 2026/08/10/a1b2c3d4-tomato-thumb-real.png — the actual date/hash segment Assettype returns for that upload). A full https:// URL is also accepted.",
+  "suffixes": {
+    "app.js": "<generated-suffix>",
+    "styles.css": "<generated-suffix>",
+    "translations.json": "<generated-suffix>",
+    "data/observations.json": "<generated-suffix>",
+    "data/search-index.json": "<generated-suffix>",
+    "data/search-aliases.json": "<generated-suffix>",
+    "data/search-transliterations.json": "<generated-suffix>",
+    "data/categories.json": "<generated-suffix>",
+    "data/metadata.json": "<generated-suffix>",
+    "fonts/PrajavaniTextRegular.woff2": "<generated-suffix>",
+    "assets/commodity-logo.svg": "<generated-suffix>",
+    "assets/pv-square-logo.svg": "<generated-suffix>",
+    "assets/hero-bg.png": "<generated-suffix>",
+    "assets/hero-bg-mobile.png": "<generated-suffix>",
+    "assets/search.svg": "<generated-suffix>",
+    "assets/category-fruits-badge.png": "<generated-suffix>",
+    "assets/tomato-thumb-real.png": "<generated-suffix>",
+    "assets/egg-thumb-real.png": "<generated-suffix>",
+    "assets/OG Image.png": "<generated-suffix>"
+  },
+  "requiredKeys": [
+    "app.js",
+    "styles.css",
+    "translations.json",
+    "data/observations.json",
+    "data/search-index.json",
+    "data/search-aliases.json",
+    "data/search-transliterations.json",
+    "data/categories.json",
+    "data/metadata.json",
+    "fonts/PrajavaniTextRegular.woff2"
+  ],
+  "note": "The generator requires a real entry for every requiredKeys entry PLUS every ./assets/ path it discovers referenced by the root app.js/styles.css (that full set is computed at runtime — currently ~166 asset paths). Add every referenced path to suffixes with its real Assettype suffix; do NOT fabricate values. assets/OG Image.png is not referenced by app.js/styles.css, but it is still required by cms-migration/index.html (og:image), so keep its entry populated.",
+  "run": "node cms-migration/generate_hosted_bundle.js   (writes cms-migration/dist/app.js and dist/styles.css)",
+  "warning": "The dashboard is NOT production-ready until every placeholder in this map, hosted-config.example.json, and index.html is replaced with a real Assettype-generated URL. No placeholder is a valid runtime URL."
+}

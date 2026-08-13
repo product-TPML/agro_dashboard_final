@@ -1,33 +1,37 @@
 {
-  "_note": "Documentation/config manifest for the CMS/CDN migration of Namma Krishi Prices. Replace every https://YOUR-CMS-CDN.example URL with the real hosted URLs. This file is reference material; the app does not read it at runtime.",
+  "_note": "Documentation/config manifest for the Assettype migration of Namma Krishi Prices. Hosted base (settled): https://images.assettype.com/prajavani/. Assettype assigns every uploaded file its own generated URL (date/hash segments), so each value below is a variable-path placeholder: replace <cms-entry-path>/<file> with the real generated URL for the uploaded file. This file is reference material; the app does not read it at runtime.",
   "version": "20260812-1",
+  "hostedBase": "https://images.assettype.com/prajavani/",
+  "assetUrlPattern": "https://images.assettype.com/prajavani/<cms-entry-path>/<generated-suffix>",
+  "assetUrlMapRequired": true,
+  "assetUrlMapNote": "Image URLs CANNOT be derived from local filenames. Assettype inserts date/hash segments into every generated URL, so the local name (e.g. tomato-thumb-real.png) does not appear in the hosted URL. Production must maintain an explicit map from each local asset to its real generated URL (see asset-map.example.json).",
   "baseUrls": {
-    "cdnRoot": "https://YOUR-CMS-CDN.example/agro-dashboard/",
-    "imageBaseUrl": "https://YOUR-CMS-CDN.example/agro-dashboard/assets/",
-    "dataBaseUrl": "https://YOUR-CMS-CDN.example/agro-dashboard/data/"
+    "cdnRoot": "https://images.assettype.com/prajavani/<cms-entry-path>/",
+    "imageBaseUrl": "https://images.assettype.com/prajavani/<cms-entry-path>/",
+    "dataBaseUrl": "https://images.assettype.com/prajavani/<cms-entry-path>/"
   },
   "entry": {
-    "html": "https://YOUR-CMS-CDN.example/agro-dashboard/index.html",
-    "appJs": "https://YOUR-CMS-CDN.example/agro-dashboard/app.js?v=20260812-1",
-    "css": "https://YOUR-CMS-CDN.example/agro-dashboard/styles.css?v=20260812-1",
-    "translations": "https://YOUR-CMS-CDN.example/agro-dashboard/translations.json?v=20260812-1"
+    "html": "NOT HOSTED AS AN ASSETTYPE OBJECT — paste cms-migration/index.html into the CMS as the page body/snippet; only its referenced JS/CSS/assets live on Assettype.",
+    "appJs": "https://images.assettype.com/prajavani/<cms-entry-path>/app.js?v=20260812-1",
+    "css": "https://images.assettype.com/prajavani/<cms-entry-path>/styles.css?v=20260812-1",
+    "translations": "https://images.assettype.com/prajavani/<cms-entry-path>/translations.json?v=20260812-1"
   },
   "runtimeJson": {
-    "observations": "https://YOUR-CMS-CDN.example/agro-dashboard/data/observations.json?v=20260812-1",
-    "searchIndex": "https://YOUR-CMS-CDN.example/agro-dashboard/data/search-index.json?v=20260812-1",
-    "searchAliases": "https://YOUR-CMS-CDN.example/agro-dashboard/data/search-aliases.json?v=20260812-1",
-    "searchTransliterations": "https://YOUR-CMS-CDN.example/agro-dashboard/data/search-transliterations.json?v=20260812-1",
-    "categories": "https://YOUR-CMS-CDN.example/agro-dashboard/data/categories.json?v=20260812-1",
-    "metadata": "https://YOUR-CMS-CDN.example/agro-dashboard/data/metadata.json?v=20260812-1"
+    "observations": "https://images.assettype.com/prajavani/<cms-entry-path>/data-observations.json?v=20260812-1",
+    "searchIndex": "https://images.assettype.com/prajavani/<cms-entry-path>/data-search-index.json?v=20260812-1",
+    "searchAliases": "https://images.assettype.com/prajavani/<cms-entry-path>/data-search-aliases.json?v=20260812-1",
+    "searchTransliterations": "https://images.assettype.com/prajavani/<cms-entry-path>/data-search-transliterations.json?v=20260812-1",
+    "categories": "https://images.assettype.com/prajavani/<cms-entry-path>/data-categories.json?v=20260812-1",
+    "metadata": "https://images.assettype.com/prajavani/<cms-entry-path>/data-metadata.json?v=20260812-1"
   },
   "assets": {
-    "font": "https://YOUR-CMS-CDN.example/agro-dashboard/fonts/PrajavaniTextRegular.woff2",
-    "ogImage": "https://YOUR-CMS-CDN.example/agro-dashboard/assets/OG%20Image.png",
-    "note": "All 168 files under assets/ (thumbnails, logos, icons, category badges) resolve relative to imageBaseUrl unless app.js is rewritten to absolute URLs."
+    "font": "https://images.assettype.com/prajavani/<cms-entry-path>/prajavani-text-regular.woff2",
+    "ogImage": "https://images.assettype.com/prajavani/<cms-entry-path>/og-image.png",
+    "note": "Every image (168 assets: thumbnails, logos, icons, category badges) is a separately uploaded Assettype object with its own generated URL. Production must replace each value in asset-map.example.json with the real generated URL; app.js must be rewritten to reference those absolute URLs (no ./assets/ relative paths survive on the CMS page)."
   },
   "uploadDependencies": {
     "assetsTreeMb": 245,
     "observationsJsonMb": 26,
-    "note": "These payloads are not copied into cms-migration/; they must be uploaded/synced separately, mirroring the repo-relative layout."
+    "note": "These payloads are not copied into cms-migration/; they must be uploaded to Assettype separately, each file as its own object, and the generated URL of each recorded in the asset map and hosted app.js/styles.css rewrite."
   }
 }
