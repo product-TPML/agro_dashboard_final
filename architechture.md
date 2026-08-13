@@ -16,4 +16,4 @@ The hosted copies of `app.js` and `styles.css` must be rewritten so their data, 
 
 ## Performance safeguards
 
-Non-critical rendered images use native lazy loading and asynchronous decoding. The hero image remains eager with high fetch priority. The CMS entry point includes a preconnect hint for `images.assettype.com`. Data fetching and application rendering behavior remain unchanged.
+Non-critical rendered images use native lazy loading and asynchronous decoding. The hero image remains eager with high fetch priority. The CMS entry point includes a preconnect hint for `images.assettype.com`. Enabled buttons use an explicit pointer cursor while disabled buttons retain a not-allowed cursor, so desktop interaction affordances are consistent. Data fetching and application rendering behavior remain unchanged.
