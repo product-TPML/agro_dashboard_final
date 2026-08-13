@@ -1,4 +1,5 @@
 node_modules/
+assets/
 .playwright-cli/
 tmp_playwright_server.*
 data/*.db-shm

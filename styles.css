@@ -2506,8 +2506,6 @@ body {
 }
 
 .results-brand-link {
-  --brand-link-max-width: 31vw;
-  width: 112px;
   justify-self: center;
 }
 
@@ -3430,8 +3428,8 @@ body {
   width: 100%;
   height: 100%;
   background-color: var(--market-color, #b45309);
-  -webkit-mask-image: url("./assets/suggestion-market.svg");
-  mask-image: url("./assets/suggestion-market.svg");
+  -webkit-mask-image: url("https://images.assettype.com/prajavani/2026-08-13/baubz05r/suggestion-market.svg");
+  mask-image: url("https://images.assettype.com/prajavani/2026-08-13/baubz05r/suggestion-market.svg");
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
@@ -4438,12 +4436,6 @@ body {
     height: 44px;
   }
 
-  .results-brand-link {
-    --brand-link-max-width: 30vw;
-    width: 136px;
-    height: 42px;
-  }
-
   .hero-brand-link {
     width: 132px;
     max-width: 18vw;
@@ -4720,11 +4712,6 @@ html::-webkit-scrollbar {
     --brand-link-max-width: 36vw;
     width: 112px;
     height: 34px;
-  }
-
-  .results-brand-link {
-    --brand-link-max-width: 28vw;
-    width: 92px;
   }
 
   .results-toolbar-inner {
