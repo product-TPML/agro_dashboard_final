@@ -509,6 +509,7 @@
   let marketJumpHighlightTimer = null;
   let cardTargetHighlightTimer = null;
   let shareFeedbackTimer = null;
+  let homeSwipeNavigationCleanup = null;
 
   document.addEventListener("click", handleDocumentClick);
   window.addEventListener("popstate", handlePopState);
@@ -2936,6 +2937,7 @@
     syncHomeTopbarSearchTrigger();
     syncActiveHomeCategoryViewport();
     setupDeferredHomeGalleryImages();
+    setupHomeSwipeNavigation();
     syncExpandedHistoryLayout();
 
     if (state.shouldScrollResultsIntoView && state.route.view === "table" && state.context) {
@@ -2978,6 +2980,96 @@
       // On error, do nothing: the placeholder stays and the img stays hidden
       // but in the DOM so its alt text remains available.
     });
+  }
+
+  function setupHomeSwipeNavigation() {
+    if (homeSwipeNavigationCleanup) {
+      homeSwipeNavigationCleanup();
+      homeSwipeNavigationCleanup = null;
+    }
+
+    if (state.route.view !== "home" || state.categoryGroups.length <= 1) {
+      return;
+    }
+
+    const homePage = document.querySelector(".home-page");
+    if (!homePage) {
+      return;
+    }
+
+    const SWIPE_DISTANCE_MIN = 55;
+    const SWIPE_DOMINANCE_FACTOR = 1.2;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let tracking = false;
+
+    const onTouchStart = (event) => {
+      const touch = event.touches[0];
+      if (!touch) {
+        tracking = false;
+        return;
+      }
+      if (event.target.closest("[data-home-category-rail]")) {
+        tracking = false;
+        return;
+      }
+      tracking = true;
+      startX = lastX = touch.clientX;
+      startY = lastY = touch.clientY;
+    };
+
+    const onTouchMove = (event) => {
+      if (!tracking) {
+        return;
+      }
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      lastX = touch.clientX;
+      lastY = touch.clientY;
+    };
+
+    const onTouchEnd = () => {
+      if (!tracking) {
+        return;
+      }
+      tracking = false;
+      const dx = lastX - startX;
+      const dy = lastY - startY;
+      if (Math.abs(dx) <= SWIPE_DISTANCE_MIN || Math.abs(dx) <= Math.abs(dy) * SWIPE_DOMINANCE_FACTOR) {
+        return;
+      }
+      const groups = state.categoryGroups;
+      const currentIndex = groups.findIndex((category) => category.id === state.activeHomeCategoryId);
+      if (currentIndex < 0) {
+        return;
+      }
+      const direction = dx < 0 ? 1 : -1;
+      const nextIndex = (currentIndex + direction + groups.length) % groups.length;
+      const nextCategory = groups[nextIndex];
+      if (nextCategory && nextCategory.id !== state.activeHomeCategoryId) {
+        handleHomeCategorySelect(nextCategory.id);
+      }
+    };
+
+    const onTouchCancel = () => {
+      tracking = false;
+    };
+
+    homePage.addEventListener("touchstart", onTouchStart, { passive: true });
+    homePage.addEventListener("touchmove", onTouchMove, { passive: true });
+    homePage.addEventListener("touchend", onTouchEnd, { passive: true });
+    homePage.addEventListener("touchcancel", onTouchCancel, { passive: true });
+
+    homeSwipeNavigationCleanup = () => {
+      homePage.removeEventListener("touchstart", onTouchStart);
+      homePage.removeEventListener("touchmove", onTouchMove);
+      homePage.removeEventListener("touchend", onTouchEnd);
+      homePage.removeEventListener("touchcancel", onTouchCancel);
+    };
   }
 
   async function loadSearchAliases() {
