@@ -2932,6 +2932,31 @@ body {
   padding: 0;
 }
 
+/* Home gallery deferred-image enhancement: the inline SVG placeholder fills
+   the reserved box while the real thumbnail is lazy-loaded; the thumbnail is
+   revealed only after it actually loads. Scoped to .deferred-images-active
+   (added by JS) so images never hide if the enhancement does not run. */
+.commodity-gallery .thumb-wrap {
+  position: relative;
+}
+
+.thumb-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.deferred-images-active .commodity-thumb {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.deferred-images-active .thumb-wrap.is-loaded .commodity-thumb {
+  opacity: 1;
+}
+
 .thumb-wrap.large {
   width: 53px;
   height: 53px;

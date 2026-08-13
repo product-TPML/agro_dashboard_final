@@ -3703,6 +3703,7 @@
     syncBackToTopButton();
     syncHomeTopbarSearchTrigger();
     syncActiveHomeCategoryViewport();
+    setupDeferredHomeGalleryImages();
     if (getActiveResultsLayout() === "table") {
       syncStickyTableHeader();
       primeExpandedHistoryScroll();
@@ -3725,6 +3726,31 @@
         searchInput.setSelectionRange(length, length);
       }
     }
+  }
+
+  function setupDeferredHomeGalleryImages() {
+    const images = document.querySelectorAll(".commodity-gallery img[data-home-gallery-img]");
+    if (!images.length) {
+      return;
+    }
+    // Enhancement gate: gallery thumbnails start hidden under the inline
+    // placeholder and are revealed on load; without JS they render as-is.
+    document.body.classList.add("deferred-images-active");
+    images.forEach((img) => {
+      const wrap = img.closest(".thumb-wrap");
+      const reveal = () => {
+        if (wrap) {
+          wrap.classList.add("is-loaded");
+        }
+      };
+      img.addEventListener("load", reveal);
+      // Already-decoded (cached) images may not fire load after wiring.
+      if (img.complete && img.naturalWidth > 0) {
+        reveal();
+      }
+      // On error, do nothing: the placeholder stays and the img stays hidden
+      // but in the DOM so its alt text remains available.
+    });
   }
 
   async function loadSearchAliases() {
@@ -5632,7 +5658,7 @@
                 role="tab"
                 aria-selected="${isActive ? "true" : "false"}"
               >
-                <img src="${escapeAttribute(getCategoryThumb(category.id))}" alt="" loading="lazy" decoding="async">
+                <img src="${escapeAttribute(getCategoryThumb(category.id))}" alt="" ${isActive ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">
                 <span>${escapeHtml(getCategoryLabel(category.id, category.label))}</span>
               </button>
             `;
@@ -5651,7 +5677,8 @@
                 data-home-commodity="${escapeAttribute(commodity)}"
               >
                 <div class="thumb-wrap ${escapeAttribute(getCommodityThumbWrapClass(commodity))}">
-                  <img src="${escapeAttribute(getCommodityThumb(commodity))}" alt="${escapeAttribute(translateEntity("commodity", commodity))}" loading="lazy" decoding="async">
+                  ${renderThumbPlaceholder()}
+                  <img class="commodity-thumb" src="${escapeAttribute(getCommodityThumb(commodity))}" alt="${escapeAttribute(translateEntity("commodity", commodity))}" loading="lazy" decoding="async" data-home-gallery-img="true">
                 </div>
                 <p>${escapeHtml(translateEntity("commodity", commodity))}</p>
               </button>
@@ -5664,6 +5691,17 @@
 
   function renderResultsLayoutToggle() {
     return "";
+  }
+
+  function renderThumbPlaceholder() {
+    return `
+      <svg class="thumb-placeholder" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M32 40V21" fill="none" stroke="#d8a48f" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M32 30c-8-1-13-6-13-6s6-2 13 2" fill="none" stroke="#d8a48f" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M32 24c8-1 13-6 13-6s-6-2-13 2" fill="none" stroke="#e0b49a" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M21 44h22M25 49h14" stroke="#d8a48f" stroke-width="3" stroke-linecap="round"></path>
+      </svg>
+    `;
   }
 
   function renderLocaleToggle() {
