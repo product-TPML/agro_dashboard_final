@@ -2254,6 +2254,28 @@
     }, []);
   }
 
+  const MARKET_TINT_PALETTE = [
+    "#ffe9d6",
+    "#e6f4e2",
+    "#e3edfb",
+    "#fbe3e9",
+    "#f1e4f7",
+    "#fdf3d1",
+    "#dcf0f4",
+    "#e9e8f8",
+    "#fce8e0",
+    "#e4f3ee",
+  ];
+
+  function getMarketTint(marketName) {
+    const key = String(marketName || "").toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    }
+    return MARKET_TINT_PALETTE[hash % MARKET_TINT_PALETTE.length];
+  }
+
   function canRenderMarketJump(rows) {
     return (isHomeCommodityResultsView() || isVarietyResultsView())
       && getActiveResultsLayout() === "cards"
@@ -2972,7 +2994,7 @@
         <div class="market-jump-list">
           ${targets.map((target) => `
             <button type="button" class="market-jump-option" data-jump-market="${escapeAttribute(target.value)}">
-              <span class="market-jump-option-icon" aria-hidden="true">
+              <span class="market-jump-option-icon" aria-hidden="true" style="background:${getMarketTint(target.value)}">
                 <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="" loading="lazy" decoding="async">
               </span>
               <span class="market-jump-option-copy">
@@ -5978,7 +6000,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <article class="price-card result-card ${isExpanded ? "expanded is-expanded" : ""}" data-row-key="${escapeAttribute(row.rowKey)}" data-market-anchor="${escapeAttribute(row.market)}">
         <div class="card-header">
           <div class="card-market">
-            <img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async">
+            <img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async"${presentation.titleKind === "market" ? ` style="background:${getMarketTint(row.market)}"` : ""}>
             <div class="card-title-stack">
               <h3>${escapeHtml(presentation.titleValue)}</h3>
             </div>
