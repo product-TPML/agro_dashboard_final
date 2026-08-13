@@ -4132,6 +4132,10 @@ body {
     align-items: flex-start;
   }
 
+  .results-toolbar-inner .filter-button {
+    margin-top: 4px;
+  }
+
   .filter-button-label {
     display: none;
   }
