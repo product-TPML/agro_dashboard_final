@@ -611,10 +611,24 @@
     }
   }
 
+  function decodeObservations(payload) {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    return payload.rows.map((encodedRow) => {
+      const row = {};
+      encodedRow.forEach((cell, i) => {
+        const column = payload.columns[i];
+        row[column] = cell === null ? null : payload.dictionaries[column][cell];
+      });
+      return row;
+    });
+  }
+
   async function loadObservations() {
     try {
-      const rows = await fetchJson(`./data/observations.json?v=${APP_DATA_VERSION}`);
-      state.allRows = Array.isArray(rows) ? rows.map(normalizeObservationRow) : [];
+      const payload = await fetchJson(`./data/observations.json?v=${APP_DATA_VERSION}`);
+      state.allRows = decodeObservations(payload).map(normalizeObservationRow);
     } catch (error) {
       state.allRows = [];
     }

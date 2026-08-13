@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
+const { encodeObservations } = require("./observation_codec");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const DB_PATH = path.join(ROOT_DIR, "data", "agro_dashboard.db");
@@ -88,7 +89,7 @@ function main() {
     };
 
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    writeJson("observations.json", observations);
+    writeJson("observations.json", encodeObservations(observations));
     writeJson("search-index.json", searchIndex);
     writeJson("categories.json", buildCategoryData(db));
     writeJson("metadata.json", metadata);

@@ -14,13 +14,14 @@ The active results presentation is cards-only. There are older table/layout help
 - `app.js` — application state, routing, rendering, interactions, search, filters, cards, and charts
 - `styles.css` — visual system, responsive layout, cards, overlays, and chart styles
 - `translations.json` — UI copy plus commodity, market, and variety translations for English/Kannada
-- `data/observations.json` — browser-ready price observations
+- `data/observations.json` — browser-ready price observations in a compact dictionary-encoded payload (`version`/`columns`/`dictionaries`/`rows`); decoded in `app.js` (`loadObservations`) and produced by `scripts/observation_codec.js` via `build_static_site.js` / `merge_sister_price_data.js`
 - `data/search-index.json` — commodity, market, and variety search index
 - `data/categories.json` — category definitions and commodity lists
 - `data/metadata.json` — generated counts and timestamp
 - `scripts/merge_sister_price_data.js` — merges sister-repo SQLite price rows into the checked-in observations while keeping the current taxonomy authoritative
 - `data/agro_dashboard.db` — SQLite source snapshot used only by the build script
-- `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above and applies the dashboard category overrides
+- `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above and applies the dashboard category overrides; writes `observations.json` in compact form via `scripts/observation_codec.js`
+- `scripts/observation_codec.js` — CommonJS stdlib-only encoder/decoder for the compact `observations.json` payload (`encodeObservations`/`decodeObservations`; the decoder accepts a legacy array unchanged)
 - `assets/` — UI assets, category badges, icons, fallback images, and commodity-specific thumbnails, including `category-spices-badge.png`, `category-livestock-poultry-badge.png`, and `egg-thumb-real.png`
 - `fonts/` — bundled fonts
 - `assets/OG Image.png` — static Open Graph/Twitter preview image

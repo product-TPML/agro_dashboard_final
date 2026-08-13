@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
+const { decodeObservations, encodeObservations } = require("./observation_codec");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(ROOT_DIR, "data");
@@ -20,7 +21,7 @@ const SOURCE_PRICE_DISPLAY_UNITS = {
 function main() {
   const categories = readJson("categories.json");
   const searchIndex = readJson("search-index.json");
-  const existingObservations = readJson("observations.json");
+  const existingObservations = decodeObservations(readJson("observations.json"));
   const categoryByCommodity = buildCategoryMap(categories);
 
   if (!fs.existsSync(SISTER_DB_PATH)) {
@@ -86,7 +87,7 @@ function main() {
       varieties: searchIndex.varieties.length,
     };
 
-    writeJson("observations.json", observations);
+    writeJson("observations.json", encodeObservations(observations));
     writeJson("metadata.json", metadata);
 
     console.log(JSON.stringify({
