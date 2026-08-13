@@ -2267,13 +2267,36 @@
     "#e4f3ee",
   ];
 
+  // Index-aligned with MARKET_TINT_PALETTE: same hash slot picks tint + deep accent,
+  // so each market's icon color and chip background always pair deterministically.
+  const MARKET_ACCENT_PALETTE = [
+    "#b45309",
+    "#15803d",
+    "#1d4ed8",
+    "#be185d",
+    "#7e22ce",
+    "#a16207",
+    "#0e7490",
+    "#4338ca",
+    "#c2410c",
+    "#0f766e",
+  ];
+
   function getMarketTint(marketName) {
+    return getMarketPaletteValue(MARKET_TINT_PALETTE, marketName);
+  }
+
+  function getMarketAccent(marketName) {
+    return getMarketPaletteValue(MARKET_ACCENT_PALETTE, marketName);
+  }
+
+  function getMarketPaletteValue(palette, marketName) {
     const key = String(marketName || "").toLowerCase();
     let hash = 0;
     for (let i = 0; i < key.length; i++) {
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
     }
-    return MARKET_TINT_PALETTE[hash % MARKET_TINT_PALETTE.length];
+    return palette[hash % palette.length];
   }
 
   function canRenderMarketJump(rows) {
@@ -2311,7 +2334,7 @@
     return `
       <button type="button" class="filter-fab market-jump-fab" data-open-market-jump="true" aria-label="${escapeAttribute(getUiText("market_jump_open_aria", "Open market navigator"))}">
         <span class="filter-fab-icon">
-          <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="" loading="lazy" decoding="async">
+          <span class="market-icon" aria-hidden="true"></span>
         </span>
       </button>
     `;
@@ -2994,8 +3017,8 @@
         <div class="market-jump-list">
           ${targets.map((target) => `
             <button type="button" class="market-jump-option" data-jump-market="${escapeAttribute(target.value)}">
-              <span class="market-jump-option-icon" aria-hidden="true" style="background:${getMarketTint(target.value)}">
-                <img src="${escapeAttribute(ASSETS.suggestionMarket)}" alt="" loading="lazy" decoding="async">
+              <span class="market-jump-option-icon" aria-hidden="true" style="background:${getMarketTint(target.value)};--market-color:${getMarketAccent(target.value)}">
+                <span class="market-icon"></span>
               </span>
               <span class="market-jump-option-copy">
                 <span class="market-jump-option-label">${escapeHtml(target.label)}</span>
@@ -5712,13 +5735,15 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <div class="search-suggestions">
         ${state.suggestions.map((result, index) => `
           <button type="button" class="suggestion-row" data-suggestion-index="${index}">
-            <div class="thumb-wrap small ${escapeAttribute(getSuggestionDisplayType(result) === "market" && result.type === "market" ? "results-context-icon-market" : getCommodityThumbWrapClass(result.commodity))}">
-              <img src="${escapeAttribute(result.type === "market" ? ASSETS.suggestionMarket : getCommodityThumb(result.commodity))}" alt="" loading="lazy" decoding="async">
+            <div class="thumb-wrap small ${escapeAttribute(getSuggestionDisplayType(result) === "market" && result.type === "market" ? "results-context-icon-market" : getCommodityThumbWrapClass(result.commodity))}" ${result.type === "market" ? `style="background:${getMarketTint(result.market)};--market-color:${getMarketAccent(result.market)}"` : ""}>
+              ${result.type === "market"
+                ? `<span class="market-icon" aria-hidden="true"></span>`
+                : `<img src="${escapeAttribute(getCommodityThumb(result.commodity))}" alt="" loading="lazy" decoding="async">`}
             </div>
             <div class="suggestion-copy">
               <strong>${highlightMatch(getSuggestionLabel(result), state.query)}</strong>
               <span class="suggestion-kind ${escapeAttribute(getSuggestionToneClass(result))}">
-                ${result.type === "market" ? "" : `<img src="${escapeAttribute(getSuggestionIcon(result))}" alt="" loading="lazy" decoding="async">`}
+                ${renderSuggestionKindIcon(result)}
                 ${escapeHtml(getSuggestionKindLabel(result))}
               </span>
             </div>
@@ -5733,6 +5758,16 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (type === "market") return ASSETS.suggestionMarket;
     if (type === "variety") return ASSETS.suggestionVariety;
     return ASSETS.suggestionCommodity;
+  }
+
+  function renderSuggestionKindIcon(result) {
+    if (result.type === "market") {
+      return "";
+    }
+    if (getSuggestionDisplayType(result) === "market") {
+      return `<span class="market-icon" aria-hidden="true" style="--market-color:${getMarketAccent(result.market)}"></span>`;
+    }
+    return `<img src="${escapeAttribute(getSuggestionIcon(result))}" alt="" loading="lazy" decoding="async">`;
   }
 
   function getSuggestionKindLabel(result) {
@@ -5768,8 +5803,10 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <section class="results-toolbar ${activeFilterCount > 0 ? "has-filter-summary" : ""}">
         <div class="results-toolbar-inner">
           <div class="commodity-title">
-            <div class="thumb-wrap large results-context-icon-${escapeAttribute(state.context.type)} ${escapeAttribute(state.context.type === "market" ? "" : getCommodityThumbWrapClass(state.route.commodity))}">
-              <img src="${escapeAttribute(getResultsToolbarIcon())}" alt="">
+            <div class="thumb-wrap large results-context-icon-${escapeAttribute(state.context.type)} ${escapeAttribute(state.context.type === "market" ? "" : getCommodityThumbWrapClass(state.route.commodity))}" ${state.context.type === "market" ? `style="background:${getMarketTint(state.route.market)};--market-color:${getMarketAccent(state.route.market)}"` : ""}>
+              ${state.context.type === "market"
+                ? `<span class="market-icon" aria-hidden="true"></span>`
+                : `<img src="${escapeAttribute(getResultsToolbarIcon())}" alt="">`}
             </div>
             <div class="toolbar-support">
               <h2>${escapeHtml(getResultsHeadingText())}</h2>
@@ -5918,7 +5955,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <div class="filter-group filter-modal-group">
         <div class="filter-line">
           <span class="filter-line-label ${escapeAttribute(getFilterFieldToneClass(field))}">
-            ${field === "market" || field === "variety" ? `<img class="filter-line-icon" src="${escapeAttribute(getSuggestionIcon(field))}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}
+            ${field === "market" ? `<span class="market-icon filter-line-icon" aria-hidden="true"></span>` : field === "variety" ? `<img class="filter-line-icon" src="${escapeAttribute(getSuggestionIcon(field))}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}
             <span>${escapeHtml(getFieldLabel(field))}</span>
           </span>
           <span class="line"></span>
@@ -6000,7 +6037,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <article class="price-card result-card ${isExpanded ? "expanded is-expanded" : ""}" data-row-key="${escapeAttribute(row.rowKey)}" data-market-anchor="${escapeAttribute(row.market)}">
         <div class="card-header">
           <div class="card-market">
-            <img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async"${presentation.titleKind === "market" ? ` style="background:${getMarketTint(row.market)}"` : ""}>
+            ${presentation.titleKind === "market"
+              ? `<span class="card-title-icon card-title-icon-market" aria-hidden="true" style="background:${getMarketTint(row.market)};--market-color:${getMarketAccent(row.market)}"><span class="market-icon"></span></span>`
+              : `<img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async">`}
             <div class="card-title-stack">
               <h3>${escapeHtml(presentation.titleValue)}</h3>
             </div>

@@ -2,7 +2,7 @@
 
 ## Runtime
 
-The dashboard is a browser-only static SPA. The root `index.html` mounts `#app`, loads the plain `app.js` and `styles.css` bundles, and the browser fetches generated JSON data at runtime. SQLite is a build-time source artifact only. When the floating market navigator jumps to another commodity card, any expanded price history is cleared before the rerender and auto-scroll so the target position is measured against the collapsed layout. Market icons use deterministic light tints derived from canonical market names, keeping the same market visually consistent across cards and navigator options.
+The dashboard is a browser-only static SPA. The root `index.html` mounts `#app`, loads the plain `app.js` and `styles.css` bundles, and the browser fetches generated JSON data at runtime. SQLite is a build-time source artifact only. When the floating market navigator jumps to another commodity card, any expanded price history is cleared before the rerender and auto-scroll so the target position is measured against the collapsed layout. Market icons use a shared mask-based renderer: deterministic light tints and matching accent colors are applied across cards, navigator options, search/filter rows, and the market-jump FAB; the FAB keeps its existing amber surface with a white glyph.
 
 ## Asset hosting
 
