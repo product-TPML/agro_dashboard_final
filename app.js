@@ -4294,6 +4294,9 @@
 
   function jumpToMarketCard(market) {
     state.isMarketJumpOpen = false;
+    state.expandedRowKey = null;
+    state.activeChartDate = null;
+    state.shouldPrimeExpandedHistory = false;
     scheduleRender();
 
     window.requestAnimationFrame(() => {

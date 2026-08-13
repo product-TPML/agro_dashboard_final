@@ -2,7 +2,7 @@
 
 ## Runtime
 
-The dashboard is a browser-only static SPA. The root `index.html` mounts `#app`, loads the plain `app.js` and `styles.css` bundles, and the browser fetches generated JSON data at runtime. SQLite is a build-time source artifact only.
+The dashboard is a browser-only static SPA. The root `index.html` mounts `#app`, loads the plain `app.js` and `styles.css` bundles, and the browser fetches generated JSON data at runtime. SQLite is a build-time source artifact only. When the floating market navigator jumps to another commodity card, any expanded price history is cleared before the rerender and auto-scroll so the target position is measured against the collapsed layout.
 
 ## Asset hosting
 
