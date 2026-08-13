@@ -461,8 +461,7 @@
     isTopbarVisible: true,
     showHomeTopbarSearch: false,
     showFilterHint: false,
-    shouldScrollTableIntoView: false,
-    shouldPrimeExpandedHistory: false,
+    shouldScrollResultsIntoView: false,
     activeChartDate: null,
     expandedRowKey: null,
     searchToken: 0,
@@ -503,7 +502,6 @@
   let filterHintFinalizeTimer = null;
   let searchInputTimer = null;
   let renderFrameId = null;
-  let stickyTableHeaderCleanup = null;
   let backToTopButtonCleanup = null;
   let homeTopbarSearchCleanup = null;
   let topbarVisibilityCleanup = null;
@@ -520,7 +518,7 @@
 
   async function boot() {
     if (state.route.view === "table") {
-      primeTableArrivalUi();
+      primeResultsArrivalUi();
     }
 
     render();
@@ -624,23 +622,11 @@
     invalidateDerivedDataCaches();
   }
 
-  function normalizeResultsLayout(layout) {
-    return layout === "table" ? "table" : "cards";
-  }
-
-  function getDefaultResultsLayout() {
-    return isCompactViewport() ? "cards" : "table";
-  }
-
   function parseRoute() {
     const params = new URLSearchParams(window.location.search);
     const view = params.get("view") === "table" ? "table" : "home";
-    const layoutParam = params.get("layout");
     return {
       view,
-      layout: view === "table"
-        ? normalizeResultsLayout(layoutParam || getDefaultResultsLayout())
-        : "cards",
       type: params.get("type") || "",
       commodity: params.get("commodity") || "",
       market: params.get("market") || "",
@@ -654,7 +640,6 @@
     const params = new URLSearchParams();
     if (route.view === "table") {
       params.set("view", "table");
-      params.set("layout", normalizeResultsLayout(route.layout));
       params.set("type", route.type);
       if (route.commodity) {
         params.set("commodity", route.commodity);
@@ -692,8 +677,7 @@
     state.isMarketJumpOpen = false;
     state.isSearchOpen = false;
     state.showFilterHint = false;
-    state.shouldScrollTableIntoView = false;
-    state.shouldPrimeExpandedHistory = false;
+    state.shouldScrollResultsIntoView = false;
     state.activeChartDate = null;
     state.expandedRowKey = null;
     state.cardTargetAppliedKey = "";
@@ -701,7 +685,7 @@
     invalidateDerivedDataCaches();
     if (route.view === "table") {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      primeTableArrivalUi();
+      primeResultsArrivalUi();
     } else {
       clearFilterHintTimers();
     }
@@ -725,15 +709,14 @@
     state.isMarketJumpOpen = false;
     state.isSearchOpen = false;
     state.showFilterHint = false;
-    state.shouldScrollTableIntoView = false;
-    state.shouldPrimeExpandedHistory = false;
+    state.shouldScrollResultsIntoView = false;
     state.activeChartDate = null;
     state.expandedRowKey = null;
     state.cardTargetAppliedKey = "";
     state.suggestions = [];
     invalidateDerivedDataCaches();
     if (state.route.view === "table") {
-      primeTableArrivalUi();
+      primeResultsArrivalUi();
     } else {
       clearFilterHintTimers();
     }
@@ -933,7 +916,6 @@
   function handleSuggestionSelect(result) {
     const route = {
       view: "table",
-      layout: state.route.view === "table" ? normalizeResultsLayout(state.route.layout) : getDefaultResultsLayout(),
       type: result.type,
       commodity: result.commodity || "",
       market: result.market || "",
@@ -953,7 +935,6 @@
   function getHomeRoute() {
     return {
       view: "home",
-      layout: "cards",
       type: "",
       commodity: "",
       market: "",
@@ -1123,10 +1104,6 @@
     scheduleRender();
   }
 
-  function setResultsLayout(layout) {
-    state.shouldPrimeExpandedHistory = false;
-  }
-
   function getActiveResultsLayout() {
     return "cards";
   }
@@ -1172,10 +1149,6 @@
     }
 
     return String(candidate.grade || "").localeCompare(String(existing.grade || "")) < 0 ? candidate : existing;
-  }
-
-  function isCompactViewport() {
-    return window.innerWidth <= 767;
   }
 
   function getRowsForCurrentView() {
@@ -1606,53 +1579,8 @@
     return profile.columns[0] ? profile.columns[0].key : "modalPrice";
   }
 
-  function getCanonicalPriceLabel(row) {
-    const profile = getRowPriceProfile(row);
-    return profile.columns[0] ? profile.columns[0].label : getUiText("modal_short", "Modal");
-  }
-
-  function getPriceHeaders(row) {
-    return getRowPriceProfile(row).columns.map((column) => column.label);
-  }
-
   function buildMetaEntries(entries) {
     return entries.filter((entry) => String(entry.value || "").trim());
-  }
-
-  function buildResultCells(row, leadingCells, includeVariety, includeGrade) {
-    const cells = leadingCells.map((entry) => {
-      const value = entry.kind === "commodity"
-        ? translateEntity("commodity", row.commodity)
-        : translateEntity("market", row.market);
-      return `<td${entry.primary ? ' class="result-col-primary"' : ""}>${escapeHtml(value)}</td>`;
-    });
-    if (includeVariety) {
-      cells.push(`<td>${escapeHtml(translateEntity("variety", row.variety))}</td>`);
-    }
-    if (includeGrade) {
-      cells.push(`<td>${escapeHtml(row.grade || "-")}</td>`);
-    }
-    return cells;
-  }
-
-  function renderPriceSection(row, previousRow, priceMode, canonicalKey) {
-    return getRowPriceProfile(row).columns.map((column) => {
-      return renderPriceGroup(
-        column.kind,
-        column.label,
-        row[column.key],
-        getPreviousPriceDelta(row, column.key, previousRow)
-      );
-    }).join("");
-  }
-
-  function renderPriceColumns(row, previousRow, priceMode, canonicalKey) {
-    return getRowPriceProfile(row).columns.map((column) => `
-      <td class="result-col-price">
-        <span class="price-value price-value-${escapeAttribute(column.kind)}">${formatCurrency(row[column.key])}</span>
-        ${renderPriceDelta(getPreviousPriceDelta(row, column.key, previousRow))}
-      </td>
-    `).join("");
   }
 
   function getChartMetricKeys(row) {
@@ -1666,10 +1594,6 @@
     }));
   }
 
-  function formatArrivalsUnits(row) {
-    return `${formatNumber(row.arrivals)} ${row.unit}`;
-  }
-
   function getTrendNote(row) {
     if (row && row.sourceId === "necc_egg") {
       return getUiText("trend_note_egg", "Trend is shown for this exact commodity and market combination.");
@@ -1677,89 +1601,12 @@
     return getUiText("trend_note", "Trend is shown for this exact commodity, market, variety, and grade combination.");
   }
 
-  function formatLockedHeadings() {
-    if (!state.context) {
-      return "";
-    }
-    const tone = getResultTypeTone(state.context.type);
-    return Object.entries(state.context.locked)
-      .map(([key, value]) => `<span class="locked-heading-pill locked-heading-pill-${escapeAttribute(tone)}">${escapeHtml(getFieldLabel(key))}: ${escapeHtml(translateEntity(key, value))}</span>`)
-      .join("");
-  }
-
-  function render() {
-    document.documentElement.setAttribute("lang", state.locale === "kn" ? "kn" : "en");
-    document.documentElement.setAttribute("data-locale", state.locale);
-    const searchInputState = captureSearchInputState();
-    const filterInputState = captureFilterInputState();
-    const scrollState = captureScrollState();
-    const rows = state.route.view === "table" && state.context ? getRowsForCurrentView() : [];
-    teardownStickyTableHeader();
-
-    app.innerHTML = `
-      <div class="shell">
-        <div class="shell-top">
-          ${renderTopBar()}
-        </div>
-        <main>
-          <section class="view ${state.route.view === "home" ? "active" : ""}" id="homeView">
-            <div class="home-stack">
-              <section class="panel welcome-card">
-                <div class="welcome-copy">
-                  <h2>${escapeHtml(getUiText("app_title"))}</h2>
-                  <p>${escapeHtml(getUiText("home_intro"))}</p>
-                </div>
-              </section>
-
-              ${renderSearchPanel()}
-
-              ${renderCategorySection()}
-            </div>
-          </section>
-
-          <section class="view ${state.route.view === "table" ? "active" : ""}" id="tableView">
-            <div class="table-stack">
-              ${renderSearchPanel()}
-
-              <section class="panel table-card">
-                <div class="table-head">
-                  <div>
-                    <div class="locked-headings">${formatLockedHeadings()}</div>
-                    <p>${getResultsIntroCopy()}</p>
-                  </div>
-                </div>
-
-                ${renderResultsLayoutToggle()}
-                ${renderActiveFilterSummary()}
-                ${renderBackToTopButton(rows)}
-                ${renderFilterLauncher()}
-                ${getActiveResultsLayout() === "table" ? renderStickyTableHeader(rows) : ""}
-
-                <div class="table-wrap" data-preserve-scroll-id="table-wrap">
-                  ${renderResults(rows)}
-                </div>
-              </section>
-            </div>
-          </section>
-        </main>
-        ${renderFilterModal()}
-        ${renderShareFeedback()}
-      </div>
-    `;
-
-    bindEvents();
-    restoreSearchInputState(searchInputState);
-    restoreFilterInputState(filterInputState);
-    restoreScrollState(scrollState);
-    runPostRenderEffects();
-  }
-
   function captureSearchInputState() {
     return captureFocusedInputState("[data-global-search]");
   }
 
   function restoreSearchInputState(snapshot) {
-    restoreFocusedInputState(".view.active [data-global-search]", snapshot);
+    restoreFocusedInputState("[data-global-search]", snapshot);
   }
 
   function captureFilterInputState() {
@@ -1826,7 +1673,6 @@
 
   function captureScrollState() {
     const tableWrap = document.querySelector("[data-preserve-scroll-id='table-wrap']");
-    const tableScroller = tableWrap ? tableWrap.querySelector(".results-table-wrap") : null;
     const filterModalBody = document.querySelector("[data-preserve-scroll-id='filter-modal-body']");
     const filterResults = [...document.querySelectorAll("[data-preserve-scroll-id='filter-search-results']")];
     const chartScroll = document.querySelector("[data-preserve-scroll-id='chart-scroll']");
@@ -1841,9 +1687,9 @@
       homeCommodityRail: homeCommodityRail ? {
         scrollLeft: homeCommodityRail.scrollLeft,
       } : null,
-      tableWrap: (tableScroller || tableWrap) ? {
-        scrollLeft: (tableScroller || tableWrap).scrollLeft,
-        scrollTop: (tableScroller || tableWrap).scrollTop,
+      tableWrap: tableWrap ? {
+        scrollLeft: tableWrap.scrollLeft,
+        scrollTop: tableWrap.scrollTop,
       } : null,
       filterModalBody: filterModalBody ? {
         scrollTop: filterModalBody.scrollTop,
@@ -1889,9 +1735,7 @@
     }
 
     const tableWrap = document.querySelector("[data-preserve-scroll-id='table-wrap']");
-    const tableScroller = tableWrap ? tableWrap.querySelector(".results-table-wrap") : null;
-    const tableTarget = tableScroller || tableWrap;
-    if (!tableTarget) {
+    if (!tableWrap) {
       restoreChartScrollState(snapshot);
       if (snapshot.filterModalBody || (snapshot.filterResults && snapshot.filterResults.length)) {
         restoreFilterScrollState(snapshot);
@@ -1899,8 +1743,8 @@
       return;
     }
 
-    tableTarget.scrollLeft = snapshot.tableWrap.scrollLeft;
-    tableTarget.scrollTop = snapshot.tableWrap.scrollTop;
+    tableWrap.scrollLeft = snapshot.tableWrap.scrollLeft;
+    tableWrap.scrollTop = snapshot.tableWrap.scrollTop;
     restoreChartScrollState(snapshot);
     restoreFilterScrollState(snapshot);
   }
@@ -1949,147 +1793,6 @@
     });
   }
 
-  function renderSearchPanel() {
-    return `
-      <section class="panel search-panel" data-search-root>
-        <label class="search-label">${escapeHtml(getUiText("search_label"))}</label>
-        <div class="search-box">
-          <span>&#8981;</span>
-          <input
-            type="text"
-            autocomplete="off"
-            placeholder="${escapeAttribute(getUiText("search_placeholder"))}"
-            value="${escapeAttribute(state.query)}"
-            data-global-search="true"
-          >
-        </div>
-        <div data-search-suggestions>${state.suggestions.length ? renderSuggestions() : ""}</div>
-      </section>
-    `;
-  }
-
-  function renderCategorySection() {
-    if (!state.categoryGroups.length) {
-      return "";
-    }
-
-    const activeCategory = getActiveHomeCategory();
-    if (!activeCategory) {
-      return "";
-    }
-
-    return `
-      <section class="panel category-panel" aria-label="Commodity categories">
-        <div class="category-panel-head">
-          <div>
-            <h3>${escapeHtml(getUiText("category_title"))}</h3>
-            <p class="muted category-swipe-hint category-swipe-hint-mobile">${escapeHtml(getUiText("category_swipe_hint"))}</p>
-          </div>
-        </div>
-
-        <div class="category-rail" role="tablist" aria-label="Commodity categories" data-home-category-rail="true">
-          ${state.categoryGroups.map((category) => {
-            const isActive = category.id === state.activeHomeCategoryId;
-            return `
-              <button
-                type="button"
-                class="category-pill ${isActive ? "is-active" : ""}"
-                data-home-category="${escapeAttribute(category.id)}"
-                role="tab"
-                aria-selected="${isActive ? "true" : "false"}"
-              >
-                <span class="category-pill-icon" aria-hidden="true">${escapeHtml(getCategoryIcon(category.id))}</span>
-                <span class="category-pill-copy">
-                  <strong>${escapeHtml(getCategoryLabel(category.id, category.label))}</strong>
-                </span>
-              </button>
-            `;
-          }).join("")}
-        </div>
-
-        <div class="commodity-rail-wrap">
-          <p class="muted commodity-rail-helper-desktop">${escapeHtml(getUiText("commodity_scroll_hint_desktop", "\u2190 Scroll to see all options \u2192"))}</p>
-          <div class="commodity-rail-meta">
-            <span class="commodity-rail-count">${formatCountLabel(activeCategory.commodityCount, "commodity", "commodities")}</span>
-          </div>
-          <div class="commodity-rail" aria-label="${escapeAttribute(getCategoryLabel(activeCategory.id, activeCategory.label))} commodities" data-home-commodity-rail="true">
-            ${activeCategory.commodities.map((commodity) => `
-              <button
-                type="button"
-                class="commodity-pill"
-                data-home-commodity="${escapeAttribute(commodity)}"
-              >
-                <span class="commodity-pill-icon" aria-hidden="true">${escapeHtml(getCommodityIcon(commodity, activeCategory.id))}</span>
-                <span class="commodity-pill-label">${escapeHtml(translateEntity("commodity", commodity))}</span>
-              </button>
-            `).join("")}
-          </div>
-        </div>
-      </section>
-    `;
-  }
-
-  function getResultsIntroCopy() {
-    if (getActiveResultsLayout() === "table") {
-      return getUiText("results_intro_table");
-    }
-    return getUiText("results_intro_cards");
-  }
-
-  function renderResultsLayoutToggle() {
-    if (state.route.view !== "table") {
-      return "";
-    }
-
-    const activeLayout = getActiveResultsLayout();
-    return `
-      <div class="results-layout-toggle" role="group" aria-label="${escapeAttribute(getUiText("results_layout_aria", "Results layout"))}">
-        <button type="button" class="results-layout-button ${activeLayout === "cards" ? "is-active" : ""}" data-results-layout="cards" aria-pressed="${activeLayout === "cards" ? "true" : "false"}">${escapeHtml(getUiText("layout_cards", "Cards"))}</button>
-        <button type="button" class="results-layout-button ${activeLayout === "table" ? "is-active" : ""}" data-results-layout="table" aria-pressed="${activeLayout === "table" ? "true" : "false"}">${escapeHtml(getUiText("layout_table", "Table"))}</button>
-      </div>
-    `;
-  }
-
-  function renderLocaleToggle() {
-    return `
-      <div class="locale-toggle" role="group" aria-label="${escapeAttribute(getUiText("language_aria", "Language"))}">
-        <button type="button" class="locale-toggle-button ${state.locale === "en" ? "is-active" : ""}" data-locale-toggle="en">${escapeHtml(getUiText("language_english", "English"))}</button>
-        <button type="button" class="locale-toggle-button ${state.locale === "kn" ? "is-active" : ""}" data-locale-toggle="kn">${escapeHtml(getUiText("language_kannada", "Kannada"))}</button>
-      </div>
-    `;
-  }
-
-  function renderTopBar() {
-    return `
-      <div class="shell-top-inner">
-        <div class="shell-top-left">
-        </div>
-        ${renderLocaleToggle()}
-      </div>
-    `;
-  }
-
-  function renderSuggestions() {
-    return `
-      <div class="suggestions">
-        ${state.suggestions.map((result, index) => {
-          const tone = getResultTypeTone(result.type);
-          return `
-            <button type="button" class="suggestion-item suggestion-item-${escapeAttribute(tone)}" data-suggestion-index="${index}">
-              <span class="suggestion-copy">
-                <strong class="suggestion-title">${highlightMatch(getSuggestionLabel(result), state.query)}</strong>
-                <span class="suggestion-meta-row">
-                  <span class="suggestion-tag suggestion-tag-${escapeAttribute(tone)}">${escapeHtml(getSuggestionTypeLabel(result.type))}</span>
-                  <small>${escapeHtml(getSuggestionMeta(result))}</small>
-                </span>
-              </span>
-            </button>
-          `;
-        }).join("")}
-      </div>
-    `;
-  }
-
   function syncSearchSuggestionsUi() {
     document.querySelectorAll("[data-search-suggestions]").forEach((node) => {
       const searchUiState = getSearchUiState();
@@ -2130,38 +1833,9 @@
     return isMarketCommoditySuggestion(value) ? "market" : value.type;
   }
 
-  function getSuggestionMeta(result) {
-    const actionText = result.type === "commodity"
-      ? getUiText("suggestion_meta_commodity", "Opens commodity results")
-      : result.type === "market"
-        ? getUiText("suggestion_meta_market", "Opens market results")
-        : getUiText("suggestion_meta_variety", "Opens variety results");
-
-    if (isMarketCommoditySuggestion(result)) {
-      return `${translateEntity("market", result.market)} - ${getUiText("suggestion_meta_market_commodity", "Opens this commodity in the selected market")}`;
-    }
-
-    if (result.type !== "variety") {
-      return actionText;
-    }
-
-    return `${translateEntity("commodity", result.commodity)} - ${actionText}`;
-  }
-
   function getSuggestionTypeLabel(value) {
     const type = getSuggestionDisplayType(value);
     return getUiText(`field_${type}`, SEARCH_RESULT_TYPE_LABELS[type] || type);
-  }
-
-  function getResultTypeTone(value) {
-    const type = getSuggestionDisplayType(value);
-    if (type === "market") {
-      return "market";
-    }
-    if (type === "variety") {
-      return "variety";
-    }
-    return "commodity";
   }
 
   function getActiveHomeCategory() {
@@ -2215,30 +1889,12 @@
   function handleHomeCommoditySelect(commodity) {
     navigate({
       view: "table",
-      layout: getDefaultResultsLayout(),
       type: "commodity",
       commodity,
       market: "",
       variety: "",
       origin: "home",
     });
-  }
-
-  function renderFilterLauncher() {
-    if (!state.context || !state.context.filters.length) {
-      return "";
-    }
-
-    return `
-      <button type="button" class="filter-fab ${state.showFilterHint ? "is-expanded is-highlighted" : ""}" data-open-filter-modal="true" aria-label="${escapeAttribute(getUiText("filter_open_aria", "Open filters"))}">
-        <span class="filter-fab-icon">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 6h16l-6 7v5l-4 2v-7z" fill="currentColor"></path>
-          </svg>
-        </span>
-        <span class="filter-fab-label">${escapeHtml(getUiText("filter_fab_label", "Use filters here"))}</span>
-      </button>
-    `;
   }
 
   function getMarketJumpTargets(rows) {
@@ -2359,57 +2015,6 @@
     `;
   }
 
-  function renderActiveFilterSummary() {
-    if (!state.context) {
-      return "";
-    }
-
-    const activeChips = state.context.filters.flatMap((field) => {
-      return (state.filters[field] || []).map((value) => ({ field, value }));
-    });
-
-    if (!activeChips.length) {
-      return "";
-    }
-
-    return `
-      <div class="active-filter-summary" aria-label="${escapeAttribute(getUiText("filters_label", "Filters"))}">
-        ${activeChips.map(({ field, value }) => `
-          <span class="filter-chip filter-chip-active ${escapeAttribute(getFilterFieldToneClass(field))}">
-            <span>${escapeHtml(`${getFieldLabel(field)}: ${translateEntity(field, value)}`)}</span>
-            <button type="button" class="filter-chip-remove" data-remove-active-filter="${field}" data-remove-active-value="${escapeAttribute(value)}" aria-label="${escapeAttribute(`${getUiText("remove_value_prefix", "Remove")} ${getFieldLabel(field)} ${translateEntity(field, value)}`)}">&times;</button>
-          </span>
-        `).join("")}
-      </div>
-    `;
-  }
-
-  function renderFilterModal() {
-    if (!state.context || !state.context.filters.length || !state.isFilterModalOpen) {
-      return "";
-    }
-
-    return `
-      <div class="filter-modal-backdrop" data-close-filter-modal="backdrop">
-        <section class="filter-modal panel" role="dialog" aria-modal="true" aria-label="${escapeAttribute(getUiText("filters_label", "Filters"))}">
-          <div class="filter-modal-head">
-            <div>
-              <h3>${escapeHtml(getUiText("refine_results", "Refine results"))}</h3>
-            </div>
-            <button type="button" class="filter-modal-close" data-close-filter-modal="button" aria-label="${escapeAttribute(getUiText("close_filters_aria", "Close filters"))}">&times;</button>
-          </div>
-          <div class="filter-modal-body" data-preserve-scroll-id="filter-modal-body">
-            ${state.context.filters.map((field) => renderFilterField(field)).join("")}
-          </div>
-          <div class="filter-modal-actions">
-            <button type="button" class="inline-button filter-clear-inline" data-clear-filter-drafts="true">${escapeHtml(getUiText("clear_filters", "Clear Filters"))}</button>
-            <button type="button" class="clear-button filter-apply-button" data-apply-filter-drafts="true">${escapeHtml(getUiText("apply_filters", "Apply Filters"))}</button>
-          </div>
-        </section>
-      </div>
-    `;
-  }
-
   function renderShareFeedback() {
     if (!state.shareFeedback) {
       return "";
@@ -2418,43 +2023,6 @@
     return `
       <div class="share-feedback share-feedback-${escapeAttribute(state.shareFeedback.tone || "success")}" role="status" aria-live="polite">
         ${escapeHtml(state.shareFeedback.message)}
-      </div>
-    `;
-  }
-
-  function renderFilterField(field) {
-    const selected = state.filterDrafts[field] || [];
-    const options = getDraftFilterOptions(field, "");
-    const isOpen = state.activeFilterField === field;
-    const summary = getFilterTriggerSummary(field, selected);
-
-    return `
-      <div class="filter-modal-group">
-        <label>${escapeHtml(`${getFieldLabel(field)} ${getUiText("filter_suffix", "filter")}`)}</label>
-        <div class="filter-multiselect">
-          <button
-            type="button"
-            class="filter-dropdown-trigger ${isOpen ? "is-open" : ""}"
-            data-filter-toggle="${field}"
-            aria-expanded="${isOpen ? "true" : "false"}"
-          >
-            <span>${escapeHtml(getUiText("tap_to_select", "Tap to Select"))}</span>
-            <span class="filter-trigger-chevron" aria-hidden="true">${isOpen ? "&#9650;" : "&#9660;"}</span>
-          </button>
-          <div class="filter-search-results ${isOpen ? "is-open" : ""}" data-preserve-scroll-id="filter-search-results" data-filter-results="${field}" data-filter-field="${field}">
-            ${isOpen ? (options.length ? options.map((value) => `
-              <button
-                type="button"
-                class="filter-search-option ${selected.includes(value) ? "is-selected" : ""}"
-                data-toggle-draft-filter="${field}"
-                data-toggle-draft-value="${escapeAttribute(value)}"
-              >
-                <span>${escapeHtml(translateEntity(field, value))}</span>
-                ${selected.includes(value) ? `<span class="filter-option-check">&#10003;</span>` : ""}
-              </button>
-            `).join("") : `<p class="muted filter-empty-note">${escapeHtml(getUiText("no_matching_options", "No matching options."))}</p>`) : ""}
-          </div>
-        </div>
       </div>
     `;
   }
@@ -2533,218 +2101,6 @@
     });
   }
 
-  function renderFilterField(field) {
-    const usesDedicatedMobileView = isCompactViewport();
-    const selected = state.filterDrafts[field] || [];
-    const options = usesDedicatedMobileView ? [] : getDraftFilterOptions(field, "");
-    const isOpen = !usesDedicatedMobileView && state.activeFilterField === field;
-
-    return `
-      <div class="filter-group filter-modal-group">
-        <div class="filter-line">
-          <span class="filter-line-label ${escapeAttribute(getFilterFieldToneClass(field))}">
-            ${field === "market" || field === "variety" ? `<img class="filter-line-icon" src="${escapeAttribute(getSuggestionIcon(field))}" alt="" aria-hidden="true">` : ""}
-            <span>${escapeHtml(getFieldLabel(field))}</span>
-          </span>
-          <span class="line"></span>
-        </div>
-        <button
-          type="button"
-          class="filter-trigger filter-dropdown-trigger"
-          data-filter-toggle="${field}"
-          aria-expanded="${isOpen ? "true" : "false"}"
-        >
-          <span class="filter-trigger-copy">
-            <span class="filter-trigger-label">${escapeHtml(getUiText("tap_to_select", "Tap to Select"))}</span>
-            <span class="filter-trigger-value">${escapeHtml(summary)}</span>
-          </span>
-          <span class="filter-chevron ${isOpen ? "expanded" : ""}" aria-hidden="true"></span>
-        </button>
-        ${usesDedicatedMobileView ? "" : `
-          <div class="option-list filter-search-results ${isOpen ? "is-open" : ""}" data-preserve-scroll-id="filter-search-results" data-filter-results="${field}" data-filter-field="${field}">
-            ${isOpen ? (options.length ? renderFilterOptionsMarkup(field) : `<p class="filter-empty">${escapeHtml(getUiText("no_matching_options", "No matching options."))}</p>`) : ""}
-          </div>
-        `}
-      </div>
-    `;
-  }
-
-  function renderResults(rows) {
-    if (!state.context) {
-      return `
-        <div class="empty-state empty-state-loading" aria-live="polite">
-          <span class="search-state-spinner empty-state-spinner" aria-hidden="true"></span>
-          <h3>${escapeHtml(getUiText("loading", "Loading..."))}</h3>
-        </div>
-      `;
-    }
-
-    if (!rows.length) {
-      return `<div class="empty-state">${escapeHtml(getUiText("no_rows_match", "No rows match the current combination. The filter options stay constrained to valid combinations only, so clearing filters should broaden the result set."))}</div>`;
-    }
-
-    if (getActiveResultsLayout() === "table") {
-      return renderResultsTable(rows);
-    }
-
-    return renderResultsCards(rows);
-  }
-
-  function renderResultsCards(rows) {
-    return `
-      <div class="results-list">
-        ${rows.map((row) => renderResultCard(row)).join("")}
-      </div>
-    `;
-  }
-
-  function renderResultsTable(rows) {
-    const columns = getTableColumns();
-    return `
-      <div class="results-table-wrap">
-        <table class="results-table">
-          <thead>
-            <tr>
-              ${renderResultsTableHeaderCells(columns)}
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map((row) => renderResultRow(row, columns)).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function renderStickyTableHeader(rows) {
-    if (!rows.length) {
-      return "";
-    }
-
-    const columns = getTableColumns();
-    return `
-      <div class="results-sticky-header" data-sticky-table-header="true" aria-hidden="true" hidden>
-        <div class="results-sticky-header-viewport" data-sticky-table-header-viewport="true">
-          <table class="results-table results-table-sticky" data-sticky-table-header-table="true">
-            <thead>
-              <tr>
-                ${renderResultsTableHeaderCells(columns)}
-              </tr>
-            </thead>
-          </table>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderResultsTableHeaderCells(columns) {
-    return `
-      ${columns.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}
-      ${columns.showArrivals ? `<th>${escapeHtml(getUiText("arrivals_units_header", "Arrivals & Units"))}</th>` : ""}
-      ${columns.priceHeaders.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}
-      <th>${escapeHtml(getUiText("latest_update", "Latest Update"))}</th>
-      <th>${escapeHtml(getUiText("previous_update", "Previous Update"))}</th>
-    `;
-  }
-
-  function getTableColumns() {
-    const type = state.context ? state.context.type : "";
-    const sampleRow = state.cachedVisibleRows[0] || state.baseRows[0] || null;
-    const mode = getRowPriceMode(sampleRow);
-    const showArrivals = sampleRow ? hasArrivalsData(sampleRow) : true;
-    const priceHeaders = getPriceHeaders(sampleRow);
-    const fixed = 2 + priceHeaders.length + (showArrivals ? 1 : 0);
-    const includeVariety = state.context && state.context.filters.includes("variety");
-    const includeGrade = rowsHaveValues(state.baseRows, "grade");
-
-    if (type === "market") {
-      const headers = [getUiText("field_commodity", "Commodity")];
-      if (includeVariety) {
-        headers.push(getUiText("field_variety", "Variety"));
-      }
-      if (includeGrade) {
-        headers.push(getUiText("field_grade", "Grade"));
-      }
-      return {
-        headers,
-        showArrivals,
-        mode,
-        getCells: (row) => buildResultCells(
-          row,
-          [{ kind: "commodity", primary: true }],
-          includeVariety,
-          includeGrade
-        ),
-        count: headers.length + fixed,
-        priceHeaders,
-      };
-    }
-
-    if (type === "commodity") {
-      const headers = [getUiText("field_market", "Market")];
-      if (includeVariety) {
-        headers.push(getUiText("field_variety", "Variety"));
-      }
-      if (includeGrade) {
-        headers.push(getUiText("field_grade", "Grade"));
-      }
-      return {
-        headers,
-        showArrivals,
-        mode,
-        getCells: (row) => buildResultCells(
-          row,
-          [{ kind: "market", primary: true }],
-          includeVariety,
-          includeGrade
-        ),
-        count: headers.length + fixed,
-        priceHeaders,
-      };
-    }
-
-    if (type === "variety") {
-      const headers = [getUiText("field_market", "Market")];
-      if (includeGrade) {
-        headers.push(getUiText("field_grade", "Grade"));
-      }
-      return {
-        headers,
-        showArrivals,
-        mode,
-        getCells: (row) => buildResultCells(
-          row,
-          [{ kind: "market", primary: true }],
-          false,
-          includeGrade
-        ),
-        count: headers.length + fixed,
-        priceHeaders,
-      };
-    }
-
-    const headers = [getUiText("field_market", "Market")];
-    if (includeVariety) {
-      headers.push(getUiText("field_variety", "Variety"));
-    }
-    if (includeGrade) {
-      headers.push(getUiText("field_grade", "Grade"));
-    }
-    return {
-      headers,
-      showArrivals,
-      mode,
-      getCells: (row) => buildResultCells(
-        row,
-        [{ kind: "market", primary: true }],
-        includeVariety,
-        includeGrade
-      ),
-      count: headers.length + fixed,
-      priceHeaders,
-    };
-  }
-
   function getCardPresentation(row) {
     const type = state.context ? state.context.type : "";
 
@@ -2806,109 +2162,6 @@
     };
   }
 
-  function renderResultCard(row) {
-    const isExpanded = row.rowKey === state.expandedRowKey;
-    const historyRows = isExpanded ? getHistoryRows(row) : [];
-    const presentation = getCardPresentation(row);
-    const priceMode = getRowPriceMode(row);
-    const canonicalKey = getCanonicalPriceKey(row);
-    const previousRow = getPreviousComparableRow(row);
-    return `
-      <article class="result-card ${isExpanded ? "is-expanded" : ""}" data-row-key="${escapeAttribute(row.rowKey)}">
-        <div class="result-card-main">
-          <section class="result-card-identity">
-            <div class="result-card-title-row">
-              <h3>${escapeHtml(presentation.titleValue)}</h3>
-            </div>
-            <div class="result-card-meta">
-              ${presentation.meta.map((entry) => `
-                <div class="result-meta-item">
-                  <span class="result-meta-label">${escapeHtml(entry.label)}</span>
-                  <span class="result-meta-value">${escapeHtml(entry.value)}</span>
-                </div>
-              `).join("")}
-            </div>
-          </section>
-
-          <section class="result-card-prices">
-            ${renderPriceSection(row, previousRow, priceMode, canonicalKey)}
-          </section>
-
-          <section class="result-card-details">
-            ${hasArrivalsData(row) ? `
-            <div class="result-detail-block result-detail-block-arrivals">
-              <span class="result-detail-label">${escapeHtml(getUiText("arrivals_and_units", "Arrivals And Units"))}</span>
-              <span class="result-detail-value">${escapeHtml(formatArrivalsUnits(row))}</span>
-            </div>
-            ` : ""}
-            <div class="result-detail-block">
-              <span class="result-detail-label">${escapeHtml(getUiText("price_updates", "Price Updates"))}</span>
-              <div class="date-stack">
-                <div class="date-stack-item">
-                  <span class="date-stack-label">${escapeHtml(getUiText("latest", "Latest"))}</span>
-                  <span>${escapeHtml(formatDateFull(row.reportDate))}</span>
-                </div>
-                <div class="date-stack-item">
-                  <span class="date-stack-label">${escapeHtml(getUiText("previous", "Previous"))}</span>
-                  <span>${escapeHtml(previousRow ? formatDateFull(previousRow.reportDate) : "-")}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <button type="button" class="result-card-toggle" data-toggle-history="${escapeAttribute(row.rowKey)}" aria-expanded="${isExpanded ? "true" : "false"}">
-          <span class="result-card-toggle-label">${escapeHtml(getUiText("see_price_history", "See Price History"))}</span>
-          <span class="result-card-toggle-chevron">${isExpanded ? "&#9652;" : "&#9662;"}</span>
-        </button>
-
-        ${isExpanded ? `
-          <div class="result-card-history">
-            ${renderHistory(row, historyRows)}
-          </div>
-        ` : ""}
-      </article>
-    `;
-  }
-
-  function renderResultRow(row, columns) {
-    const isExpanded = row.rowKey === state.expandedRowKey;
-    const historyRows = isExpanded ? getHistoryRows(row) : [];
-    const priceMode = columns.mode || getRowPriceMode(row);
-    const canonicalKey = getCanonicalPriceKey(row);
-    const previousRow = getPreviousComparableRow(row);
-    return `
-      <tr class="result-row ${isExpanded ? "is-expanded" : ""}" data-toggle-history="${escapeAttribute(row.rowKey)}">
-        ${columns.getCells(row).join("")}
-        ${columns.showArrivals ? `<td>${escapeHtml(formatArrivalsUnits(row))}</td>` : ""}
-        ${renderPriceColumns(row, previousRow, priceMode, canonicalKey)}
-        <td>${escapeHtml(formatDateFull(row.reportDate))}</td>
-        <td>${escapeHtml(previousRow ? formatDateFull(previousRow.reportDate) : "-")}</td>
-      </tr>
-      ${isExpanded ? `
-        <tr class="result-row-chart">
-          <td colspan="${columns.count}" class="result-row-chart-cell">
-            <div class="result-card-history">
-              ${renderHistory(row, historyRows)}
-            </div>
-          </td>
-        </tr>
-      ` : ""}
-    `;
-  }
-
-  function renderPriceGroup(kind, label, value, delta) {
-    return `
-      <div class="result-price-group result-price-group-${escapeAttribute(kind)}">
-        <span class="result-price-label">${escapeHtml(label)}</span>
-        <div class="price-stack">
-          <span class="price-value price-value-${escapeAttribute(kind)}">${formatCurrency(value)}</span>
-          ${renderPriceDelta(delta)}
-        </div>
-      </div>
-    `;
-  }
-
   function getPreviousComparableRow(row) {
     return state.baseRows
       .filter((candidate) => {
@@ -2935,29 +2188,6 @@
     }
 
     return Number(row[priceKey]) - Number(comparableRow[priceKey]);
-  }
-
-  function renderPriceDelta(delta) {
-    if (delta === null) {
-      return `<span class="price-delta price-delta-flat">${escapeHtml(getUiText("no_earlier_update", "No earlier update"))}</span>`;
-    }
-
-    if (delta === 0) {
-      return `
-        <span class="price-delta price-delta-flat">
-          <span class="delta-flat">-</span>
-          <span>0</span>
-        </span>
-      `;
-    }
-
-    const isGain = delta > 0;
-    return `
-      <span class="price-delta ${isGain ? "price-delta-gain" : "price-delta-loss"}">
-        ${renderDeltaIcon(isGain)}
-        <span>${isGain ? "+" : "-"}${formatCurrency(Math.abs(delta))}</span>
-      </span>
-    `;
   }
 
   function renderDeltaIcon(isGain) {
@@ -3386,10 +2616,6 @@
     return actualRows[actualRows.length - 1] || rows[rows.length - 1];
   }
 
-  function buildLinePath(points) {
-    return points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x} ${y}`).join(" ");
-  }
-
   function bindEvents() {
     document.querySelectorAll("[data-home-link]").forEach((homeLink) => {
       const handleHomeLink = (event) => {
@@ -3452,12 +2678,6 @@
     document.querySelectorAll("[data-home-commodity]").forEach((button) => {
       button.addEventListener("click", () => {
         handleHomeCommoditySelect(button.dataset.homeCommodity);
-      });
-    });
-
-    document.querySelectorAll("[data-results-layout]").forEach((button) => {
-      button.addEventListener("click", () => {
-        setResultsLayout(button.dataset.resultsLayout);
       });
     });
 
@@ -3557,11 +2777,9 @@
         if (state.expandedRowKey === key) {
           state.expandedRowKey = null;
           state.activeChartDate = null;
-          state.shouldPrimeExpandedHistory = false;
         } else {
           state.expandedRowKey = key;
           state.activeChartDate = null;
-          state.shouldPrimeExpandedHistory = getActiveResultsLayout() === "table";
         }
         render();
       });
@@ -3633,7 +2851,6 @@
     if (!window.visualViewport) {
       window.addEventListener("resize", () => {
         updateVisualViewportHeight();
-        updateTableWrapHeight();
         syncExpandedHistoryLayout();
       });
       return;
@@ -3643,14 +2860,12 @@
     window.visualViewport.addEventListener("scroll", handleVisualViewportChange);
     window.addEventListener("resize", () => {
       updateVisualViewportHeight();
-      updateTableWrapHeight();
       syncExpandedHistoryLayout();
     });
   }
 
   function handleVisualViewportChange() {
     updateVisualViewportHeight();
-    updateTableWrapHeight();
     syncExpandedHistoryLayout();
 
     if (!state.isFilterModalOpen) {
@@ -3681,8 +2896,8 @@
     }, 80);
   }
 
-  function primeTableArrivalUi() {
-    state.shouldScrollTableIntoView = true;
+  function primeResultsArrivalUi() {
+    state.shouldScrollResultsIntoView = true;
     state.showFilterHint = true;
     clearFilterHintTimers();
   }
@@ -3701,22 +2916,16 @@
   function runPostRenderEffects() {
     syncPageOverlayLock();
     syncTopbarVisibility();
-    updateTableWrapHeight();
     syncFilterHintAnimation();
     syncBackToTopButton();
     syncHomeTopbarSearchTrigger();
     syncActiveHomeCategoryViewport();
     setupDeferredHomeGalleryImages();
-    if (getActiveResultsLayout() === "table") {
-      syncStickyTableHeader();
-      primeExpandedHistoryScroll();
-    }
     syncExpandedHistoryLayout();
 
-    if (state.shouldScrollTableIntoView && state.route.view === "table" && state.context) {
+    if (state.shouldScrollResultsIntoView && state.route.view === "table" && state.context) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      state.shouldScrollTableIntoView = false;
-      updateTableWrapHeight();
+      state.shouldScrollResultsIntoView = false;
     }
 
     syncCardTarget();
@@ -4060,23 +3269,6 @@
     }, FILTER_HINT_DURATION_MS);
   }
 
-  function updateTableWrapHeight() {
-    const tableWrap = document.querySelector("[data-preserve-scroll-id='table-wrap']");
-    if (!tableWrap) {
-      return;
-    }
-
-    if (getActiveResultsLayout() === "table" || window.innerWidth > 767) {
-      tableWrap.style.removeProperty("--table-wrap-height");
-      return;
-    }
-
-    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    const top = tableWrap.getBoundingClientRect().top;
-    const available = Math.max(240, Math.floor(viewportHeight - top - 12));
-    tableWrap.style.setProperty("--table-wrap-height", `${available}px`);
-  }
-
   function syncBackToTopButton() {
     teardownBackToTopButton();
 
@@ -4134,44 +3326,6 @@
     };
   }
 
-  function primeExpandedHistoryScroll() {
-    if (!state.shouldPrimeExpandedHistory || !state.expandedRowKey || getActiveResultsLayout() !== "table") {
-      return;
-    }
-
-    const tableWrap = document.querySelector("[data-preserve-scroll-id='table-wrap']");
-    const tableScroller = tableWrap ? tableWrap.querySelector(".results-table-wrap") : null;
-    const chartScroll = document.querySelector("[data-preserve-scroll-id='chart-scroll']");
-
-    window.requestAnimationFrame(() => {
-      if (tableScroller) {
-        tableScroller.scrollLeft = getAnchoredScrollLeft(tableScroller, 0.82, 120);
-      }
-
-      if (chartScroll && chartScroll.dataset.chartInitialPosition === "right") {
-        chartScroll.scrollLeft = getChartAnchoredScrollLeft(chartScroll);
-      }
-
-      state.shouldPrimeExpandedHistory = false;
-      syncExpandedHistoryLayout();
-    });
-  }
-
-  function getAnchoredScrollLeft(scroller, anchorRatio, contextWidth) {
-    if (!scroller) {
-      return 0;
-    }
-
-    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-    if (maxScrollLeft === 0) {
-      return 0;
-    }
-
-    const desiredVisibleEnd = Math.max(scroller.clientWidth, scroller.scrollWidth - contextWidth);
-    const target = desiredVisibleEnd - scroller.clientWidth * anchorRatio;
-    return Math.max(0, Math.min(maxScrollLeft, Math.round(target)));
-  }
-
   function getChartAnchoredScrollLeft(chartScroll) {
     if (!chartScroll) {
       return 0;
@@ -4193,9 +3347,6 @@
   }
 
   function syncExpandedHistoryLayout() {
-    const tableWrap = document.querySelector("[data-preserve-scroll-id='table-wrap']");
-    const tableScroller = tableWrap ? tableWrap.querySelector(".results-table-wrap") : null;
-
     document.querySelectorAll(".history-layout").forEach((layout) => {
       const summaryShell = layout.querySelector(".chart-summary-shell");
       const chartPanel = layout.querySelector(".history-chart-panel");
@@ -4205,9 +3356,7 @@
         return;
       }
 
-      const availableWidth = tableScroller
-        ? Math.floor(tableScroller.getBoundingClientRect().width)
-        : Math.floor(layout.getBoundingClientRect().width);
+      const availableWidth = Math.floor(layout.getBoundingClientRect().width);
 
       let layoutMode = "mobile";
       if (window.innerWidth > 767) {
@@ -4228,135 +3377,6 @@
     });
   }
 
-  function syncStickyTableHeader() {
-    teardownStickyTableHeader();
-
-    const tableWrap = document.querySelector("[data-preserve-scroll-id='table-wrap']");
-    const tableScroller = tableWrap ? tableWrap.querySelector(".results-table-wrap") : null;
-    const table = tableWrap ? tableWrap.querySelector(".results-table") : null;
-    const overlay = document.querySelector("[data-sticky-table-header='true']");
-    const overlayTable = overlay ? overlay.querySelector("[data-sticky-table-header-table='true']") : null;
-
-    if (!tableWrap || !tableScroller || !table || !overlay || !overlayTable) {
-      return;
-    }
-
-    const liveHeaders = [...table.querySelectorAll("thead th")];
-    const stickyHeaders = [...overlayTable.querySelectorAll("thead th")];
-
-    if (!liveHeaders.length || liveHeaders.length !== stickyHeaders.length) {
-      return;
-    }
-
-    let syncFrameId = 0;
-
-    const scheduleSync = () => {
-      if (syncFrameId) {
-        return;
-      }
-
-      syncFrameId = window.requestAnimationFrame(() => {
-        syncFrameId = 0;
-        applyStickyTableHeaderLayout();
-      });
-    };
-
-    const applyStickyTableHeaderLayout = () => {
-      const tableRect = table.getBoundingClientRect();
-      const headerRow = table.querySelector("thead tr");
-      const wrapRect = tableScroller.getBoundingClientRect();
-
-      if (!headerRow) {
-        overlay.hidden = true;
-        overlay.classList.remove("is-visible");
-        return;
-      }
-
-      const headerRect = headerRow.getBoundingClientRect();
-      const overlayHeight = Math.ceil(headerRect.height);
-      const isVisible = headerRect.top <= 0
-        && tableRect.bottom > overlayHeight
-        && wrapRect.bottom > overlayHeight
-        && wrapRect.width > 0;
-
-      overlay.hidden = !isVisible;
-      overlay.classList.toggle("is-visible", isVisible);
-
-      if (!isVisible) {
-        return;
-      }
-
-      overlay.style.left = `${Math.round(wrapRect.left)}px`;
-      overlay.style.width = `${Math.round(wrapRect.width)}px`;
-      overlay.style.top = "0px";
-
-      const liveTableWidth = Math.ceil(table.getBoundingClientRect().width);
-      overlayTable.style.width = `${liveTableWidth}px`;
-      overlayTable.style.transform = `translateX(${-tableScroller.scrollLeft}px)`;
-
-      liveHeaders.forEach((headerCell, index) => {
-        const width = Math.ceil(headerCell.getBoundingClientRect().width);
-        stickyHeaders[index].style.width = `${width}px`;
-        stickyHeaders[index].style.minWidth = `${width}px`;
-        stickyHeaders[index].style.maxWidth = `${width}px`;
-      });
-    };
-
-    const handleScroll = () => {
-      scheduleSync();
-    };
-
-    const handleResize = () => {
-      scheduleSync();
-    };
-
-    tableScroller.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleResize);
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("scroll", handleScroll, { passive: true });
-      window.visualViewport.addEventListener("resize", handleResize);
-    }
-
-    scheduleSync();
-
-    stickyTableHeaderCleanup = () => {
-      tableScroller.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("scroll", handleScroll);
-        window.visualViewport.removeEventListener("resize", handleResize);
-      }
-
-      if (syncFrameId) {
-        window.cancelAnimationFrame(syncFrameId);
-        syncFrameId = 0;
-      }
-
-      overlay.hidden = true;
-      overlay.classList.remove("is-visible");
-      overlay.removeAttribute("style");
-      overlayTable.removeAttribute("style");
-      stickyHeaders.forEach((cell) => {
-        cell.style.removeProperty("width");
-        cell.style.removeProperty("min-width");
-        cell.style.removeProperty("max-width");
-      });
-    };
-  }
-
-  function teardownStickyTableHeader() {
-    if (!stickyTableHeaderCleanup) {
-      return;
-    }
-
-    stickyTableHeaderCleanup();
-    stickyTableHeaderCleanup = null;
-  }
-
   function teardownBackToTopButton() {
     if (!backToTopButtonCleanup) {
       return;
@@ -4370,7 +3390,6 @@
     state.isMarketJumpOpen = false;
     state.expandedRowKey = null;
     state.activeChartDate = null;
-    state.shouldPrimeExpandedHistory = false;
     scheduleRender();
 
     window.requestAnimationFrame(() => {
@@ -5464,7 +4483,6 @@
     const filterInputState = captureFilterInputState();
     const scrollState = captureScrollState();
     const rows = state.route.view === "table" && state.context ? getRowsForCurrentView() : [];
-    teardownStickyTableHeader();
 
     app.innerHTML = `
       <div class="site-shell ${state.isTopbarVisible ? "" : "topbar-collapsed"}">
@@ -5714,10 +4732,6 @@
         </section>
       </section>
     `;
-  }
-
-  function renderResultsLayoutToggle() {
-    return "";
   }
 
   function renderThumbPlaceholder() {
@@ -6085,10 +5099,6 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       `;
     }
 
-    if (getActiveResultsLayout() === "table") {
-      return renderResultsTable(rows);
-    }
-
     return renderResultsCards(rows);
   }
 
@@ -6172,7 +5182,6 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     const route = {
       ...state.route,
       view: "table",
-      layout: "cards",
       card: row.rowKey,
     };
     return new URL(buildRouteUrl(route), window.location.href).href;
