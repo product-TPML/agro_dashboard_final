@@ -5488,7 +5488,7 @@
           <img src="${escapeAttribute(ASSETS.heroBgMobile)}" alt="" fetchpriority="high" decoding="async">
         </picture>
         <div class="hero-copy ${state.isSearchOpen ? "search-active" : ""}">
-          <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link", ASSETS.heroLogo, getUiText("app_title", "Namma Krishi Prices"))}</h1>
+          <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link", "https://images.assettype.com/prajavani/2026-01-20/zkubg1ry/PV-Logo-White.png", getUiText("app_title", "Namma Krishi Prices"))}</h1>
           <p class="hero-subcopy">${escapeHtml(getUiText("home_intro", "Search for commodity, market, or variety prices."))}</p>
           ${renderSearchField({ entryMode: "hero" })}
         </div>
