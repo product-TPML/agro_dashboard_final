@@ -5086,12 +5086,10 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <section class="results-toolbar ${activeFilterCount > 0 ? "has-filter-summary" : ""}">
         <div class="results-toolbar-inner">
           <div class="commodity-title">
-            <div class="thumb-wrap large results-context-icon-${escapeAttribute(state.context.type)} ${escapeAttribute(state.context.type === "market" || state.context.type === "variety" ? "" : getCommodityThumbWrapClass(state.route.commodity))}" ${state.context.type === "market" ? `style="background:${getMarketTint(state.route.market)};--market-color:${getMarketAccent(state.route.market)}"` : state.context.type === "variety" ? `style="background:${getVarietyTint(state.route.variety)};--variety-color:${getVarietyAccent(state.route.variety)}"` : ""}>
+            <div class="thumb-wrap large ${escapeAttribute(state.context.type === "market" ? "results-context-icon-market" : getCommodityThumbWrapClass(state.route.commodity))}" ${state.context.type === "market" ? `style="background:${getMarketTint(state.route.market)};--market-color:${getMarketAccent(state.route.market)}"` : ""}>
               ${state.context.type === "market"
                 ? `<span class="market-icon" aria-hidden="true"></span>`
-                : state.context.type === "variety"
-                  ? `<span class="variety-icon" aria-hidden="true"></span>`
-                  : `<img src="${escapeAttribute(getResultsToolbarIcon())}" alt="">`}
+                : `<img src="${escapeAttribute(getResultsToolbarIcon())}" alt="">`}
             </div>
             <div class="toolbar-support">
               <h2>${escapeHtml(getResultsHeadingText())}</h2>
