@@ -5047,6 +5047,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (getSuggestionDisplayType(result) === "market") {
       return `<span class="market-icon" aria-hidden="true" style="--market-color:${getMarketAccent(result.market)}"></span>`;
     }
+    if (isMarketVarietySuggestion(result)) {
+      return `<span class="market-icon" aria-hidden="true" style="--market-color:${getMarketAccent(result.market)}"></span>`;
+    }
     if (result.type === "variety") {
       return `<span class="variety-icon" aria-hidden="true" style="--variety-color:${getVarietyAccent(result.variety)}"></span>`;
     }
@@ -5057,6 +5060,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (isMarketCommoditySuggestion(result) || isMarketVarietySuggestion(result)) {
       return translateEntity("market", result.market);
     }
+    if (isCommodityVarietySuggestion(result)) {
+      return getSuggestionTypeLabel(result);
+    }
     if (result.type === "variety") {
       return translateEntity("commodity", result.commodity);
     }
@@ -5065,7 +5071,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
 
   function getSuggestionToneClass(value) {
     const type = getSuggestionDisplayType(value);
-    if (type === "market") return "gold";
+    if (type === "market" || isMarketVarietySuggestion(value)) return "gold";
     if (type === "variety") return "blue";
     return "green";
   }
