@@ -922,8 +922,11 @@
     if (inputWrap) {
       inputWrap.classList.toggle("has-value", Boolean(state.query.trim()));
     }
+    const previousUiState = state.searchUiState;
     setPendingSearchUiState(state.query);
-    syncSearchSuggestionsUi();
+    if (state.searchUiState !== previousUiState) {
+      syncSearchSuggestionsUi();
+    }
     scheduleSearchInputWork(state.query);
   }
 
