@@ -3333,7 +3333,7 @@
       return;
     }
 
-    const activeCategory = document.querySelector("[data-home-category].is-active");
+    const activeCategory = document.querySelector("[data-home-category].active");
     if (activeCategory && typeof activeCategory.scrollIntoView === "function") {
       activeCategory.scrollIntoView({
         block: "nearest",
@@ -4935,12 +4935,10 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <div class="search-suggestions">
         ${state.suggestions.map((result, index) => `
           <button type="button" class="suggestion-row" data-suggestion-index="${index}">
-            <div class="thumb-wrap small ${escapeAttribute(getSuggestionDisplayType(result) === "market" && result.type === "market" ? "results-context-icon-market" : result.type === "variety" ? "results-context-icon-variety" : getCommodityThumbWrapClass(result.commodity))}" ${result.type === "market" ? `style="background:${getMarketTint(result.market)};--market-color:${getMarketAccent(result.market)}"` : result.type === "variety" ? `style="background:${getVarietyTint(result.variety)};--variety-color:${getVarietyAccent(result.variety)}"` : ""}>
+            <div class="thumb-wrap small ${escapeAttribute(getSuggestionDisplayType(result) === "market" && result.type === "market" ? "results-context-icon-market" : getCommodityThumbWrapClass(result.commodity))}" ${result.type === "market" ? `style="background:${getMarketTint(result.market)};--market-color:${getMarketAccent(result.market)}"` : ""}>
               ${result.type === "market"
                 ? `<span class="market-icon" aria-hidden="true"></span>`
-                : result.type === "variety"
-                  ? `<span class="variety-icon" aria-hidden="true"></span>`
-                  : `<img src="${escapeAttribute(getCommodityThumb(result.commodity))}" alt="" loading="lazy" decoding="async">`}
+                : `<img src="${escapeAttribute(getCommodityThumb(result.commodity))}" alt="" loading="lazy" decoding="async">`}
             </div>
             <div class="suggestion-copy">
               <strong>${highlightMatch(getSuggestionLabel(result), state.query)}</strong>
