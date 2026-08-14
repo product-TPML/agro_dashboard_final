@@ -459,7 +459,6 @@
     searchUiState: "idle",
     searchIndexStatus: "loading",
     isTopbarVisible: true,
-    showHomeTopbarSearch: false,
     showFilterHint: false,
     shouldScrollResultsIntoView: false,
     activeChartDate: null,
@@ -3261,18 +3260,13 @@
     }
 
     if (state.route.view !== "home") {
-      if (state.showHomeTopbarSearch) {
-        state.showHomeTopbarSearch = false;
-      }
       return;
     }
 
     const topbar = document.querySelector(".topbar");
     const heroSearch = document.querySelector(".hero-copy > .search-field");
-    if (!topbar || !heroSearch) {
-      if (state.showHomeTopbarSearch) {
-        state.showHomeTopbarSearch = false;
-      }
+    const siteShell = document.querySelector(".site-shell");
+    if (!topbar || !heroSearch || !siteShell) {
       return;
     }
 
@@ -3284,9 +3278,8 @@
       const heroSearchBottom = heroSearch.getBoundingClientRect().bottom;
       const shouldShow = heroSearchBottom <= topbarBottom;
 
-      if (state.showHomeTopbarSearch !== shouldShow) {
-        state.showHomeTopbarSearch = shouldShow;
-        scheduleRender();
+      if (siteShell.classList.contains("home-search-trigger-shown") !== shouldShow) {
+        siteShell.classList.toggle("home-search-trigger-shown", shouldShow);
       }
     };
 
@@ -4907,11 +4900,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
           ${renderPvSiteLink()}
         </div>
         ${renderBrandHomeLink("topbar-brand-link")}
-        ${state.showHomeTopbarSearch ? `
-          <button type="button" class="icon-button topbar-search-trigger" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">
-            <img src="${escapeAttribute(ASSETS.search)}" alt="">
-          </button>
-        ` : ""}
+        <button type="button" class="icon-button topbar-search-trigger" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">
+          <img src="${escapeAttribute(ASSETS.search)}" alt="">
+        </button>
       `;
     }
 

@@ -2233,6 +2233,10 @@ body {
   transform: translateY(-50%);
 }
 
+.site-shell:not(.home-search-trigger-shown) .topbar-home .topbar-search-trigger {
+  display: none;
+}
+
 .brand-inline {
   display: inline-flex;
   align-items: center;
