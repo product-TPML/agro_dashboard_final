@@ -1941,7 +1941,8 @@
   ];
 
   // Index-aligned with MARKET_TINT_PALETTE: same hash slot picks tint + deep accent,
-  // so each market's icon color and chip background always pair deterministically.
+  // so each market's (and variety's) icon color and chip background always pair
+  // deterministically. Varieties reuse the same palettes for consistent contrast.
   const MARKET_ACCENT_PALETTE = [
     "#b45309",
     "#15803d",
@@ -1961,6 +1962,14 @@
 
   function getMarketAccent(marketName) {
     return getMarketPaletteValue(MARKET_ACCENT_PALETTE, marketName);
+  }
+
+  function getVarietyTint(varietyName) {
+    return getMarketPaletteValue(MARKET_TINT_PALETTE, varietyName);
+  }
+
+  function getVarietyAccent(varietyName) {
+    return getMarketPaletteValue(MARKET_ACCENT_PALETTE, varietyName);
   }
 
   function getMarketPaletteValue(palette, marketName) {
@@ -4955,6 +4964,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (getSuggestionDisplayType(result) === "market") {
       return `<span class="market-icon" aria-hidden="true" style="--market-color:${getMarketAccent(result.market)}"></span>`;
     }
+    if (result.type === "variety") {
+      return `<span class="variety-icon" aria-hidden="true" style="--variety-color:${getVarietyAccent(result.variety)}"></span>`;
+    }
     return `<img src="${escapeAttribute(getSuggestionIcon(result))}" alt="" loading="lazy" decoding="async">`;
   }
 
@@ -4991,10 +5003,12 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <section class="results-toolbar ${activeFilterCount > 0 ? "has-filter-summary" : ""}">
         <div class="results-toolbar-inner">
           <div class="commodity-title">
-            <div class="thumb-wrap large results-context-icon-${escapeAttribute(state.context.type)} ${escapeAttribute(state.context.type === "market" ? "" : getCommodityThumbWrapClass(state.route.commodity))}" ${state.context.type === "market" ? `style="background:${getMarketTint(state.route.market)};--market-color:${getMarketAccent(state.route.market)}"` : ""}>
+            <div class="thumb-wrap large results-context-icon-${escapeAttribute(state.context.type)} ${escapeAttribute(state.context.type === "market" || state.context.type === "variety" ? "" : getCommodityThumbWrapClass(state.route.commodity))}" ${state.context.type === "market" ? `style="background:${getMarketTint(state.route.market)};--market-color:${getMarketAccent(state.route.market)}"` : state.context.type === "variety" ? `style="background:${getVarietyTint(state.route.variety)};--variety-color:${getVarietyAccent(state.route.variety)}"` : ""}>
               ${state.context.type === "market"
                 ? `<span class="market-icon" aria-hidden="true"></span>`
-                : `<img src="${escapeAttribute(getResultsToolbarIcon())}" alt="">`}
+                : state.context.type === "variety"
+                  ? `<span class="variety-icon" aria-hidden="true"></span>`
+                  : `<img src="${escapeAttribute(getResultsToolbarIcon())}" alt="">`}
             </div>
             <div class="toolbar-support">
               <h2>${escapeHtml(getResultsHeadingText())}</h2>
@@ -5143,7 +5157,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       <div class="filter-group filter-modal-group">
         <div class="filter-line">
           <span class="filter-line-label ${escapeAttribute(getFilterFieldToneClass(field))}">
-            ${field === "market" ? `<span class="market-icon filter-line-icon" aria-hidden="true"></span>` : field === "variety" ? `<img class="filter-line-icon" src="${escapeAttribute(getSuggestionIcon(field))}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}
+            ${field === "market" ? `<span class="market-icon filter-line-icon" aria-hidden="true"></span>` : field === "variety" ? `<span class="variety-icon filter-line-icon" aria-hidden="true"></span>` : ""}
             <span>${escapeHtml(getFieldLabel(field))}</span>
           </span>
           <span class="line"></span>
@@ -5223,7 +5237,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
           <div class="card-market">
             ${presentation.titleKind === "market"
               ? `<span class="card-title-icon card-title-icon-market" aria-hidden="true" style="background:${getMarketTint(row.market)};--market-color:${getMarketAccent(row.market)}"><span class="market-icon"></span></span>`
-              : `<img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async">`}
+              : presentation.titleKind === "variety"
+                ? `<span class="card-title-icon card-title-icon-variety" aria-hidden="true" style="background:${getVarietyTint(row.variety)};--variety-color:${getVarietyAccent(row.variety)}"><span class="variety-icon"></span></span>`
+                : `<img class="card-title-icon card-title-icon-${escapeAttribute(presentation.titleKind)}" src="${escapeAttribute(getCardTitleIcon(presentation.titleKind, row.commodity))}" alt="" loading="lazy" decoding="async">`}
             <div class="card-title-stack">
               <h3>${escapeHtml(presentation.titleValue)}</h3>
             </div>
