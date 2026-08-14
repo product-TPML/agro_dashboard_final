@@ -5042,7 +5042,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
 
   function renderSuggestionKindIcon(result) {
     if (result.type === "market") {
-      return "";
+      return `<span class="market-icon" aria-hidden="true" style="--market-color:${getMarketAccent(result.market)}"></span>`;
     }
     if (getSuggestionDisplayType(result) === "market") {
       return `<span class="market-icon" aria-hidden="true" style="--market-color:${getMarketAccent(result.market)}"></span>`;
