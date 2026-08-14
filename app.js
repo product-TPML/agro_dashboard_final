@@ -492,6 +492,7 @@
     cachedVisibleRows: [],
     cachedFilterOptions: {},
     cachedMarketCommodityLookup: null,
+    cachedVarietyMarketLookup: null,
     cachedSearchCandidates: null,
     cardTargetAppliedKey: "",
     shareFeedback: null,
@@ -886,16 +887,29 @@
       }
 
       const rows = state.allRows.filter((row) => {
-        return row.commodity === route.commodity && row.variety === route.variety;
+        if (row.commodity !== route.commodity || row.variety !== route.variety) {
+          return false;
+        }
+        if (route.market && row.market !== route.market) {
+          return false;
+        }
+        return true;
       });
+
+      const locked = { commodity: route.commodity, variety: route.variety };
+      if (route.market) {
+        locked.market = route.market;
+      }
 
       return {
         context: {
           type: "variety",
           heading: `${route.commodity} / ${route.variety}`,
-          locked: { commodity: route.commodity, variety: route.variety },
-          filters: getAvailableFilters(rows, ["market"]),
-          resultLabel: `${route.variety} (${route.commodity})`,
+          locked,
+          filters: getAvailableFilters(rows, route.market ? [] : ["market"]),
+          resultLabel: route.market
+            ? `${route.variety} (${route.commodity}) (${route.market} Market)`
+            : `${route.variety} (${route.commodity})`,
         },
         rows,
       };
@@ -1829,6 +1843,9 @@
     if (result.type === "market") {
       return translateEntity("market", result.market);
     }
+    if (isMarketVarietySuggestion(result)) {
+      return `${translateEntity("commodity", result.commodity)} / ${translateEntity("variety", result.variety)}`;
+    }
     if (isCommodityVarietySuggestion(result)) {
       return `${translateEntity("commodity", result.commodity)} / ${translateEntity("variety", result.variety)}`;
     }
@@ -1837,6 +1854,10 @@
 
   function isMarketCommoditySuggestion(result) {
     return result && result.type === "commodity" && result.matchType === "market" && Boolean(result.market);
+  }
+
+  function isMarketVarietySuggestion(result) {
+    return result && result.type === "variety" && result.matchType === "market" && Boolean(result.market);
   }
 
   function isCommodityVarietySuggestion(result) {
@@ -3808,6 +3829,7 @@
     state.cachedVisibleRows = [];
     state.cachedFilterOptions = {};
     state.cachedMarketCommodityLookup = null;
+    state.cachedVarietyMarketLookup = null;
     state.cachedSearchCandidates = null;
   }
 
@@ -3835,6 +3857,42 @@
       Array.from(lookup.entries()).map(([market, commodities]) => [market, Array.from(commodities)])
     );
     return state.cachedMarketCommodityLookup;
+  }
+
+  function getVarietyMarketLookup() {
+    if (state.cachedVarietyMarketLookup) {
+      return state.cachedVarietyMarketLookup;
+    }
+
+    const lookup = new Map();
+    state.allRows.forEach((row) => {
+      if (!row.market || !row.commodity || !row.variety) {
+        return;
+      }
+
+      const key = `${row.commodity}::${row.variety}`;
+      let markets = lookup.get(key);
+      if (!markets) {
+        markets = [];
+        lookup.set(key, markets);
+      }
+
+      const existing = markets.find((entry) => entry.market === row.market);
+      if (existing) {
+        if (row.reportDate && row.reportDate > existing.latestReportDate) {
+          existing.latestReportDate = row.reportDate;
+        }
+      } else {
+        markets.push({ market: row.market, latestReportDate: row.reportDate || "" });
+      }
+    });
+
+    lookup.forEach((markets) => {
+      markets.sort((left, right) => right.latestReportDate.localeCompare(left.latestReportDate));
+    });
+
+    state.cachedVarietyMarketLookup = lookup;
+    return state.cachedVarietyMarketLookup;
   }
 
   function buildVisibleRowsCacheKey() {
@@ -3943,6 +4001,8 @@
       .sort(compareLocalizedSearchResults)
       .slice(0, 8);
 
+    const pairMarketResults = buildVarietyMarketSearchResults(varietyResults, queryTerms);
+
     const hasCompositeResult = marketResults.some((result) => result.matchType === "market")
       || varietyResults.some((result) => result.matchType === "commodity-variety");
     if (queryTerms.length > 1 && !hasCompositeResult) {
@@ -3958,7 +4018,28 @@
         .slice(0, 6);
     }
 
-    return [...commodityResults, ...marketResults, ...varietyResults].slice(0, 12);
+    return [...commodityResults, ...marketResults, ...varietyResults, ...pairMarketResults].slice(0, 12);
+  }
+
+  function buildVarietyMarketSearchResults(varietyResults, queryTerms) {
+    if (queryTerms.length <= 1) {
+      return [];
+    }
+
+    const pair = varietyResults.find((result) => result.matchType === "commodity-variety");
+    if (!pair) {
+      return [];
+    }
+
+    const markets = getVarietyMarketLookup().get(`${pair.commodity}::${pair.variety}`) || [];
+    return markets.slice(0, 5).map((entry) => ({
+      type: "variety",
+      commodity: pair.commodity,
+      variety: pair.variety,
+      market: entry.market,
+      matchType: "market",
+      score: pair.score,
+    }));
   }
 
   function buildCommoditySearchResult(candidate, query) {
@@ -4973,7 +5054,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
   }
 
   function getSuggestionKindLabel(result) {
-    if (isMarketCommoditySuggestion(result)) {
+    if (isMarketCommoditySuggestion(result) || isMarketVarietySuggestion(result)) {
       return translateEntity("market", result.market);
     }
     if (result.type === "variety") {
