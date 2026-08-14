@@ -35,6 +35,9 @@ const CATEGORY_OVERRIDES = {
   "Sheep (For Each)": "livestock_and_poultry",
   Bullar: "grains_and_pulses",
   Sajje: "grains_and_pulses",
+  "Cowpea (Veg)": "vegetables",
+  Millets: "grains_and_pulses",
+  "Other Fruits": "fruits",
 };
 
 function main() {

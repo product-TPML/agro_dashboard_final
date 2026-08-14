@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-05T05:14:37.550Z",
+  "generatedAt": "2026-08-14T10:16:16.5316404Z",
   "locales": [
     "en",
     "kn"
@@ -35,7 +35,7 @@
     },
     "search_placeholder": {
       "en": "Try Tomato, Mysuru, or Local",
-      "kn": "ಟೊಮೇಟೊ, ಮೈಸೂರು, ಅಥವಾ ಸ್ಥಳೀಯ ಎಂದು ಪ್ರಯತ್ನಿಸಿ"
+      "kn": "ಟೊಮೆಟೊ, ಮೈಸೂರು, ಅಥವಾ ಸ್ಥಳೀಯ ಎಂದು ಪ್ರಯತ್ನಿಸಿ"
     },
     "search_placeholder_terms": {
       "en": ["Tomato", "Local", "Mysuru mango"],
@@ -79,7 +79,7 @@
     },
     "category_miscellaneous": {
       "en": "Miscellaneous",
-      "kn": "ಇತರೇ"
+      "kn": "ಇತರೆ"
     },
     "home_button": {
       "en": "Home",
@@ -123,7 +123,7 @@
     },
     "results_layout_aria": {
       "en": "Results layout",
-      "kn": "ಫಲಿತಾಂಶಗಳ ಲೇಔಟ್"
+      "kn": "ಫಲಿತಾಂಶಗಳ ವಿವರ"
     },
     "layout_cards": {
       "en": "Cards",
@@ -167,15 +167,15 @@
     },
     "suggestion_meta_commodity": {
       "en": "Opens commodity results",
-      "kn": "ಸರಕಿನ ಫಲಿತಾಂಶಗಳನ್ನು... ತೆರೆಯುತ್ತದೆ"
+      "kn": "ಸರಕಿನ ಫಲಿತಾಂಶಗಳನ್ನು ನೀಡಲಿದೆ"
     },
     "suggestion_meta_market": {
       "en": "Opens market results",
-      "kn": "ಮಾರುಕಟ್ಟೆಯ ಫಲಿತಾಂಶಗಳನ್ನು ತೆರೆಯುತ್ತದೆ"
+      "kn": "ಮಾರುಕಟ್ಟೆಯ ಫಲಿತಾಂಶಗಳನ್ನು ನೀಡಲಿದೆ"
     },
     "suggestion_meta_variety": {
       "en": "Opens variety results",
-      "kn": "ತಳಿಯ ಫಲಿತಾಂಶಗಳನ್ನು ತೆರೆಯುತ್ತದೆ"
+      "kn": "ತಳಿಯ ಫಲಿತಾಂಶಗಳನ್ನು ನೀಡಲಿದೆ"
     },
     "filter_open_aria": {
       "en": "Open filters",
@@ -215,7 +215,7 @@
     },
     "apply_filters": {
       "en": "Apply Filters",
-      "kn": "ಫಿಲ್ಟರ್‌ಗಳನ್ನು அನ್ವಯಿಸಿ"
+      "kn": "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಅನ್ವಯಿಸಿ"
     },
     "filter_suffix": {
       "en": "filter",
@@ -283,7 +283,7 @@
     },
     "loading_rows": {
       "en": "Loading rows...",
-      "kn": "ಸಾಲನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ..."
+      "kn": "ಮಾಹಿತಿ ತೆರೆಯಲಿದೆ"
     },
     "no_rows_match": {
       "en": "No rows match the current combination. The filter options stay constrained to valid combinations only, so clearing filters should broaden the result set.",
@@ -295,15 +295,15 @@
     },
     "max_price_rs": {
       "en": "Max Price",
-      "kn": "ಗರಿಷ್ಠ ಬೆಲೆ"
+      "kn": "ಗರಿಷ್ಠ ಬೆಲೆ (ರೂ.)"
     },
     "min_price_rs": {
       "en": "Min Price",
-      "kn": "ಕನಿಷ್ಠ ಬೆಲೆ"
+      "kn": "ಕನಿಷ್ಠ ಬೆಲೆ (ರೂ.)"
     },
     "modal_price_rs": {
       "en": "Modal Price",
-      "kn": "ಮಾದರಿ ಬೆಲೆ"
+      "kn": "ಮಾದರಿ ಬೆಲೆ (ರೂ.)"
     },
     "latest_update": {
       "en": "Latest Update",
@@ -399,7 +399,7 @@
     },
     "only_one_price_point_prefix": {
       "en": "Only one price point is available on",
-      "kn": "ಈ ದಿನಾಂಕದಂದು ಕೇವಲ ಒಂದು ಬೆಲೆಯ ಡೇಟಾ ಮಾತ್ರ ಲಭ್ಯವಿದೆ:"
+      "kn": "ಈ ದಿನಾಂಕದಂದು ಕೇವಲ ಒಂದು ಬೆಲೆಯ ಡೇಟಾ ಮಾತ್ರ ಲಭ್ಯವಿದೆ"
     },
     "open_market_results_prefix": {
       "en": "Open",
@@ -569,7 +569,7 @@
     },
     "Coconut (Per 1000)": {
       "en": "Coconut (Per 1000)",
-      "kn": "ತೆಂಗಿನಕಾಯಿ (೧೦೦೦ ಕ್ಕೆ)"
+      "kn": "ತೆಂಗಿನಕಾಯಿ (1000 ಕ್ಕೆ)"
     },
     "Copra": {
       "en": "Copra",
@@ -597,7 +597,7 @@
     },
     "Crysanthamum": {
       "en": "Crysanthamum",
-      "kn": "ಶೇವಂತಿ ಹೂವು"
+      "kn": "ಸೇವಂತಿ ಹೂವು"
     },
     "Cucumbar": {
       "en": "Cucumbar",
@@ -681,7 +681,7 @@
     },
     "Gurellu": {
       "en": "Gurellu",
-      "kn": "ಗುರಳ್ಳು"
+      "kn": "ಗುರೆಳ್ಳು"
     },
     "He Baffalo (For Each)": {
       "en": "He Baffalo (For Each)",
@@ -737,7 +737,7 @@
     },
     "Mango (Raw-Ripe)": {
       "en": "Mango (Raw-Ripe)",
-      "kn": "ಮಾವಿನಕಾಯಿ-ಹಣ್ಣು"
+      "kn": "ಮಾವು (ಕಾಯಿ-ಹಣ್ಣು)"
     },
     "Marygold": {
       "en": "Marygold",
@@ -745,7 +745,7 @@
     },
     "Mataki": {
       "en": "Mataki",
-      "kn": "ಮಟಕಿ"
+      "kn": "ಮಡಿಕೆ ಕಾಳು"
     },
     "Methi Seeds": {
       "en": "Methi Seeds",
@@ -753,7 +753,7 @@
     },
     "Moath": {
       "en": "Moath",
-      "kn": "ಮೋತ್ ಕಾಳು"
+      "kn": "ಮಡಿಕೆ ಕಾಳು"
     },
     "Mousambi": {
       "en": "Mousambi",
@@ -769,7 +769,7 @@
     },
     "Niger Seed": {
       "en": "Niger Seed",
-      "kn": "ಗುರಳ್ಳು ಬೀಜ"
+      "kn": "ಗುರೆಳ್ಳು ಬೀಜ"
     },
     "Onion": {
       "en": "Onion",
@@ -797,7 +797,7 @@
     },
     "Pepper": {
       "en": "Pepper",
-      "kn": "ಮೆಣಸು"
+      "kn": "ಕಾಳು ಮೆಣಸು"
     },
     "Pine Apple": {
       "en": "Pine Apple",
@@ -933,7 +933,7 @@
     },
     "Turmeric": {
       "en": "Turmeric",
-      "kn": "ಅರಿಶಿನ"
+      "kn": "ಅರಿಸಿನ"
     },
     "Water Melon": {
       "en": "Water Melon",
@@ -941,7 +941,7 @@
     },
     "Wheat": {
       "en": "Wheat",
-      "kn": "ಗೋದಿಗೆ"
+      "kn": "ಗೋಧಿ"
     },
     "White Pumpkin": {
       "en": "White Pumpkin",
@@ -1039,7 +1039,7 @@
     },
     "BHALKI": {
       "en": "BHALKI",
-      "kn": "ಭಲ್ಕಿ"
+      "kn": "ಭಾಲ್ಕಿ"
     },
     "BIDAR": {
       "en": "BIDAR",
@@ -1323,7 +1323,7 @@
     },
     "KUDLIGI": {
       "en": "KUDLIGI",
-      "kn": "கூಡ್ಲಿಗಿ"
+      "kn": "ಕೂಡ್ಲಿಗಿ"
     },
     "KUMTA": {
       "en": "KUMTA",
@@ -1459,7 +1459,7 @@
     },
     "RAMPURA": {
       "en": "RAMPURA",
-      "kn": "ರಾಮಪುರ"
+      "kn": "ರಾಮಾಪುರ"
     },
     "RANIBENNUR": {
       "en": "RANIBENNUR",
@@ -1495,7 +1495,7 @@
     },
     "SAVANUR": {
       "en": "SAVANUR",
-      "kn": "ಸಾವನೂರು"
+      "kn": "ಸವಣೂರು"
     },
     "SEDAM": {
       "en": "SEDAM",
@@ -1757,7 +1757,7 @@
     },
     "Bombay (U.P.)": {
       "en": "Bombay (U.P.)",
-      "kn": "ಬಾಂಬೆ (ಯು.批.)"
+      "kn": "ಬಾಂಬೆ (ಯು.ಪಿ.)"
     },
     "Bottle Gourd": {
       "en": "Bottle Gourd",
@@ -1837,7 +1837,7 @@
     },
     "Coarse": {
       "en": "Coarse",
-      "kn": "ದಪ್ಪ"
+      "kn": "ಇಡೀ"
     },
     "Coca": {
       "en": "Coca",
@@ -1881,7 +1881,7 @@
     },
     "D.C.H.": {
       "en": "D.C.H.",
-      "kn": "ಡಿ.ಸಿ.ಹೆಚ್."
+      "kn": "ಡಿ.ಸಿ.ಎಚ್."
     },
     "Dabbi": {
       "en": "Dabbi",
@@ -1985,11 +1985,11 @@
     },
     "Gurellu": {
       "en": "Gurellu",
-      "kn": "ಗುರಳ್ಳು"
+      "kn": "ಗುರೆಳ್ಳು"
     },
     "H.D.": {
       "en": "H.D.",
-      "kn": "ಹೆಚ್.ಡಿ."
+      "kn": "ಎಚ್.ಡಿ."
     },
     "HYBRID-44": {
       "en": "HYBRID-44",
@@ -2049,7 +2049,7 @@
     },
     "IR 20": {
       "en": "IR 20",
-      "kn": "ಐ.ಆರ್. ೨೦"
+      "kn": "ಐ.ಆರ್. 20"
     },
     "Jack Fruit": {
       "en": "Jack Fruit",
@@ -2097,7 +2097,7 @@
     },
     "Kempugotu": {
       "en": "Kempugotu",
-      "kn": "ಕೆಂಪಗೋಟು"
+      "kn": "ಕೆಂಪುಗೋಟು"
     },
     "Knool Khol": {
       "en": "Knool Khol",
@@ -2133,7 +2133,7 @@
     },
     "Malguba": {
       "en": "Malguba",
-      "kn": "ಮಲ್ಗೋಬಾ"
+      "kn": "ಮಲ್ಗೋವಾ"
     },
     "Mango": {
       "en": "Mango",
@@ -2145,7 +2145,7 @@
     },
     "Mataki (W)": {
       "en": "Mataki (W)",
-      "kn": "ಮಟಕಿ (ಇಡೀ)"
+      "kn": "ಮಡಿಕೆ (ಇಡೀ)"
     },
     "Medium": {
       "en": "Medium",
@@ -2169,7 +2169,7 @@
     },
     "Moath (W)": {
       "en": "Moath (W)",
-      "kn": "ಮೋತ್ ಕಾಳು (ಇಡೀ)"
+      "kn": "ಮಡಿಕೆ ಕಾಳು (ಇಡೀ)"
     },
     "Mousambi": {
       "en": "Mousambi",
@@ -2181,7 +2181,7 @@
     },
     "NH-44 COTTON": {
       "en": "NH-44 COTTON",
-      "kn": "ಎನ್.ಹೆಚ್-೪೪ ಹತ್ತಿ"
+      "kn": "ಎನ್.ಎಚ್-೪೪ ಹತ್ತಿ"
     },
     "Nati": {
       "en": "Nati",
@@ -2209,7 +2209,7 @@
     },
     "Niger Seed": {
       "en": "Niger Seed",
-      "kn": "ಗುರಳ್ಳು ಬೀಜ"
+      "kn": "ಗುರೆಳ್ಳು ಬೀಜ"
     },
     "Old Variety": {
       "en": "Old Variety",
@@ -2245,7 +2245,7 @@
     },
     "PS4": {
       "en": "PS4",
-      "kn": "ಪಿ.ಎಸ್.೪"
+      "kn": "ಪಿ.ಎಸ್.4"
     },
     "Pachha Bale": {
       "en": "Pachha Bale",
@@ -2257,7 +2257,7 @@
     },
     "Paddy 1001": {
       "en": "Paddy 1001",
-      "kn": "ಭತ್ತ ೧೦೦೧"
+      "kn": "ಭತ್ತ 1001"
     },
     "Paddy Coarse Variety": {
       "en": "Paddy Coarse Variety",
@@ -2297,7 +2297,7 @@
     },
     "Padma": {
       "en": "Padma",
-      "kn": "پದ್ಮಾ"
+      "kn": "ಪದ್ಮಾ"
     },
     "Papaya": {
       "en": "Papaya",
@@ -2445,7 +2445,7 @@
     },
     "Small": {
       "en": "Small",
-      "kn": "ಸಣ್ಣದು"
+      "kn": "ಸಣ್ಣ"
     },
     "Snakeguard": {
       "en": "Snakeguard",
@@ -2493,7 +2493,7 @@
     },
     "Sweet Potato": {
       "en": "Sweet Potato",
-      "kn": "गेણಸು"
+      "kn": "ಸಿಹಿ ಗೆಣಸು"
     },
     "Sweet Pumpkin": {
       "en": "Sweet Pumpkin",
@@ -2525,7 +2525,7 @@
     },
     "Tomato": {
       "en": "Tomato",
-      "kn": "ಟೊಮೇಟೊ"
+      "kn": "ಟೊಮೆಟೊ"
     },
     "Totapuri": {
       "en": "Totapuri",
@@ -2545,7 +2545,7 @@
     },
     "Turmeric Stick": {
       "en": "Turmeric Stick",
-      "kn": "ಅರಿಶಿನ ಕೊಂಬು"
+      "kn": "ಅರಿಸಿನ ಕೊಂಬು"
     },
     "Unde": {
       "en": "Unde",
@@ -2597,7 +2597,7 @@
     },
     "IR 20 Medium Boiled": {
       "en": "IR 20 Medium Boiled",
-      "kn": "ಐ.ಆರ್. ೨೦ ಮಧ್ಯಮ ಕುಸುಬಲಕ್ಕಿ"
+      "kn": "ಐ.ಆರ್. 20 ಮಧ್ಯಮ ಕುಸುಬಲಕ್ಕಿ"
     },
     "Jaydhar": {
       "en": "Jaydhar",
