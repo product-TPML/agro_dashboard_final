@@ -2,6 +2,7 @@
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
   const APP_DATA_VERSION = "20260819-1";
+  const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -753,7 +754,7 @@
   }
 
   async function fetchJson(url) {
-    const response = await fetch(url);
+    const response = await fetch(new URL(url, DATA_BASE_URL));
     if (!response.ok) {
       throw new Error(`Request failed: ${response.status}`);
     }
