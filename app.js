@@ -3931,9 +3931,9 @@
   function getStoredLocale() {
     try {
       const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-      return stored === "kn" ? "kn" : "en";
+      return stored === "en" ? "en" : "kn";
     } catch (error) {
-      return "en";
+      return "kn";
     }
   }
 
@@ -4957,8 +4957,8 @@
   function renderLocaleToggle() {
     return `
       <div class="locale-toggle language-toggle" role="group" aria-label="${escapeAttribute(getUiText("language_aria", "Language"))}">
+        <button type="button" class="locale-toggle-button language-option ${state.locale === "kn" ? "is-active active" : ""}" data-locale-toggle="kn">ಕನ್ನಡ</button>
         <button type="button" class="locale-toggle-button language-option ${state.locale === "en" ? "is-active active" : ""}" data-locale-toggle="en">EN</button>
-        <button type="button" class="locale-toggle-button language-option ${state.locale === "kn" ? "is-active active" : ""}" data-locale-toggle="kn">${escapeHtml(getUiText("language_kannada", "Kannada").slice(0, 2).toUpperCase())}</button>
       </div>
     `;
   }
