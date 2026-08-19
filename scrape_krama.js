@@ -743,7 +743,202 @@ function htmlPageWithTaxonomyStatus() {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Commodity JSON Scraper</title><style>body{font:16px Segoe UI,Arial;background:#f5f1e8;color:#202522;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}.card{background:#fffaf2;padding:28px;border-radius:20px;width:min(520px,100%);box-shadow:0 15px 40px #0002}label{display:block;font-weight:600;margin:14px 0 7px}select,input,button{width:100%;padding:13px;border:1px solid #d5cdbc;border-radius:10px;font-size:16px;box-sizing:border-box}button{margin-top:18px;background:#1f7045;color:white;font-weight:700;cursor:pointer}.status{margin-top:18px;padding:14px;background:#f0eadf;border-radius:10px;white-space:pre-wrap}.error{background:#fde6e2;color:#8b2118}.success{background:#e5f4e8;color:#14532d}</style></head><body><main class="card"><h1>Commodity JSON Scraper</h1><p>This publishes JSON only; it does not update SQLite.</p><label for="source">Source</label><select id="source"><option value="krama">Krama</option><option value="necc_egg">NECC eggs</option><option value="csb_silk">Central Silk Board</option><option value="spices_board">Spices Board</option><option value="coffee_board">Coffee Board</option><option value="rubber_board">Rubber Board</option><option value="all">All six sources</option></select><label id="dateLabel" for="date">Date</label><input id="date" type="date"><button id="run">Fetch and publish</button><div id="status" class="status">Choose a source and date.</div></main><script>const s=document.querySelector('#source'),d=document.querySelector('#date'),b=document.querySelector('#run'),o=document.querySelector('#status'),dateSources=new Set(['krama','necc_egg','spices_board','coffee_board','rubber_board']);function sync(){const need=dateSources.has(s.value)||s.value==='all';d.hidden=!need;document.querySelector('#dateLabel').hidden=!need;b.disabled=need&&!d.value}function taxonomyText(items){return (items||[]).map(item=>item.type+': '+item.value+' ('+item.rowCount+' row(s), '+item.sources.join(', ')+')').join('\\n')}s.onchange=sync;d.oninput=sync;sync();b.onclick=async()=>{b.disabled=true;o.className='status';o.textContent='Fetching sources and validating the complete snapshot...';try{const r=await fetch('/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sourceId:s.value,date:dateSources.has(s.value)||s.value==='all'?d.value:null})});const j=await r.json();const unknown=taxonomyText(j.unknownTaxonomies);if(!r.ok||!j.ok){o.className='status error';o.textContent='Run failed.\\n'+(j.error||'Run failed')+(unknown?'\\nUnknown taxonomy values:\\n'+unknown:'');return}o.className='status success';o.textContent='Completed.\\nSource: '+j.sourceId+'\\nRows: '+j.rowCount+'\\nMerged rows: '+j.mergedRowCount+(j.skippedRowCount?'\\nSkipped rows: '+j.skippedRowCount:'')+(unknown?'\\nUnknown taxonomy values skipped:\\n'+unknown:'')+'\\nLog: '+j.logPath}catch(e){o.className='status error';o.textContent='Run failed.\\n'+e.message}finally{sync()}};</script></body></html>`;
 }
 
-function htmlPage() { return htmlPageWithTaxonomyStatus(); }
+function htmlPageImproved() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Commodity JSON Scraper</title>
+  <style>
+    body{font:16px Segoe UI,Arial;background:#f5f1e8;color:#202522;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}
+    .card{background:#fffaf2;padding:28px;border-radius:20px;width:min(520px,100%);box-shadow:0 15px 40px #0002}
+    label{display:block;font-weight:600;margin:14px 0 7px}
+    select,input,button{width:100%;padding:13px;border:1px solid #d5cdbc;border-radius:10px;font-size:16px;box-sizing:border-box}
+    button{margin-top:18px;background:#1f7045;color:white;font-weight:700;cursor:pointer}
+    button:disabled,input:disabled,select:disabled{opacity:.55;cursor:not-allowed;background:#e6e0d5;color:#6e6a61}
+    .status{margin-top:18px;padding:14px;background:#f0eadf;border-radius:10px;white-space:pre-wrap}
+    .error{background:#fde6e2;color:#8b2118}
+    .success{background:#e5f4e8;color:#14532d}
+    .status-spinner{display:inline-block;width:14px;height:14px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:spin .8s linear infinite}
+    .missing-panel{margin-top:18px;padding:16px;background:#fff4d6;border:1px solid #e4c979;border-radius:10px}
+    .missing-panel h2{font-size:18px;margin:0 0 10px}
+    .missing-list{margin:0;white-space:pre-wrap;font:14px Consolas,monospace;line-height:1.5}
+    .copy-button{background:#8a5b16;margin-top:14px}
+    .copy-button.copied{background:#2d7045}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Commodity JSON Scraper</h1>
+    <p>This publishes JSON only; it does not update SQLite.</p>
+    <label for="source">Source</label>
+    <select id="source">
+      <option value="krama">Krama</option>
+      <option value="necc_egg">NECC eggs</option>
+      <option value="csb_silk">Central Silk Board</option>
+      <option value="spices_board">Spices Board</option>
+      <option value="coffee_board">Coffee Board</option>
+      <option value="rubber_board">Rubber Board</option>
+      <option value="all">All six sources</option>
+    </select>
+    <label id="dateLabel" for="date">Date</label>
+    <input id="date" type="date">
+    <button id="run" type="button">Fetch and publish</button>
+    <div id="status" class="status" role="status" aria-live="polite">Choose a source and date.</div>
+    <section id="missingPanel" class="missing-panel" hidden aria-labelledby="missingHeading">
+      <h2 id="missingHeading">Items not available in database</h2>
+      <pre id="missingList" class="missing-list"></pre>
+      <button id="copyMissing" class="copy-button" type="button">Copy missing items</button>
+    </section>
+  </main>
+  <script>
+    const sourceSelect = document.querySelector('#source');
+    const dateInput = document.querySelector('#date');
+    const dateLabel = document.querySelector('#dateLabel');
+    const runButton = document.querySelector('#run');
+    const status = document.querySelector('#status');
+    const missingPanel = document.querySelector('#missingPanel');
+    const missingList = document.querySelector('#missingList');
+    const copyMissingButton = document.querySelector('#copyMissing');
+    const dateSources = new Set(['krama','necc_egg','spices_board','coffee_board','rubber_board']);
+    const sourceLabels = {
+      krama: 'Krama',
+      necc_egg: 'NECC eggs',
+      csb_silk: 'Central Silk Board',
+      spices_board: 'Spices Board',
+      coffee_board: 'Coffee Board',
+      rubber_board: 'Rubber Board',
+      all: 'all six sources'
+    };
+    let busy = false;
+
+    function needsDate() {
+      return dateSources.has(sourceSelect.value) || sourceSelect.value === 'all';
+    }
+
+    function formatDate(value) {
+      const parts = String(value || '').split('-');
+      if (parts.length !== 3) return value;
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const month = Number(parts[1]);
+      return month >= 1 && month <= 12 ? Number(parts[2]) + ' ' + months[month - 1] + ' ' + parts[0] : value;
+    }
+
+    function setBusy(value) {
+      busy = value;
+      document.querySelectorAll('button, input, select').forEach((control) => { control.disabled = value; });
+      if (!value) syncForm();
+    }
+
+    function syncForm() {
+      const showDate = needsDate();
+      dateInput.hidden = !showDate;
+      dateLabel.hidden = !showDate;
+      dateInput.disabled = busy || !showDate;
+      sourceSelect.disabled = busy;
+      runButton.disabled = busy || (showDate && !dateInput.value);
+    }
+
+    function showLoading() {
+      status.className = 'status';
+      status.replaceChildren(document.createTextNode('Fetching data from ' + sourceLabels[sourceSelect.value] + (needsDate() ? ' for ' + formatDate(dateInput.value) : '')));
+      const spinner = document.createElement('span');
+      spinner.className = 'status-spinner';
+      spinner.setAttribute('aria-label', 'Loading');
+      status.appendChild(spinner);
+    }
+
+    function taxonomyLabel(type) {
+      const labels = { commodity: 'Commodity', market: 'Market', variety: 'Variety', grade: 'Grade' };
+      return labels[String(type || '').toLowerCase()] || String(type || 'Item');
+    }
+
+    function taxonomyText(items) {
+      return (items || []).map((item) => {
+        const details = [];
+        if (item.rowCount) details.push(item.rowCount + ' row(s)');
+        if (Array.isArray(item.sources) && item.sources.length) details.push('source: ' + item.sources.join(', '));
+        const line = taxonomyLabel(item.type) + ' ' + item.value + ' not available in database';
+        return line + (details.length ? ' (' + details.join('; ') + ')' : '');
+      }).join('\\n');
+    }
+
+    function renderMissingItems(items) {
+      const text = taxonomyText(items);
+      missingList.textContent = text;
+      missingPanel.hidden = !text;
+      copyMissingButton.classList.remove('copied');
+      copyMissingButton.textContent = 'Copy missing items';
+    }
+
+    async function copyMissingItems() {
+      const text = missingList.textContent;
+      if (!text) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const helper = document.createElement('textarea');
+          helper.value = text;
+          helper.setAttribute('readonly', '');
+          helper.style.position = 'fixed';
+          helper.style.opacity = '0';
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand('copy');
+          helper.remove();
+        }
+        copyMissingButton.textContent = 'Copied';
+        copyMissingButton.classList.add('copied');
+        window.setTimeout(() => {
+          copyMissingButton.textContent = 'Copy missing items';
+          copyMissingButton.classList.remove('copied');
+        }, 1800);
+      } catch (error) {
+        copyMissingButton.textContent = 'Copy failed';
+      }
+    }
+
+    sourceSelect.addEventListener('change', syncForm);
+    dateInput.addEventListener('input', syncForm);
+    copyMissingButton.addEventListener('click', copyMissingItems);
+    syncForm();
+
+    runButton.addEventListener('click', async () => {
+      renderMissingItems([]);
+      setBusy(true);
+      showLoading();
+      try {
+        const response = await fetch('/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceId: sourceSelect.value, date: needsDate() ? dateInput.value : null })
+        });
+        const result = await response.json();
+        renderMissingItems(result.unknownTaxonomies);
+        if (!response.ok || !result.ok) {
+          status.className = 'status error';
+          status.textContent = 'Run failed.\\n' + (result.error || 'Run failed');
+          return;
+        }
+        status.className = 'status success';
+        status.textContent = 'Completed.\\nSource: ' + result.sourceId + '\\nRows: ' + result.rowCount + '\\nMerged rows: ' + result.mergedRowCount + (result.skippedRowCount ? '\\nSkipped rows: ' + result.skippedRowCount : '') + '\\nLog: ' + result.logPath;
+      } catch (error) {
+        renderMissingItems([]);
+        status.className = 'status error';
+        status.textContent = 'Run failed.\\n' + error.message;
+      } finally {
+        setBusy(false);
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function htmlPage() { return htmlPageImproved(); }
 
 function openBrowser(url) { if (process.platform === "win32") spawn("cmd", ["/c", "start", "", url], { detached: true, stdio: "ignore" }).unref(); else if (process.platform !== "darwin") spawn("xdg-open", [url], { detached: true, stdio: "ignore" }).unref(); }
 

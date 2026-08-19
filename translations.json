@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T10:16:16.5316404Z",
+  "generatedAt": "2026-08-19T07:08:38.3141567Z",
   "locales": [
     "en",
     "kn"
@@ -38,8 +38,16 @@
       "kn": "ಟೊಮೆಟೊ, ಮೈಸೂರು, ಅಥವಾ ಸ್ಥಳೀಯ ಎಂದು ಪ್ರಯತ್ನಿಸಿ"
     },
     "search_placeholder_terms": {
-      "en": ["Tomato", "Local", "Mysuru mango"],
-      "kn": ["ಟೊಮೇಟೊ", "ಸ್ಥಳೀಯ", "ಮೈಸೂರು"]
+      "en": [
+        "Tomato",
+        "Local",
+        "Mysuru mango"
+      ],
+      "kn": [
+        "ಟೊಮೇಟೊ",
+        "ಸ್ಥಳೀಯ",
+        "ಮೈಸೂರು"
+      ]
     },
     "search_placeholder_prefix": {
       "en": "Search",
@@ -259,27 +267,27 @@
     },
     "search_loading_title": {
       "en": "Finding matching options...",
-      "kn": "Finding matching options..."
+      "kn": "ಸೂಕ್ತವಾದ ಆಯ್ಕೆಯನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ"
     },
     "search_loading_body": {
       "en": "Suggestions will appear here.",
-      "kn": "Suggestions will appear here."
+      "kn": "ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಲಿವೆ"
     },
     "search_unavailable_title": {
       "en": "Search is unavailable right now.",
-      "kn": "Search is unavailable right now."
+      "kn": "ಸದ್ಯಕ್ಕೆ ಹುಡುಕಾಟ ಲಭ್ಯವಿಲ್ಲ"
     },
     "search_unavailable_body": {
       "en": "We could not load suggestions. Please try again.",
-      "kn": "We could not load suggestions. Please try again."
+      "kn": "ಫಲಿತಾಂಶ ಸಧ್ಯಕ್ಕೆ ಲೋಡ್ ಆಗುತ್ತಿಲ್ಲ, ದಯವಿಟ್ಟು ನಂತರ ಪ್ರಯತ್ನಿಸಿ"
     },
     "retry": {
       "en": "Retry",
-      "kn": "Retry"
+      "kn": "ಮರಳಿ ಯತ್ನಿಸಿ"
     },
     "loading": {
       "en": "Loading...",
-      "kn": "Loading..."
+      "kn": "ಲೋಡ್‌ ಆಗುತ್ತಿದೆ..."
     },
     "loading_rows": {
       "en": "Loading rows...",
@@ -375,11 +383,11 @@
     },
     "actual_line": {
       "en": "Historical price",
-      "kn": "à²¹à²¿à²‚à²¦à²¿à²¨ à²¬à³†à²²à³†"
+      "kn": "ಐತಿಹಾಸಿಕ ಬೆಲೆ"
     },
     "carried_line": {
       "en": "Carried-forward line",
-      "kn": "à²®à³à²‚à²¦à³à²µà²°à²¿à²¸à²¿à²¦ à²²à³ˆà²¨à³"
+      "kn": "ಮುಂದುವರಿಸಿದ ಸಾಲು"
     },
     "max_short": {
       "en": "Max",
@@ -408,6 +416,90 @@
     "open_market_results_suffix": {
       "en": "market results",
       "kn": "ಮಾರುಕಟ್ಟೆ ಫಲಿತಾಂಶಗಳು"
+    },
+    "market_jump_option_copy": {
+      "en": "Open this market card",
+      "kn": "ಮಾರುಕಟ್ಟೆ ಕಾರ್ಡ್‌ ತೆರೆಯಿರಿ"
+    },
+    "unit_quintal": {
+      "en": "Quintal",
+      "kn": "ಕ್ವಿಂಟಾಲ್"
+    },
+    "category_count_one": {
+      "en": "{count} commodity",
+      "kn": "{count} ಉತ್ಪನ್ನ"
+    },
+    "freshness_week": {
+      "en": "Updated this week",
+      "kn": "ಈ ವಾರದ ಅಪ್‌ಡೇಟ್‌"
+    },
+    "trend_note_egg": {
+      "en": "Trend is shown for this exact commodity and market combination.",
+      "kn": "ಈ ನಿಖರ ಉತ್ಪನ್ನ ಹಾಗೂ ಮಾರುಕಟ್ಟೆಯ ಬೆಳವಣಿಗೆ ಇಲ್ಲಿದೆ"
+    },
+    "unit_numbers": {
+      "en": "Numbers",
+      "kn": "ಸಂಖ್ಯೆ"
+    },
+    "filter_selected_many": {
+      "en": "{count} selected",
+      "kn": "{count} ಆಯ್ಕೆಯಾಗಿದೆ"
+    },
+    "category_count_many": {
+      "en": "{count} commodities",
+      "kn": "{count} ಉತ್ಪನ್ನಗಳು"
+    },
+    "tap_to_select": {
+      "en": "Tap to Select",
+      "kn": "ಆಯ್ಕೆ ಮಾಡಲು ಕ್ಲಿಕ್ಕಿಸಿ"
+    },
+    "freshness_recent": {
+      "en": "Recently updated",
+      "kn": "ಇತ್ತೀಚಿನ ಅಪ್‌ಡೇಟ್‌"
+    },
+    "filter_selected_one": {
+      "en": "1 selected",
+      "kn": "1 ಆಯ್ಕೆಯಾಗಿದೆ"
+    },
+    "freshness_old": {
+      "en": "Older update",
+      "kn": "ಹಿಂದಿನ ಅಪ್‌ಡೇಟ್‌"
+    },
+    "market_jump_open_aria": {
+      "en": "Open market navigator",
+      "kn": "ಮುಕ್ತ ಮಾರುಕಟ್ಟೆ ನಾವಿಕ"
+    },
+    "market_jump_copy": {
+      "en": "Choose a market for {commodity}.",
+      "kn": "{commodity} ಇದಕ್ಕಾಗಿ ಮಾರುಕಟ್ಟೆ ಆಯ್ಕೆ"
+    },
+    "unit_50_kg": {
+      "en": "50 Kg",
+      "kn": "50 ಕೆ.ಜಿ."
+    },
+    "source_prefix": {
+      "en": "Source",
+      "kn": "ಮೂಲ"
+    },
+    "close_search_aria": {
+      "en": "Close search",
+      "kn": "ಹುಡುಕಾಟ ಕೊನೆ"
+    },
+    "market_jump_close_aria": {
+      "en": "Close market navigator",
+      "kn": "ಸಮೀಪದ ಮಾರುಕಟ್ಟೆ ನಾವಿಕ"
+    },
+    "unit_thousands": {
+      "en": "Thousands",
+      "kn": "ಸಾವಿರಗಳು"
+    },
+    "back_to_top_aria": {
+      "en": "Back to top",
+      "kn": "ಮರಳಿ ಮೇಲೆ"
+    },
+    "market_jump_title": {
+      "en": "Jump to market",
+      "kn": "ಮಾರುಕಟ್ಟೆಗೆ ಹೋಗಿ"
     }
   },
   "commodities": {
@@ -962,6 +1054,42 @@
     "Neem Seed": {
       "en": "Neem Seed",
       "kn": "ಬೇವಿನ ಬೀಜ"
+    },
+    "Silk": {
+      "en": "Silk",
+      "kn": "ರೇಷ್ಮೆ"
+    },
+    "Rubber": {
+      "en": "Rubber",
+      "kn": "ರಬ್ಬರ್"
+    },
+    "Millets": {
+      "en": "Millets",
+      "kn": "ಸಿರಿಧಾನ್ಯ"
+    },
+    "Clove": {
+      "en": "Clove",
+      "kn": "ಲವಂಗ"
+    },
+    "Nutmeg": {
+      "en": "Nutmeg",
+      "kn": "ಜಾಯಿಕಾಯಿ"
+    },
+    "Mace": {
+      "en": "Mace",
+      "kn": "ಜಾಯಿಪತ್ರೆ"
+    },
+    "Cowpea (Veg)": {
+      "en": "Cowpea (Veg)",
+      "kn": "ಕಡಲೆ"
+    },
+    "Other Fruits": {
+      "en": "Other Fruits",
+      "kn": "ಇತರೆ ಹಣ್ಣುಗಳು"
+    },
+    "Coffee": {
+      "en": "Coffee",
+      "kn": "ಕಾಫಿ"
     }
   },
   "markets": {
@@ -1620,6 +1748,54 @@
     "AFZALPUR": {
       "en": "AFZALPUR",
       "kn": "ಅಫಜಲಪುರ"
+    },
+    "MASKI": {
+      "en": "MASKI",
+      "kn": "ಮಸ್ಕಿ"
+    },
+    "Cochin": {
+      "en": "Cochin",
+      "kn": "ಕೊಚ್ಚಿ"
+    },
+    "HINDUPUR": {
+      "en": "HINDUPUR",
+      "kn": "ಹಿಂದುಪುರ"
+    },
+    "KOCHI": {
+      "en": "KOCHI",
+      "kn": "ಕೊಚ್ಚಿ"
+    },
+    "KARNATAKA SILK EXCHANGE": {
+      "en": "KARNATAKA SILK EXCHANGE",
+      "kn": "ಕರ್ನಾಟಕ ರೇಷ್ಮೆ ವಿನಿಮಯ"
+    },
+    "HUMNABAD": {
+      "en": "HUMNABAD",
+      "kn": "ಹುಮ್ನಾಬಾದ್"
+    },
+    "DHARMAPURI": {
+      "en": "DHARMAPURI",
+      "kn": "ಧರ್ಮಪುರಿ"
+    },
+    "SIDDLAGHATTA": {
+      "en": "SIDDLAGHATTA",
+      "kn": "ಶಿಡ್ಲಘಟ್ಟ"
+    },
+    "KARNATAKA": {
+      "en": "KARNATAKA",
+      "kn": "ಕರ್ನಾಟಕ"
+    },
+    "KOTTAYAM": {
+      "en": "KOTTAYAM",
+      "kn": "ಕೊಟ್ಟಾಯಂ"
+    },
+    "ALANDA": {
+      "en": "ALANDA",
+      "kn": "ಅಳಂದ"
+    },
+    "SHAHAPUR": {
+      "en": "SHAHAPUR",
+      "kn": "ಶಹಾಪುರ"
     }
   },
   "varieties": {
@@ -2626,6 +2802,142 @@
     "Sona Mansoori Non Basmati": {
       "en": "Sona Mansoori Non Basmati",
       "kn": "ಸೋನಾ ಮಸೂರಿ ನಾನ್ ಬಾಸುಮತಿ"
+    },
+    "Robusta Parchment": {
+      "en": "Robusta Parchment",
+      "kn": "ರೊಬಸ್ಟಾ ಪರ್ಚ್‌ಮೆಂಟ್‌"
+    },
+    "Garbled": {
+      "en": "Garbled",
+      "kn": "ಅಸ್ಪಷ್ಟ"
+    },
+    "Govt. Quality": {
+      "en": "Govt. Quality",
+      "kn": "ಸರ್ಕಾರಿ ಗುಣಮಟ್ಟ"
+    },
+    "FAQ": {
+      "en": "FAQ",
+      "kn": "ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು"
+    },
+    "Non FAQ": {
+      "en": "Non FAQ",
+      "kn": "ಸಾಮಾನ್ಯವಲ್ಲದ ಪ್ರಶ್ನೆಗಳು"
+    },
+    "Medium Fine": {
+      "en": "Medium Fine",
+      "kn": "ಮಧ್ಯಮ ಶುದ್ಧ"
+    },
+    "Without Shell": {
+      "en": "Without Shell",
+      "kn": "ಕವಚ ರಹಿತ"
+    },
+    "Ungarbled": {
+      "en": "Ungarbled",
+      "kn": "ಗೊಂದಲವಿಲ್ಲದ"
+    },
+    "Cross Breed Cocoons": {
+      "en": "Cross Breed Cocoons",
+      "kn": "ಮಿಶ್ರತಳಿ ರೇಷ್ಮೆ"
+    },
+    "Idi": {
+      "en": "Idi",
+      "kn": "ಇಡಿ"
+    },
+    "Raw Silk (Filature)": {
+      "en": "Raw Silk (Filature)",
+      "kn": "ಕಚ್ಚಾ ರೇಷ್ಮೆ (ರೇಷ್ಮೆ ಸುತ್ತುವಿಕೆ)"
+    },
+    "Bivoltine Seed Cocoon": {
+      "en": "Bivoltine Seed Cocoon",
+      "kn": "ಬೈವೋಲ್ಟಿನ್‌ ಬೀಜದ ರೇಷ್ಮೆ ಗೂಡು"
+    },
+    "Kuber": {
+      "en": "Kuber",
+      "kn": "ಕುಬೇರ"
+    },
+    "With Shell": {
+      "en": "With Shell",
+      "kn": "ಕವಚ ಸಹಿತ"
+    },
+    "Arabica Parchment": {
+      "en": "Arabica Parchment",
+      "kn": "ಅರೆಬಿಕಾ ಪರ್ಚ್‌ಮೆಂಟ್"
+    },
+    "Brahma": {
+      "en": "Brahma",
+      "kn": "ಬ್ರಹ್ಮ"
+    },
+    "Multivoltine Seed Cocoon": {
+      "en": "Multivoltine Seed Cocoon",
+      "kn": "ಬಹುವಾರ್ಷಿಕ ಬೀಜದ ರೇಷ್ಮೆ ಗೂಡು"
+    },
+    "(Whole)": {
+      "en": "(Whole)",
+      "kn": "ಇಡಿ"
+    },
+    "Average": {
+      "en": "Average",
+      "kn": "ಸರಾಸರಿ"
+    },
+    "Robusta Cherry": {
+      "en": "Robusta Cherry",
+      "kn": "ರೊಬಸ್ಟಾ ಚೆರ್ರಿ"
+    },
+    "Coarse (I.R.20)": {
+      "en": "Coarse (I.R.20)",
+      "kn": "ಕೊರ್ಸೆ (ಐಆರ್‌ 20)"
+    },
+    "Latex (60%)": {
+      "en": "Latex (60%)",
+      "kn": "ಲ್ಯಾಟೆಕ್ಸ್ (ಶೇ 60)"
+    },
+    "Large": {
+      "en": "Large",
+      "kn": "ಬೃಹತ್"
+    },
+    "ISNR20": {
+      "en": "ISNR20",
+      "kn": "ಐಎಸ್‌ಎನ್‌ಆರ್‌20"
+    },
+    "RSS4": {
+      "en": "RSS4",
+      "kn": "ಆರ್‌ಎಸ್‌ಎಸ್‌4"
+    },
+    "Cowpea (Veg)": {
+      "en": "Cowpea (Veg)",
+      "kn": "ಕಡಲೆ"
+    },
+    "IR 20 Fine Raw": {
+      "en": "IR 20 Fine Raw",
+      "kn": "ಐಆರ್‌ 20 ಶುದ್ಧ ಕಚ್ಚಾ"
+    },
+    "Chandramukhi": {
+      "en": "Chandramukhi",
+      "kn": "ಚಂದ್ರಮುಖಿ"
+    },
+    "Cotton-64": {
+      "en": "Cotton-64",
+      "kn": "ಹತ್ತಿ–64"
+    },
+    "RSS5": {
+      "en": "RSS5",
+      "kn": "ಆರ್‌ಎಸ್‌ಎಸ್‌5"
+    },
+    "Bivoltine Hybrid Cocoon": {
+      "en": "Bivoltine Hybrid Cocoon",
+      "kn": "ಬೈವೋಲ್ಟಿನ್‌ ಮಿಶ್ರತಳಿ ರೇಷ್ಮೆ ಗೂಡು"
+    },
+    "Kasmir/Shimla - II": {
+      "en": "Kasmir/Shimla - II",
+      "kn": "ಕಾಶ್ಮೀರ/ಶಿಮ್ಲಾ–II"
+    },
+    "Sippetu": {
+      "en": "Sippetu",
+      "kn": "ಸಿಪ್ಪೆಟು"
+    },
+    "Arabica Cherry": {
+      "en": "Arabica Cherry",
+      "kn": "ಅರೆಬಿಕಾ ಚೆರ್ರಿ"
     }
   }
 }

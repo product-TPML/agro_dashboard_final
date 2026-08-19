@@ -29,24 +29,24 @@ The active results presentation is cards-only. There are older table/layout help
 
 ## Current data snapshot
 
-The checked-in JSON was merged from the sister repository's SQLite snapshot on 10 August 2026. The current repo's categories remain authoritative; rows for commodities outside the current taxonomy are excluded, and sister-repo category values are replaced with the current category assignments. `data/metadata.json` currently reports:
+The checked-in JSON is the current compact dashboard snapshot. The current repo's categories remain authoritative; rows for commodities outside the current taxonomy are excluded, and source category values are replaced with the current category assignments. `data/metadata.json` currently reports:
 
-- 68,369 observations
+- 73,208 observations
 - 147 commodities
-- 178 markets
-- 367 varieties
-- generated at `2026-08-10T09:33:41.205Z`
+- 179 markets
+- 369 varieties
+- generated at `2026-08-18T09:48:22.828Z`
 
 Latest report dates in this snapshot by source are:
 
 | Source | Latest report date |
 | --- | --- |
-| Krama (`krama`) | 2026-08-10 |
-| Central Silk Board (`csb_silk`) | 2026-08-09 |
-| Coffee Board (`coffee_board`) | 2026-08-07 |
-| NECC eggs (`necc_egg`) | 2026-08-10 |
-| Spices Board (`spices_board`) | 2026-08-06 |
-| Rubber Board (`rubber_board`) | 2026-07-27 |
+| Krama (`krama`) | 2026-08-18 |
+| NECC eggs (`necc_egg`) | 2026-08-18 |
+| Central Silk Board (`csb_silk`) | 2026-08-17 |
+| Rubber Board (`rubber_board`) | 2026-08-17 |
+| Coffee Board (`coffee_board`) | 2026-08-14 |
+| Spices Board (`spices_board`) | 2026-08-13 |
 
 `build_static_site.js` reads `data/agro_dashboard.db` and rewrites only:
 
@@ -59,7 +59,26 @@ data/metadata.json
 
 The export normalizes report dates to `YYYY-MM-DD`, preserves source/commodity/market/variety/grade/arrival fields, and adds display-unit information. Category generation applies explicit overrides for the dashboard taxonomy and includes `Egg` in the category gallery. The database WAL/SHM sidecar files are ignored by `.gitignore`.
 
-The checked-in browser payload is the 10 August 2026 merged snapshot above. On 6 August 2026, a full rebuild from the checked-in SQLite file produced 51,456 observations and 360 varieties instead of the newer browser payload, and `npm run build:data` still reads that older local database. Do not run `npm run build:data` casually; use `node scripts/merge_sister_price_data.js` after intentionally refreshing the sister database, or update the local SQLite source first. The category override logic remains in the build script so future intentional rebuilds preserve the new taxonomy.
+The checked-in browser payload is newer than the retained SQLite source snapshot. `npm run build:data` still reads SQLite and can overwrite JSON produced by the scraper; do not run it casually. The category override logic remains in the build script so intentional SQLite rebuilds preserve the dashboard taxonomy.
+
+## JSON-only scraper
+
+The repository also contains a six-source scraper that publishes only the four runtime JSON files and never updates `data/agro_dashboard.db`:
+
+```text
+data/observations.json
+data/search-index.json
+data/categories.json
+data/metadata.json
+```
+
+It covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
+
+Krama uses direct HTTP/ViewState submission first, then Playwright headless and headful fallbacks. The browser fallback detects installed Chromium/Edge/Chrome, submits the ASP.NET form, and parses the final HTML server-side. Krama normalization includes `DEVDURGA` to `DEVADURGA` and preserves the existing `IISort  without Husk` canonical value.
+
+Successful rows merge by `rowKey`; an identical rerun replaces that row while retaining historical rows. Unknown commodity, market, variety, or grade taxonomy rows are skipped, grouped, and reported in the UI, CLI result, and structured log. If all rows are skipped, a source fails, returns no rows, or another validation error occurs, the existing JSON snapshot is retained. Publication uses temporary files and rollback handling so the four JSON files remain consistent.
+
+`npm run build:data` still reads SQLite and can overwrite scraper-generated JSON. Do not run it casually after using the scraper.
 
 ## Views and navigation
 

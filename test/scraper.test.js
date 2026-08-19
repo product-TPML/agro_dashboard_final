@@ -141,7 +141,16 @@ test("publisher rolls back the original files after an install failure", () => {
 
 test("help text is represented in the local UI and source contract", () => {
   assert.match(scraper.htmlPage(), /publishes JSON only/);
-  assert.match(scraper.htmlPage(), /Unknown taxonomy values skipped/);
+  assert.match(scraper.htmlPage(), /Fetching data from/);
+  assert.match(scraper.htmlPage(), /status-spinner/);
+  assert.match(scraper.htmlPage(), /querySelectorAll\('button, input, select'\)/);
+  assert.match(scraper.htmlPage(), /Items not available in database/);
+  assert.match(scraper.htmlPage(), /Copy missing items/);
+  assert.match(scraper.htmlPage(), /commodity: 'Commodity'/);
+  assert.match(scraper.htmlPage(), /market: 'Market'/);
+  assert.match(scraper.htmlPage(), /variety: 'Variety'/);
+  assert.match(scraper.htmlPage(), /grade: 'Grade'/);
+  assert.match(scraper.htmlPage(), /not available in database/);
   assert.deepEqual(scraper.SOURCE_IDS, ["krama", "necc_egg", "csb_silk", "rubber_board", "spices_board", "coffee_board"]);
 });
 

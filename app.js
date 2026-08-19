@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260812-1";
+  const APP_DATA_VERSION = "20260819-1";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
   const MARKET_JUMP_HIGHLIGHT_DURATION_MS = 1800;
@@ -37,6 +37,10 @@
     market: "Market",
     variety: "Variety",
   };
+  const VARIETY_DISPLAY_ALIASES = Object.freeze({
+    "Long staple Length 29.5-30.5mm and Micronare Value 3.5-4.3": "LS 29.5–30.5 & Mic 3.5–4.3",
+    "Medium staple Length 24.5-25.5mm and Micronare Value 4.3-5.1": "MS 24.5–25.5 & Mic 4.3–5.1",
+  });
   const CATEGORY_ICONS = {
     fruits: "🍎",
     vegetables: "🥕",
@@ -3942,6 +3946,9 @@
   }
 
   function translateEntity(field, value) {
+    if (field === "variety" && VARIETY_DISPLAY_ALIASES[String(value)]) {
+      return VARIETY_DISPLAY_ALIASES[String(value)];
+    }
     const translationGroup = getTranslationGroup(field);
     const entry = translationGroup[String(value)] || null;
     if (!entry) {
@@ -3956,6 +3963,9 @@
   }
 
   function translateEntityWithLocale(field, value, locale) {
+    if (field === "variety" && VARIETY_DISPLAY_ALIASES[String(value)]) {
+      return VARIETY_DISPLAY_ALIASES[String(value)];
+    }
     const translationGroup = getTranslationGroup(field);
     const entry = translationGroup[String(value)] || null;
     if (!entry) {
