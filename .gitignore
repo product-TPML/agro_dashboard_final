@@ -2,6 +2,7 @@ node_modules/
 assets/
 .playwright-cli/
 tmp_playwright_server.*
+logs/
 data/*.db-shm
 data/*.db-wal
 .DS_Store

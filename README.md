@@ -15,7 +15,8 @@ The hosted dashboard includes:
 - Price deltas and inline price history
 - English/Kannada localization
 
-The map and scraper workflows are intentionally excluded.
+The map workflow is intentionally excluded. The JSON-only six-source scraper is available at
+`scrape_krama.js`, with a hidden Windows launcher at `Launch Commodity Scraper.vbs`.
 
 ## Social previews
 
@@ -36,6 +37,29 @@ The command reads `data/agro_dashboard.db` and rewrites:
 - `data/search-index.json`
 - `data/categories.json`
 - `data/metadata.json`
+
+Warning: `npm run build:data` reads the older SQLite snapshot. It can overwrite JSON produced by
+the scraper. The scraper never updates SQLite; use `node scrape_krama.js --no-ui --source SOURCE
+--date DD/MM/YYYY` for automation, or launch the VBS file for the local source/date picker.
+
+## Scraper
+
+The scraper covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber
+Board. It merges successful observations into the existing compact snapshot by `rowKey`, validates
+the complete result, and atomically publishes observations, search index, categories, and metadata.
+Rows with unknown commodity, market, variety, or grade taxonomy are skipped and reported in the UI,
+CLI result, and structured log. If all scraped rows are skipped, or a source fails or returns no rows,
+the existing snapshot is retained. Other validation failures also retain the snapshot.
+
+Rubber Board first submits the official daily-price form with its required `txtCategory=day` field.
+If that response has no usable domestic rows, it queries the official `/archives` date-result endpoint
+and parses the date-specific Indian price table. The Rubber adapter publishes only Kottayam and Kochi
+rows for RSS4, RSS5, ISNR20, and Latex (60%).
+
+```bash
+node scrape_krama.js --help
+npm test
+```
 
 ## GitHub Pages
 

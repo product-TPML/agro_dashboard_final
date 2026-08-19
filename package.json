@@ -6,9 +6,13 @@
   "type": "commonjs",
   "scripts": {
     "build:data": "node scripts/build_static_site.js",
-    "check": "node --check app.js && node --check scripts/build_static_site.js"
+    "scrape": "node scrape_krama.js",
+    "test": "node --test --experimental-test-isolation=none test/scraper.test.js",
+    "check": "node --check app.js && node --check scripts/build_static_site.js && node --check scrape_krama.js && node --check test/scraper.test.js"
   },
   "dependencies": {
-    "better-sqlite3": "^12.10.0"
+    "better-sqlite3": "^12.10.0",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.60.0"
   }
 }

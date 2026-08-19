@@ -2,7 +2,8 @@ param(
   [string]$SourceWorkbook = 'C:\Users\harsh\Downloads\Agro Dashboard Translations.xlsx',
   [string]$TranslationsPath = (Join-Path $PSScriptRoot '..\translations.json'),
   [string]$MissingWorkbook = 'C:\Users\harsh\Downloads\Agro Dashboard Translations - Missing.xlsx',
-  [switch]$RestoreTrackedFormatting
+  [switch]$RestoreTrackedFormatting,
+  [switch]$AuditActiveMissing
 )
 
 $ErrorActionPreference = 'Stop'
@@ -124,6 +125,57 @@ if ($RestoreTrackedFormatting) {
   $rawJson = ((git -C $repoRoot show HEAD:translations.json) -join "`n") + "`n"
 }
 $translations = $rawJson | ConvertFrom-Json
+if ($AuditActiveMissing) {
+  $categories = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\categories.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+  $observations = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\observations.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+  $dictionaries = $observations.dictionaries
+
+  function Get-UniqueNonEmpty([object[]]$Values) {
+    return @($Values | ForEach-Object { [string]$_ } | Where-Object { $_.Trim() } | Sort-Object -Unique)
+  }
+  function Get-EntityRows([object[]]$Values, $Group, [hashtable]$SourceMap) {
+    return @((Get-UniqueNonEmpty $Values) | Where-Object {
+      -not $SourceMap.ContainsKey($_) -or -not $Group.PSObject.Properties[$_]
+    } | ForEach-Object {
+      $entry = $Group.PSObject.Properties[$_]
+      ,@($_, $(if ($entry) { [string]$entry.Value.kn } else { '' }))
+    })
+  }
+
+  $activeCommodities = @($categories.categories | ForEach-Object { $_.commodities }) + @($dictionaries.commodity)
+  $activeVarietyAndGrade = @($dictionaries.variety) + @($dictionaries.grade)
+  $commodityMissing = Get-EntityRows $activeCommodities $translations.commodities $workbookMaps.commodities
+  $marketMissing = Get-EntityRows $dictionaries.market $translations.markets $workbookMaps.markets
+  $varietyMissing = Get-EntityRows $activeVarietyAndGrade $translations.varieties $workbookMaps.varieties
+
+  $missingUi = @($translations.ui.PSObject.Properties | Where-Object { -not $workbookMaps.ui.ContainsKey($_.Name) } | ForEach-Object { ,@($_.Name, $_.Value.en, $_.Value.kn) })
+  $newUi = [ordered]@{
+    back_to_top_aria = 'Back to top'; close_search_aria = 'Close search';
+    filter_selected_one = '1 selected'; filter_selected_many = '{count} selected';
+    market_jump_close_aria = 'Close market navigator'; market_jump_copy = 'Choose a market for {commodity}.';
+    market_jump_open_aria = 'Open market navigator'; market_jump_option_copy = 'Open this market card';
+    market_jump_title = 'Jump to market'; source_prefix = 'Source'; tap_to_select = 'Tap to Select';
+    trend_note_egg = 'Trend is shown for this exact commodity and market combination.';
+    freshness_recent = 'Recently updated'; freshness_week = 'Updated this week'; freshness_old = 'Older update';
+    category_count_one = '{count} commodity'; category_count_many = '{count} commodities';
+    unit_quintal = 'Quintal'; unit_50_kg = '50 Kg'; unit_numbers = 'Numbers'; unit_thousands = 'Thousands'
+  }
+  foreach ($key in $newUi.Keys) {
+    if (-not $translations.ui.PSObject.Properties[$key] -and -not ($missingUi | Where-Object { $_[0] -eq $key })) {
+      $missingUi += ,@($key, $newUi[$key], '')
+    }
+  }
+
+  Copy-Item -LiteralPath $SourceWorkbook -Destination $MissingWorkbook -Force
+  Set-WorksheetRows $MissingWorkbook 1 2 $commodityMissing 2
+  Set-WorksheetRows $MissingWorkbook 2 2 $marketMissing 2
+  Set-WorksheetRows $MissingWorkbook 3 3 $varietyMissing 2
+  Set-WorksheetRows $MissingWorkbook 4 3 $missingUi 3
+  Write-Output ([PSCustomObject]@{
+    commodities = $commodityMissing.Count; markets = $marketMissing.Count; varietiesAndGrades = $varietyMissing.Count; ui = $missingUi.Count; missingWorkbook = $MissingWorkbook
+  } | ConvertTo-Json -Compress)
+  exit 0
+}
 $changed = @{}
 $updatedKn = @{}
 $workbookOnly = @{}
