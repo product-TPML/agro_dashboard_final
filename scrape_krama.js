@@ -11,6 +11,7 @@ const https = require("https");
 const path = require("path");
 const { spawn } = require("child_process");
 const { decodeObservations, encodeObservations } = require("./scripts/observation_codec");
+const { stageAndDeploy } = require("./scripts/publish_bundle");
 
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
@@ -107,7 +108,7 @@ function log(level, event, details = {}) {
 }
 
 function parseArgs(argv) {
-  const options = { date: null, sourceId: "krama", uiMode: argv.length === 0, pauseOnExit: false };
+  const options = { date: null, sourceId: "krama", uiMode: argv.length === 0, pauseOnExit: false, publish: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") { printHelp(); process.exit(0); }
@@ -118,6 +119,7 @@ function parseArgs(argv) {
     else if (arg === "--ui") options.uiMode = true;
     else if (arg === "--no-ui") options.uiMode = false;
     else if (arg === "--no-pause") options.pauseOnExit = false;
+    else if (arg === "--publish") options.publish = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
   if (![...SOURCE_IDS, "all"].includes(options.sourceId)) throw new Error(`Unknown source: ${options.sourceId}`);
@@ -136,6 +138,7 @@ Options:
   --ui               Start the local source/date picker and /run endpoint.
   --no-ui             Run directly for automation.
   --no-pause          Kept for launcher compatibility; never pauses CLI runs.
+  --publish           After a successful run, deploy the JSON snapshot to Cloudflare Pages.
   --help, -h          Show this help.
 
 Notes:
@@ -924,7 +927,7 @@ function htmlPageImproved() {
           return;
         }
         status.className = 'status success';
-        status.textContent = 'Completed.\\nSource: ' + result.sourceId + '\\nRows: ' + result.rowCount + '\\nMerged rows: ' + result.mergedRowCount + (result.skippedRowCount ? '\\nSkipped rows: ' + result.skippedRowCount : '') + '\\nLog: ' + result.logPath;
+        status.textContent = 'Completed.\\nSource: ' + result.sourceId + '\\nRows: ' + result.rowCount + '\\nMerged rows: ' + result.mergedRowCount + (result.skippedRowCount ? '\\nSkipped rows: ' + result.skippedRowCount : '') + (result.publish ? '\\nPublish: ' + (result.publish.ok ? 'deployed to ' + result.publish.project : 'FAILED: ' + result.publish.error) : '') + '\\nLog: ' + result.logPath;
       } catch (error) {
         renderMissingItems([]);
         status.className = 'status error';
@@ -946,7 +949,7 @@ async function startUiServer(config = {}) {
   const runner = config.runner || runScrapeForDate;
   let active = false; const server = require("http").createServer((req, res) => {
     if (req.method === "GET" && req.url === "/") { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); res.end(htmlPage()); return; }
-    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId }); res.writeHead(result.ok ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
+    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId }); if (result.ok && config.publish) result.publish = await stageAndDeploy({ rootDir: ROOT_DIR }); res.writeHead(result.ok ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
     res.writeHead(404); res.end("Not found");
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); const url = `http://127.0.0.1:${address.port}/`; log("info", "ui_started", { url }); if (config.openBrowser !== false) openBrowser(url); return server;
@@ -954,8 +957,14 @@ async function startUiServer(config = {}) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2)); setupLogging();
-  if (options.uiMode) { await startUiServer(); return; }
-  const result = await runScrapeForDate(options.date, options); closeLogging(); process.exitCode = result.ok ? 0 : 1;
+  if (options.uiMode) { await startUiServer({ publish: options.publish }); return; }
+  const result = await runScrapeForDate(options.date, options); closeLogging();
+  if (!result.ok) { process.exitCode = 1; return; }
+  if (options.publish) {
+    const deploy = await stageAndDeploy({ rootDir: ROOT_DIR });
+    if (!deploy.ok) process.exitCode = 1;
+  }
+  process.exitCode = 0;
 }
 
 if (require.main === module) main().catch((error) => { if (!logger) setupLogging(); log("error", "fatal", { error: error.stack || error.message }); closeLogging(); process.exitCode = 1; });

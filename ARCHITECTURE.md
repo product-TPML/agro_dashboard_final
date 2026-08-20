@@ -44,6 +44,33 @@ source websites
 
 The scraper preserves the existing snapshot when a source fails, produces no valid rows, or all rows are rejected. It writes structured JSONL logs under `logs/` and does not update `data/agro_dashboard.db`.
 
+### Manual cross-platform publication
+
+Manual publication is performed directly from the operator's system with Wrangler; GitHub Actions is not required for this workflow. The non-interactive scraper command is:
+
+```text
+node scrape_krama.js --no-ui --source all
+```
+
+After a successful scrape, a publish wrapper stages `translations.json` and the runtime `data/*.json` files into a small deployment bundle and runs:
+
+```text
+npx wrangler pages deploy <json-bundle> --project-name=agro-dashboard-data
+```
+
+The cross-platform entry point is `npm run scrape:publish`, which owns the scrape → stage → deploy sequence. It runs `scripts/publish_pages.js` (Node standard library only), which:
+
+1. Loads `.env` (or the process environment when `.env` is absent) for `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; `CLOUDFLARE_PAGES_PROJECT` defaults to `agro-dashboard-data`. Secrets are never printed.
+2. Runs the scraper non-interactively (`node scrape_krama.js --no-ui --source all`, never `--publish`, to avoid recursion) and accepts a source/date override, so `npm run scrape:publish -- --source=krama --date=DD/MM/YYYY` works (npm forwards these as `npm_config_source`/`npm_config_date`; the `=` form is the reliable one). Direct invocation `node scripts/publish_pages.js --source=krama --date=DD/MM/YYYY` is also supported. Stray positional arguments are rejected rather than silently appended. It does not deploy if the scraper exits nonzero or is signaled.
+3. On success, stages `translations.json`, every `data/*.json` file (never the SQLite DB), and a generated `_headers` (public CORS `Access-Control-Allow-Origin: *` for GET/HEAD/OPTIONS and `Cache-Control: no-cache`) into a temporary bundle under the OS temp directory.
+4. Deploys with `npx wrangler pages deploy <bundle> --project-name=<project>` (using `npx.cmd` on Windows), passing the loaded environment, and removes the temp bundle in a `finally` block. It exits nonzero if deployment fails.
+
+The staging and deployment logic lives in the shared `scripts/publish_bundle.js` module (`stageAndDeploy({ rootDir })`), which returns `{ ok, ... }` without terminating the host process. Both `scripts/publish_pages.js` and the scraper reuse it.
+
+The Windows-only `Launch Commodity Scraper.vbs` picker now launches `node scrape_krama.js --ui --publish`, so each successful run selected in the UI is also deployed to Cloudflare Pages (the publish result is shown in the UI status and included in the `/run` JSON response). A failed scrape is not published; a failed deployment is reported but does not undo the local snapshot. `npm run scrape:publish` remains the cross-platform non-UI all-source entry point.
+
+Operators authenticate Wrangler on each trusted device with Cloudflare OAuth or an account-scoped API token; credentials are never stored in the repository. Concurrent manual runs should be avoided because the last successful Cloudflare Pages deployment becomes the live snapshot.
+
 ### SQLite export pipeline
 
 `npm run build:data` runs `scripts/build_static_site.js`, which reads the SQLite snapshot and rewrites the observations, search index, categories, and metadata JSON files. This is a separate, older data path and can overwrite scraper-produced JSON; do not run it casually after scraping.

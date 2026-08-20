@@ -7,8 +7,9 @@
   "scripts": {
     "build:data": "node scripts/build_static_site.js",
     "scrape": "node scrape_krama.js",
+    "scrape:publish": "node scripts/publish_pages.js",
     "test": "node --test --experimental-test-isolation=none test/scraper.test.js",
-    "check": "node --check app.js && node --check scripts/build_static_site.js && node --check scrape_krama.js && node --check test/scraper.test.js"
+    "check": "node --check app.js && node --check scripts/build_static_site.js && node --check scrape_krama.js && node --check test/scraper.test.js && node --check scripts/publish_pages.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",
