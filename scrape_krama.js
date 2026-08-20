@@ -11,6 +11,7 @@ const https = require("https");
 const path = require("path");
 const { spawn } = require("child_process");
 const { decodeObservations, encodeObservations } = require("./scripts/observation_codec");
+const { normalizeMarketName } = require("./scripts/market_aliases");
 const { stageAndDeploy } = require("./scripts/publish_bundle");
 
 const ROOT_DIR = __dirname;
@@ -244,7 +245,7 @@ function normalizeMarket(sourceId, value) {
     if (text === "Ramanagaram") return "RAMANAGARA";
     if (text === "Shidlaghatta") return "SIDDLAGHATTA";
   }
-  return text.toUpperCase();
+  return normalizeMarketName(text.toUpperCase());
 }
 
 function parseDmyDate(value, separator = "-") {

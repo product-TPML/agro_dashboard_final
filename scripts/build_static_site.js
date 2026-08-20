@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 const { encodeObservations } = require("./observation_codec");
+const { normalizeMarketName } = require("./market_aliases");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const DB_PATH = path.join(ROOT_DIR, "data", "agro_dashboard.db");
@@ -71,7 +72,7 @@ function main() {
 
     const searchIndex = {
       commodities: db.prepare("SELECT name FROM commodities ORDER BY name ASC").all().map((row) => row.name),
-      markets: db.prepare("SELECT name FROM markets ORDER BY name ASC").all().map((row) => row.name),
+      markets: [...new Set(db.prepare("SELECT name FROM markets ORDER BY name ASC").all().map((row) => normalizeMarketName(row.name)))].sort((left, right) => left.localeCompare(right)),
       varieties: db.prepare(`
         SELECT DISTINCT commodity, variety
         FROM price_observations_flat
@@ -112,7 +113,7 @@ function mapObservationRow(row) {
     commodity: row.commodity,
     perishability: row.perishability,
     category: row.category,
-    market: row.market,
+    market: normalizeMarketName(row.market),
     variety: row.variety,
     grade: row.grade,
     arrivals: row.arrivals,

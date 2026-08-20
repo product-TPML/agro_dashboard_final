@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260820-2";
+  const APP_DATA_VERSION = "20260820-7";
   const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
@@ -2169,8 +2169,7 @@
         titleLabel: getUiText("field_commodity", "Commodity"),
         titleValue: translateEntity("commodity", row.commodity),
         meta: buildMetaEntries([
-          { label: getUiText("field_variety", "Variety"), value: translateEntity("variety", row.variety) },
-          { label: getUiText("field_grade", "Grade"), value: row.grade },
+          { kind: "grade", label: getUiText("field_grade", "Grade"), value: row.grade },
         ]),
       };
     }
@@ -2181,7 +2180,7 @@
           titleKind: "variety",
           titleValue: translateEntity("variety", row.variety),
           meta: buildMetaEntries([
-            { label: getUiText("field_grade", "Grade"), value: row.grade },
+            { kind: "grade", label: getUiText("field_grade", "Grade"), value: row.grade },
           ]),
         };
       }
@@ -2191,8 +2190,7 @@
         titleLabel: getUiText("field_market", "Market"),
         titleValue: translateEntity("market", row.market),
         meta: buildMetaEntries([
-          { label: getUiText("field_variety", "Variety"), value: translateEntity("variety", row.variety) },
-          { label: getUiText("field_grade", "Grade"), value: row.grade },
+          { kind: "grade", label: getUiText("field_grade", "Grade"), value: row.grade },
         ]),
       };
     }
@@ -2203,8 +2201,7 @@
         titleLabel: getUiText("field_market", "Market"),
         titleValue: translateEntity("market", row.market),
         meta: buildMetaEntries([
-          { label: getUiText("field_variety", "Variety"), value: translateEntity("variety", row.variety) },
-          { label: getUiText("field_grade", "Grade"), value: row.grade },
+          { kind: "grade", label: getUiText("field_grade", "Grade"), value: row.grade },
         ]),
       };
     }
@@ -2214,9 +2211,7 @@
       titleLabel: getUiText("field_market", "Market"),
       titleValue: translateEntity("market", row.market),
       meta: buildMetaEntries([
-        { label: getUiText("field_commodity", "Commodity"), value: translateEntity("commodity", row.commodity) },
-        { label: getUiText("field_variety", "Variety"), value: translateEntity("variety", row.variety) },
-        { label: getUiText("field_grade", "Grade"), value: row.grade },
+        { kind: "grade", label: getUiText("field_grade", "Grade"), value: row.grade },
       ]),
     };
   }
@@ -5334,6 +5329,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     const priceColumns = getRowPriceProfile(row).columns;
     const freshnessMeta = getFreshnessMeta(row.reportDate);
     const detailEntries = buildCardDetailEntries(row, previousRow, presentation);
+    const varietyValue = presentation.titleKind === "variety"
+      ? ""
+      : translateEntity("variety", row.variety);
 
     return `
       <article class="price-card result-card ${isExpanded ? "expanded is-expanded" : ""}" data-row-key="${escapeAttribute(row.rowKey)}" data-market-anchor="${escapeAttribute(row.market)}">
@@ -5358,10 +5356,21 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
           </div>
         </div>
 
-        <div class="card-status-row">
-          <span class="card-source-label">${escapeHtml(`${getUiText("source_prefix", "Source")}: ${formatSourceName(row.sourceId)}`)}</span>
-          <span class="status-pill status-pill-${escapeAttribute(freshnessMeta.tone)}">${escapeHtml(freshnessMeta.label)}</span>
-        </div>
+        ${varietyValue ? `
+          <div class="card-variety-status-row">
+            <div class="card-variety-row">
+              <span class="card-variety-label">${escapeHtml(getUiText("field_variety", "Variety"))}</span>
+              <strong class="card-variety-value">${escapeHtml(varietyValue)}</strong>
+            </div>
+            <div class="card-status-row">
+              <span class="status-pill status-pill-${escapeAttribute(freshnessMeta.tone)}">${escapeHtml(freshnessMeta.label)}</span>
+            </div>
+          </div>
+        ` : `
+          <div class="card-status-row">
+            <span class="status-pill status-pill-${escapeAttribute(freshnessMeta.tone)}">${escapeHtml(freshnessMeta.label)}</span>
+          </div>
+        `}
 
         <div class="stats-row" style="--stat-columns:${Math.min(priceColumns.length, 3)}">
           ${priceColumns.map((column) => `
@@ -5375,7 +5384,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
 
         <div class="detail-grid">
           ${detailEntries.map((entry) => `
-            <div class="meta-item">
+            <div class="meta-item meta-item-${escapeAttribute(entry.kind || "default")}">
               <div class="meta-label">${escapeHtml(entry.label)}</div>
               <div class="meta-value">${escapeHtml(entry.value)}${entry.subvalue ? `<span class="meta-subvalue"> ${escapeHtml(entry.subvalue)}</span>` : ""}</div>
             </div>
@@ -5580,10 +5589,11 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     const details = [
       ...meta,
       hasArrivalsData(row)
-        ? { label: getUiText("arrivals_and_units", "Arrivals And Units"), value: formatNumber(row.arrivals), subvalue: row.unit }
+        ? { kind: "arrivals", label: getUiText("arrivals_and_units", "Arrivals And Units"), value: formatNumber(row.arrivals), subvalue: row.unit }
         : null,
-      { label: getUiText("latest_update", "Latest Update"), value: formatDateFull(row.reportDate) || "-" },
-      { label: getUiText("previous_update", "Previous Update"), value: previousRow ? formatDateFull(previousRow.reportDate) : "-" },
+      { kind: "source", label: getUiText("source_prefix", "Source"), value: formatSourceName(row.sourceId) },
+      { kind: "latest", label: getUiText("latest_update", "Latest Update"), value: formatDateFull(row.reportDate) || "-" },
+      { kind: "previous", label: getUiText("previous_update", "Previous Update"), value: previousRow ? formatDateFull(previousRow.reportDate) : "-" },
     ].filter(Boolean);
 
     return details.slice(0, 5);

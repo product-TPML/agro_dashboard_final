@@ -71,11 +71,13 @@ The Windows-only `Launch Commodity Scraper.vbs` picker now launches `node scrape
 
 Operators authenticate Wrangler on each trusted device with Cloudflare OAuth or an account-scoped API token; credentials are never stored in the repository. Concurrent manual runs should be avoided because the last successful Cloudflare Pages deployment becomes the live snapshot.
 
+Source and export paths share canonical market aliases. The dashboard uses `Cochin` as the canonical market value, including its Kannada translation; legacy `COCHIN` values are normalized before validation and publication.
+
 ### SQLite export pipeline
 
 `npm run build:data` runs `scripts/build_static_site.js`, which reads the SQLite snapshot and rewrites the observations, search index, categories, and metadata JSON files. This is a separate, older data path and can overwrite scraper-produced JSON; do not run it casually after scraping.
 
-Supporting scripts include the observation codec, sister-database merge, search transliteration generation, and CMS hosted-bundle generation.
+Supporting scripts include the observation codec, shared market alias normalization, sister-database merge, search transliteration generation, and CMS hosted-bundle generation.
 
 ## Deployment and integrations
 

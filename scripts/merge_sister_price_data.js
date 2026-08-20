@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 const { decodeObservations, encodeObservations } = require("./observation_codec");
+const { normalizeMarketName } = require("./market_aliases");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(ROOT_DIR, "data");
@@ -79,15 +80,20 @@ function main() {
     assertUniqueRowKeys(observations);
     assertCurrentTaxonomy(observations, categoryByCommodity);
 
+    const normalizedSearchIndex = {
+      ...searchIndex,
+      markets: [...new Set((searchIndex.markets || []).map(normalizeMarketName))].sort((left, right) => left.localeCompare(right)),
+    };
     const metadata = {
       generatedAt: new Date().toISOString(),
       observations: observations.length,
-      commodities: searchIndex.commodities.length,
-      markets: searchIndex.markets.length,
-      varieties: searchIndex.varieties.length,
+      commodities: normalizedSearchIndex.commodities.length,
+      markets: normalizedSearchIndex.markets.length,
+      varieties: normalizedSearchIndex.varieties.length,
     };
 
     writeJson("observations.json", encodeObservations(observations));
+    writeJson("search-index.json", normalizedSearchIndex);
     writeJson("metadata.json", metadata);
 
     console.log(JSON.stringify({
@@ -124,7 +130,7 @@ function mapObservationRow(row, category) {
     commodity: row.commodity,
     perishability: row.perishability,
     category,
-    market: row.market,
+    market: normalizeMarketName(row.market),
     variety: row.variety,
     grade: row.grade,
     arrivals: row.arrivals,

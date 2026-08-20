@@ -3354,8 +3354,47 @@ body {
 .card-status-row {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   padding: 12px 20px 0;
+}
+
+.card-variety-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  margin: 12px 20px 0;
+}
+
+.card-variety-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.card-variety-status-row .card-status-row {
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.card-variety-label {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.card-variety-value {
+  min-width: 0;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .card-source-label {
@@ -4588,6 +4627,22 @@ html::-webkit-scrollbar {
   .detail-grid {
     grid-template-columns: 1fr;
     row-gap: 12px;
+  }
+
+  .card-variety-row {
+    margin-inline: 0;
+  }
+
+  .card-variety-status-row {
+    margin-inline: 14px;
+  }
+
+  .card-variety-status-row .card-status-row {
+    padding-inline: 0;
+  }
+
+  .card-variety-value {
+    font-size: 18px;
   }
 
   .detail-grid .meta-item {

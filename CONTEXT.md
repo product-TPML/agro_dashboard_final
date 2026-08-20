@@ -31,11 +31,11 @@ The active results presentation is cards-only. There are older table/layout help
 
 The checked-in JSON is the current compact dashboard snapshot. The current repo's categories remain authoritative; rows for commodities outside the current taxonomy are excluded, and source category values are replaced with the current category assignments. `data/metadata.json` currently reports:
 
-- 73,208 observations
+- 73,886 observations
 - 147 commodities
-- 179 markets
+- 178 markets
 - 369 varieties
-- generated at `2026-08-18T09:48:22.828Z`
+- generated at `2026-08-20T10:06:06.809Z`
 
 Latest report dates in this snapshot by source are:
 
@@ -74,7 +74,7 @@ data/metadata.json
 
 It covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
 
-Krama uses direct HTTP/ViewState submission first, then Playwright headless and headful fallbacks. The browser fallback detects installed Chromium/Edge/Chrome, submits the ASP.NET form, and parses the final HTML server-side. Krama normalization includes `DEVDURGA` to `DEVADURGA` and preserves the existing `IISort  without Husk` canonical value.
+Krama uses direct HTTP/ViewState submission first, then Playwright headless and headful fallbacks. The browser fallback detects installed Chromium/Edge/Chrome, submits the ASP.NET form, and parses the final HTML server-side. Shared market normalization includes `DEVDURGA` to `DEVADURGA` and legacy `COCHIN` to the canonical `Cochin`; it also preserves the existing `IISort  without Husk` canonical value.
 
 Successful rows merge by `rowKey`; an identical rerun replaces that row while retaining historical rows. Unknown commodity, market, variety, or grade taxonomy rows are skipped, grouped, and reported in the UI, CLI result, and structured log. If all rows are skipped, a source fails, returns no rows, or another validation error occurs, the existing JSON snapshot is retained. Publication uses temporary files and rollback handling so the four JSON files remain consistent.
 
@@ -222,7 +222,7 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-The current browser/data cache version is `20260811-5`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+The current browser/data cache version is `20260820-7`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
 
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 
