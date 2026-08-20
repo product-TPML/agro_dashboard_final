@@ -1,7 +1,7 @@
 (function() {
   const app = document.getElementById("app");
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260819-1";
+  const APP_DATA_VERSION = "20260820-2";
   const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
@@ -4996,7 +4996,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
           <p class="footer-disclaimer">${escapeHtml(getUiText("footer_disclaimer", "All prices are sourced from official websites, sources of which are mentioned on each commodity card"))}</p>
           <nav class="footer-links" aria-label="${escapeAttribute(getUiText("footer_nav_aria", "Footer links"))}">
             <a class="footer-link" href="https://prajavani.net" target="_blank" rel="noopener noreferrer">${escapeHtml(getUiText("footer_back_to_prajavani", "Back to Prajavani"))}</a>
-            <span class="footer-link footer-link-muted" role="link" aria-disabled="true" title="${escapeAttribute(getUiText("footer_feedback_tooltip", "Coming soon"))}">${escapeHtml(getUiText("footer_submit_feedback", "Submit your feedback"))}</span>
+            <a class="footer-link" href="https://forms.gle/qW94bBCv9Y611wqeA" target="_blank" rel="noopener noreferrer" title="${escapeAttribute(getUiText("footer_feedback_tooltip", "Open feedback form"))}">${escapeHtml(getUiText("footer_submit_feedback", "Submit your feedback"))}</a>
           </nav>
         </div>
       </footer>
@@ -5604,7 +5604,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       return `
         <div class="stat-delta up">
           <span class="stat-delta-content">
-            <span class="stat-delta-value">&#8377; 0</span>
+            <span class="stat-delta-value">&#8377; -</span>
           </span>
         </div>
       `;
@@ -5650,7 +5650,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     }
 
     if (delta === 0) {
-      return `<span class="price-delta price-delta-flat"><span>₹ 0</span></span>`;
+      return `<span class="price-delta price-delta-flat"><span>₹ -</span></span>`;
     }
 
     const isGain = delta > 0;
