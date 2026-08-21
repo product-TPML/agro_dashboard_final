@@ -51,6 +51,7 @@ test("date normalization covers all source formats", () => {
   assert.equal(scraper.normalizeMarket("krama", "DEVDURGA"), "DEVADURGA");
   assert.equal(scraper.normalizeMarket("csb_silk", "Shidlaghatta"), "SIDDLAGHATTA");
   assert.equal(scraper.normalizeMarket("spices_board", "COCHIN"), "Cochin");
+  assert.equal(scraper.normalizeMarket("coffee_board", "KARNATAKA"), "Karnataka");
 });
 
 test("Krama uses canonical markets in observations and row keys", () => {

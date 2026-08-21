@@ -2,6 +2,7 @@
 
 const CANONICAL_MARKET_ALIASES = Object.freeze({
   COCHIN: "Cochin",
+  KARNATAKA: "Karnataka",
 });
 
 function normalizeMarketName(value) {

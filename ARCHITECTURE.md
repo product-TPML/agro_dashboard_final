@@ -21,6 +21,8 @@ Dashboard static host (any host)
 
 - `index.html` — static shell and `#app` mount point.
 - `app.js` — application state, URL-based routing, search, filters, localization, result cards, sharing, and inline price-history charts.
+- `analytics.js` — browser-safe data-layer contract for GTM page-view and card-expansion events; it does not require a GTM container to be present.
+- `result_ordering.js` — shared canonical market, freshness, and tie-breaker ordering used by result cards.
 - `styles.css` — responsive visual system and component styling.
 - `translations.json` — English/Kannada UI and taxonomy translations.
 - `data/` — browser-ready observations, taxonomy, search indexes, aliases, transliterations, and metadata.
@@ -71,7 +73,7 @@ The Windows-only `Launch Commodity Scraper.vbs` picker now launches `node scrape
 
 Operators authenticate Wrangler on each trusted device with Cloudflare OAuth or an account-scoped API token; credentials are never stored in the repository. Concurrent manual runs should be avoided because the last successful Cloudflare Pages deployment becomes the live snapshot.
 
-Source and export paths share canonical market aliases. The dashboard uses `Cochin` as the canonical market value, including its Kannada translation; legacy `COCHIN` values are normalized before validation and publication.
+Source and export paths share canonical market aliases. The dashboard uses `Cochin` and `Karnataka` as the canonical market values, including their Kannada translations; legacy `COCHIN` and `KARNATAKA` values are normalized before validation and publication.
 
 ### SQLite export pipeline
 
@@ -83,6 +85,7 @@ Supporting scripts include the observation codec, shared market alias normalizat
 
 - `.github/workflows/deploy-pages.yml` publishes the repository as a GitHub Pages static site.
 - Runtime translations and `data/*.json` files are served from the Cloudflare Pages data project at `https://agro-dashboard-data.pages.dev`; the dashboard host and the data project are independent, and the data project must send CORS headers for cross-origin access.
+- The browser pushes analytics events to `window.dataLayer` through `analytics.js`. GTM container loading and the registered `card_details` custom dimension are deployment/measurement configuration outside the dashboard source. Page-view attribution is retained in browser history state so back/forward navigation does not add analytics fields to URLs.
 - `cms-migration/` contains a separate CMS entry scaffold and tooling for rewriting runtime URLs to Assettype-hosted assets.
 - External source websites are accessed only by the scraper; they are not runtime dashboard dependencies.
 

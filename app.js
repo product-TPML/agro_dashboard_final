@@ -1,5 +1,14 @@
 (function() {
   const app = document.getElementById("app");
+  const analytics = window.CommodityDashboardAnalytics || {
+    buildCardExpandPayload: () => null,
+    buildPageViewPayload: () => null,
+    normalizeAttribution: () => ({ source: "direct", searchTerm: "NA" }),
+    pushEvent: () => false,
+  };
+  const resultOrdering = window.CommodityDashboardResultOrdering || {
+    compareRows: () => 0,
+  };
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
   const APP_DATA_VERSION = "20260820-7";
   const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
@@ -10,6 +19,7 @@
   const SEARCH_INPUT_DEBOUNCE_MS = 1000;
   const SEARCH_MIN_QUERY_LENGTH = 3;
   const FUZZY_SEARCH_MIN_TERM_LENGTH = 3;
+  const HISTORY_STATE_KEY = "commodityDashboard";
   const SEARCH_CONNECTIVE_WORDS = new Set([
     "a",
     "an",
@@ -454,6 +464,9 @@
   const initialRoute = parseRoute();
   const state = {
     route: initialRoute,
+    analyticsAttribution: analytics.normalizeAttribution(),
+    analyticsNavigationId: 0,
+    analyticsPageViewScheduledId: null,
     query: "",
     suggestions: [],
     context: null,
@@ -662,6 +675,13 @@
     };
   }
 
+  function getHistoryAttribution() {
+    const historyState = window.history.state;
+    return analytics.normalizeAttribution(
+      historyState && historyState[HISTORY_STATE_KEY] && historyState[HISTORY_STATE_KEY].analytics
+    );
+  }
+
   function buildRouteUrl(route) {
     const params = new URLSearchParams();
     if (route.view === "table") {
@@ -688,9 +708,14 @@
     return query ? `${basePath}?${query}` : basePath;
   }
 
-  function navigate(route) {
+  function navigate(route, attribution) {
     const nextUrl = buildRouteUrl(route);
-    window.history.pushState({}, "", nextUrl);
+    const nextAttribution = analytics.normalizeAttribution(attribution);
+    window.history.pushState({
+      [HISTORY_STATE_KEY]: { analytics: nextAttribution },
+    }, "", nextUrl);
+    state.analyticsNavigationId += 1;
+    state.analyticsAttribution = nextAttribution;
     state.route = route;
     state.context = null;
     state.baseRows = [];
@@ -723,6 +748,8 @@
   }
 
   function handlePopState() {
+    state.analyticsNavigationId += 1;
+    state.analyticsAttribution = getHistoryAttribution();
     state.route = parseRoute();
     state.context = null;
     state.baseRows = [];
@@ -776,6 +803,8 @@
 
   async function loadContext() {
     const route = state.route;
+    const navigationId = state.analyticsNavigationId;
+    let contextLoaded = false;
 
     try {
       const derived = deriveContext(route);
@@ -791,6 +820,7 @@
       state.activeChartDate = null;
       state.expandedRowKey = null;
       invalidateDerivedDataCaches();
+      contextLoaded = true;
     } catch (error) {
       state.context = {
         heading: "Unavailable",
@@ -809,6 +839,23 @@
       invalidateDerivedDataCaches();
     }
     scheduleRender();
+
+    if (!contextLoaded || state.analyticsPageViewScheduledId === navigationId) {
+      return;
+    }
+
+    const pageView = analytics.buildPageViewPayload(route, state.analyticsAttribution);
+    if (!pageView) {
+      return;
+    }
+
+    state.analyticsPageViewScheduledId = navigationId;
+    window.requestAnimationFrame(() => {
+      if (state.analyticsNavigationId !== navigationId || state.route !== route || !state.context) {
+        return;
+      }
+      analytics.pushEvent(window, pageView);
+    });
   }
 
   function buildInitialFilters(filterNames) {
@@ -956,6 +1003,7 @@
   }
 
   function handleSuggestionSelect(result) {
+    const searchTerm = state.query.trim();
     const route = {
       view: "table",
       type: result.type,
@@ -965,7 +1013,7 @@
       origin: isMarketCommoditySuggestion(result) ? "market-search" : "",
     };
     state.query = "";
-    navigate(route);
+    navigate(route, { source: "search bar", searchTerm });
   }
 
   function handleHomeClick() {
@@ -1212,63 +1260,15 @@
       latestRows.set(groupKey, pickPreferredRepresentativeRow(latestRows.get(groupKey), row));
     });
 
-    const sortedRows = [...latestRows.values()].sort((left, right) => {
-      const reportDateCompare = compareRowsByLatestReportDate(left, right);
-      if (reportDateCompare !== 0) {
-        return reportDateCompare;
-      }
-
-      return compareRowsForCurrentView(left, right);
-    });
+    const sortedRows = [...latestRows.values()].sort((left, right) => resultOrdering.compareRows(
+      left,
+      right,
+      { marketSearchCommodity: isMarketSearchCommodityView() }
+    ));
 
     state.cachedVisibleRowsKey = cacheKey;
     state.cachedVisibleRows = sortedRows;
     return sortedRows;
-  }
-
-  function compareRowsForCurrentView(left, right) {
-    if (isMarketSearchCommodityView()) {
-      const varietyCompare = left.variety.localeCompare(right.variety);
-      if (varietyCompare !== 0) {
-        return varietyCompare;
-      }
-
-      return right.reportDate.localeCompare(left.reportDate);
-    }
-
-    const marketCompare = left.market.localeCompare(right.market);
-    if (marketCompare !== 0) {
-      return marketCompare;
-    }
-
-    const commodityCompare = left.commodity.localeCompare(right.commodity);
-    if (commodityCompare !== 0) {
-      return commodityCompare;
-    }
-
-    const varietyCompare = left.variety.localeCompare(right.variety);
-    if (varietyCompare !== 0) {
-      return varietyCompare;
-    }
-
-    return left.grade.localeCompare(right.grade);
-  }
-
-  function compareRowsByLatestReportDate(left, right) {
-    const leftDate = normalizeReportDateValue(left.reportDate);
-    const rightDate = normalizeReportDateValue(right.reportDate);
-
-    if (leftDate && !rightDate) {
-      return -1;
-    }
-    if (!leftDate && rightDate) {
-      return 1;
-    }
-    if (leftDate === rightDate) {
-      return 0;
-    }
-
-    return rightDate.localeCompare(leftDate);
   }
 
   function buildLatestRowGroupKey(row) {
@@ -1943,7 +1943,7 @@
       market: "",
       variety: "",
       origin: "home",
-    });
+    }, { source: "image click", searchTerm: "NA" });
   }
 
   function getMarketJumpTargets(rows) {
@@ -2834,6 +2834,8 @@
         } else {
           state.expandedRowKey = key;
           state.activeChartDate = null;
+          const row = getRowsForCurrentView().find((candidate) => candidate.rowKey === key);
+          analytics.pushEvent(window, analytics.buildCardExpandPayload(row));
         }
         render();
       });
