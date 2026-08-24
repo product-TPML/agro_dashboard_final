@@ -54,6 +54,48 @@ test("date normalization covers all source formats", () => {
   assert.equal(scraper.normalizeMarket("coffee_board", "KARNATAKA"), "Karnataka");
 });
 
+test("source verification links use the official report pages", () => {
+  assert.deepEqual(scraper.SOURCE_VERIFICATION_URLS, {
+    krama: "https://krama.karnataka.gov.in/reports/Main_Rep",
+    necc_egg: "https://www.e2necc.com/home/eggprice",
+    csb_silk: "https://csb.gov.in/Statistics/silk-prices",
+    spices_board: "https://www.indianspices.com/marketing/price/domestic/current-market-price.html",
+    coffee_board: "https://coffeeboard.gov.in/Market_Info_Archives.aspx",
+    rubber_board: "https://rubberboard.gov.in/public",
+  });
+  assert.equal(scraper.getSourceVerificationUrl("all"), undefined);
+  assert.deepEqual(scraper.SOURCE_VERIFICATION.krama.steps, [
+    "Select the same report date you were fetching for",
+    "Select the commodity wise daily report and click on view report",
+    "Select all commodities checkbox on top and click on view report",
+    "Check whether rows are present",
+    "Report to Product team if data is present but not being scraped",
+  ]);
+  assert.deepEqual(scraper.SOURCE_VERIFICATION.coffee_board, {
+    url: scraper.SOURCE_VERIFICATION_URLS.coffee_board,
+    linkText: "Open Coffee Board report",
+    steps: [
+      "Select the month and year combination first",
+      "Check if the date you are trying to fetch is present",
+      "Report to Product team if data is present but not being scraped",
+    ],
+  });
+  assert.deepEqual(scraper.SOURCE_VERIFICATION.spices_board, {
+    url: scraper.SOURCE_VERIFICATION_URLS.spices_board,
+    linkText: "Open Spice Board report",
+    steps: [
+      "Select state as Kerala",
+      "Select the same From and To date that you were fetching for",
+      "Check if results show the Cochin or Kochi market",
+      "Report to Product team if data is present but not being scraped",
+    ],
+  });
+  for (const sourceId of scraper.SOURCE_IDS) {
+    assert.ok(scraper.SOURCE_VERIFICATION[sourceId].linkText);
+    assert.ok(scraper.SOURCE_VERIFICATION[sourceId].steps.length >= 2);
+  }
+});
+
 test("Krama uses canonical markets in observations and row keys", () => {
   const rows = scraper.normalizeKrama({ commodities: [{ name: "Bajra", data: [{
     Market: "DEVDURGA", Variety: "Local", Grade: "Medium", Arrivals: "1", Units: "Quintal",
@@ -148,6 +190,12 @@ test("help text is represented in the local UI and source contract", () => {
   assert.match(scraper.htmlPage(), /querySelectorAll\('button, input, select'\)/);
   assert.match(scraper.htmlPage(), /Items not available in database/);
   assert.match(scraper.htmlPage(), /Copy missing items/);
+  assert.match(scraper.htmlPage(), /Verify here/);
+  assert.match(scraper.htmlPage(), /verificationUrl/);
+  assert.match(scraper.htmlPage(), /verificationLinkText/);
+  assert.match(scraper.htmlPage(), /verificationSteps/);
+  assert.match(scraper.htmlPage(), /text-decoration:underline/);
+  assert.match(scraper.htmlPage(), /noopener noreferrer/);
   assert.match(scraper.htmlPage(), /commodity: 'Commodity'/);
   assert.match(scraper.htmlPage(), /market: 'Market'/);
   assert.match(scraper.htmlPage(), /variety: 'Variety'/);
@@ -170,6 +218,34 @@ test("local UI serves the picker and routes /run to the scraper", async () => {
     const response = await fetch(`http://127.0.0.1:${address.port}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceId: "necc_egg", date: "2026-08-17" }) });
     assert.equal(response.status, 200);
     assert.deepEqual(call, { date: "17/08/2026", sourceId: "necc_egg" });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("local UI returns verification links for individual failures but not all-source failures", async () => {
+  const server = await scraper.startUiServer({ openBrowser: false, runner: async (date, options) => ({
+    ok: false,
+    sourceId: options.sourceId,
+    error: "coffee_board returned no rows",
+    ...(options.sourceId === "all" ? {} : {
+      verificationUrl: scraper.SOURCE_VERIFICATION[options.sourceId].url,
+      verificationLinkText: scraper.SOURCE_VERIFICATION[options.sourceId].linkText,
+      verificationSteps: scraper.SOURCE_VERIFICATION[options.sourceId].steps,
+    }),
+  }) });
+  const address = server.address();
+  try {
+    const individual = await fetch(`http://127.0.0.1:${address.port}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceId: "coffee_board", date: "2026-08-24" }) });
+    assert.equal(individual.status, 500);
+    const individualResult = await individual.json();
+    assert.equal(individualResult.verificationUrl, scraper.SOURCE_VERIFICATION_URLS.coffee_board);
+    assert.equal(individualResult.verificationLinkText, "Open Coffee Board report");
+    assert.deepEqual(individualResult.verificationSteps, scraper.SOURCE_VERIFICATION.coffee_board.steps);
+
+    const all = await fetch(`http://127.0.0.1:${address.port}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceId: "all", date: "2026-08-24" }) });
+    assert.equal(all.status, 500);
+    assert.equal(Object.prototype.hasOwnProperty.call(await all.json(), "verificationUrl"), false);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

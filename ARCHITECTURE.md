@@ -46,6 +46,8 @@ source websites
 
 The scraper preserves the existing snapshot when a source fails, produces no valid rows, or all rows are rejected. It writes structured JSONL logs under `logs/` and does not update `data/agro_dashboard.db`.
 
+When an individually selected source returns no rows or encounters a source request/parsing failure, the local picker returns and displays an underlined link plus source-specific manual verification instructions for that source's official report page. Runs with **All Sources** selected omit this link and instruction block; taxonomy-only skips continue to use the existing missing-items panel.
+
 ### Manual cross-platform publication
 
 Manual publication is performed directly from the operator's system with Wrangler; GitHub Actions is not required for this workflow. The non-interactive scraper command is:

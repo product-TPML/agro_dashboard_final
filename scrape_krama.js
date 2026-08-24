@@ -64,6 +64,76 @@ const URLS = {
   coffeeArchive: "https://coffeeboard.gov.in/Market_Info_Archives.aspx",
 };
 
+const SOURCE_VERIFICATION = Object.freeze({
+  krama: Object.freeze({
+    url: URLS.krama,
+    linkText: "Open Krama report",
+    steps: Object.freeze([
+      "Select the same report date you were fetching for",
+      "Select the commodity wise daily report and click on view report",
+      "Select all commodities checkbox on top and click on view report",
+      "Check whether rows are present",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+  necc_egg: Object.freeze({
+    url: URLS.necc,
+    linkText: "Open NECC report",
+    steps: Object.freeze([
+      "Select the month and year combination first",
+      "Select Daily Rate Sheet",
+      "Check the relevant date column for Bengaluru (CC), Mysuru, and Hospet",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+  csb_silk: Object.freeze({
+    url: URLS.csb,
+    linkText: "Open Central Silk Board report",
+    steps: Object.freeze([
+      "The scraper checks the current page, so no date selection is needed",
+      "Check whether silk-price tables and rows are present",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+  spices_board: Object.freeze({
+    url: URLS.spices,
+    linkText: "Open Spice Board report",
+    steps: Object.freeze([
+      "Select state as Kerala",
+      "Select the same From and To date that you were fetching for",
+      "Check if results show the Cochin or Kochi market",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+  coffee_board: Object.freeze({
+    url: URLS.coffeeArchive,
+    linkText: "Open Coffee Board report",
+    steps: Object.freeze([
+      "Select the month and year combination first",
+      "Check if the date you are trying to fetch is present",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+  rubber_board: Object.freeze({
+    url: URLS.rubberHome,
+    linkText: "Open Rubber Board report",
+    steps: Object.freeze([
+      "Select the same date you were fetching for",
+      "Check Kottayam and Kochi for RSS4, RSS5, ISNR20, and Latex (60%)",
+      "If the daily page is empty, check the archive for the same date",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+});
+
+const SOURCE_VERIFICATION_URLS = Object.freeze(Object.fromEntries(
+  Object.entries(SOURCE_VERIFICATION).map(([sourceId, details]) => [sourceId, details.url])
+));
+
+function getSourceVerificationUrl(sourceId) {
+  return SOURCE_VERIFICATION_URLS[sourceId];
+}
+
 let logger = null;
 let activeRunId = null;
 
@@ -731,11 +801,28 @@ async function runScrapeForDate(dateInput, options = {}) {
     for (const sourceId of sourceIds) { const result = await scrapeSource(sourceId, sourceId === "csb_silk" ? null : dateInput); if (!result.observations.length) throw new Error(`${sourceId} returned no rows`); scraped.push(...result.observations); log("info", "source_completed", { runId, source: sourceId, rows: result.observations.length }); }
     const merged = loadAndMerge(scraped);
     if (merged.skippedRowCount) log("warn", "taxonomy_rows_skipped", { source: sourceIds.join(","), skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies });
-    if (!merged.acceptedRowCount) { const error = new Error("All scraped rows were skipped because their taxonomy values are unknown."); error.skippedRowCount = merged.skippedRowCount; error.unknownTaxonomies = merged.unknownTaxonomies; throw error; }
+    if (!merged.acceptedRowCount) { const error = new Error("All scraped rows were skipped because their taxonomy values are unknown."); error.skippedRowCount = merged.skippedRowCount; error.unknownTaxonomies = merged.unknownTaxonomies; error.taxonomyOnly = true; throw error; }
     const payloads = makePayloads(merged.rows, merged.categories); validateObservations(decodeObservations(payloads["observations.json"]), merged.taxonomy); publishSnapshot(payloads, DATA_DIR, runId);
     const reportDates = [...new Set(scraped.map((row) => row.reportDate))]; const result = { ok: true, runId, sourceId: sourceIds.length === 1 ? sourceIds[0] : "all", reportDate: reportDates.length === 1 ? reportDates[0] : reportDates.join(","), rowCount: scraped.length, acceptedRowCount: merged.acceptedRowCount, skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies, mergedRowCount: merged.rows.length, logPath: logger && logger.logPath, startedAt, finishedAt: new Date().toISOString() };
     log("info", "run_completed", { ...result }); return result;
-  } catch (error) { log("error", "run_failed", { source: sourceIds.join(","), error: error.stack || error.message, skippedRowCount: error.skippedRowCount || 0, unknownTaxonomies: error.unknownTaxonomies || [], finishedAt: new Date().toISOString() }); return { ok: false, runId, sourceId: sourceIds.join(","), error: error.message, skippedRowCount: error.skippedRowCount || 0, unknownTaxonomies: error.unknownTaxonomies || [], logPath: logger && logger.logPath }; }
+  } catch (error) {
+    log("error", "run_failed", { source: sourceIds.join(","), error: error.stack || error.message, skippedRowCount: error.skippedRowCount || 0, unknownTaxonomies: error.unknownTaxonomies || [], finishedAt: new Date().toISOString() });
+    const verification = sourceIds.length === 1 && !error.taxonomyOnly ? SOURCE_VERIFICATION[sourceIds[0]] : null;
+    return {
+      ok: false,
+      runId,
+      sourceId: sourceIds.join(","),
+      error: error.message,
+      skippedRowCount: error.skippedRowCount || 0,
+      unknownTaxonomies: error.unknownTaxonomies || [],
+      ...(verification ? {
+        verificationUrl: verification.url,
+        verificationLinkText: verification.linkText,
+        verificationSteps: verification.steps,
+      } : {}),
+      logPath: logger && logger.logPath,
+    };
+  }
   finally { activeRunId = previousRunId; }
 }
 
@@ -770,6 +857,10 @@ function htmlPageImproved() {
     .missing-list{margin:0;white-space:pre-wrap;font:14px Consolas,monospace;line-height:1.5}
     .copy-button{background:#8a5b16;margin-top:14px}
     .copy-button.copied{background:#2d7045}
+    .verification-panel{margin-top:18px;padding:14px 16px;background:#e7f3ed;border:1px solid #9cc9ad;border-radius:10px;color:#145c39}
+    .verification-label{font-weight:700;margin-right:8px}
+    .verification-link{color:#145c39;font-weight:700;text-decoration:underline}
+    .verification-flow{margin:10px 0 0;line-height:1.55}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
@@ -791,6 +882,14 @@ function htmlPageImproved() {
     <input id="date" type="date">
     <button id="run" type="button">Fetch and publish</button>
     <div id="status" class="status" role="status" aria-live="polite">Choose a source and date.</div>
+    <section id="verificationPanel" class="verification-panel" hidden aria-labelledby="verificationHeading">
+      <span id="verificationHeading" class="verification-label">Verify here →</span>
+      <div class="verification-flow">
+        <a id="verificationLink" class="verification-link" target="_blank" rel="noopener noreferrer">Open source report</a>
+        <span aria-hidden="true"> → </span>
+        <span id="verificationInstructions"></span>
+      </div>
+    </section>
     <section id="missingPanel" class="missing-panel" hidden aria-labelledby="missingHeading">
       <h2 id="missingHeading">Items not available in database</h2>
       <pre id="missingList" class="missing-list"></pre>
@@ -803,6 +902,9 @@ function htmlPageImproved() {
     const dateLabel = document.querySelector('#dateLabel');
     const runButton = document.querySelector('#run');
     const status = document.querySelector('#status');
+    const verificationPanel = document.querySelector('#verificationPanel');
+    const verificationLink = document.querySelector('#verificationLink');
+    const verificationInstructions = document.querySelector('#verificationInstructions');
     const missingPanel = document.querySelector('#missingPanel');
     const missingList = document.querySelector('#missingList');
     const copyMissingButton = document.querySelector('#copyMissing');
@@ -877,6 +979,20 @@ function htmlPageImproved() {
       copyMissingButton.textContent = 'Copy missing items';
     }
 
+    function renderVerification(result) {
+      const show = Boolean(result && !result.ok && result.verificationUrl && sourceSelect.value !== 'all');
+      verificationPanel.hidden = !show;
+      if (!show) {
+        verificationLink.removeAttribute('href');
+        verificationLink.textContent = 'Open source report';
+        verificationInstructions.textContent = '';
+        return;
+      }
+      verificationLink.href = result.verificationUrl;
+      verificationLink.textContent = result.verificationLinkText || ('Open ' + (sourceLabels[result.sourceId] || 'source') + ' report');
+      verificationInstructions.textContent = Array.isArray(result.verificationSteps) ? result.verificationSteps.join(' → ') : '';
+    }
+
     async function copyMissingItems() {
       const text = missingList.textContent;
       if (!text) return;
@@ -912,6 +1028,7 @@ function htmlPageImproved() {
 
     runButton.addEventListener('click', async () => {
       renderMissingItems([]);
+      renderVerification(null);
       setBusy(true);
       showLoading();
       try {
@@ -922,6 +1039,7 @@ function htmlPageImproved() {
         });
         const result = await response.json();
         renderMissingItems(result.unknownTaxonomies);
+        renderVerification(result);
         if (!response.ok || !result.ok) {
           status.className = 'status error';
           status.textContent = 'Run failed.\\n' + (result.error || 'Run failed');
@@ -931,6 +1049,7 @@ function htmlPageImproved() {
         status.textContent = 'Completed.\\nSource: ' + result.sourceId + '\\nRows: ' + result.rowCount + '\\nMerged rows: ' + result.mergedRowCount + (result.skippedRowCount ? '\\nSkipped rows: ' + result.skippedRowCount : '') + (result.publish ? '\\nPublish: ' + (result.publish.ok ? 'deployed to ' + result.publish.project : 'FAILED: ' + result.publish.error) : '') + '\\nLog: ' + result.logPath;
       } catch (error) {
         renderMissingItems([]);
+        renderVerification(null);
         status.className = 'status error';
         status.textContent = 'Run failed.\\n' + error.message;
       } finally {
@@ -973,6 +1092,6 @@ if (require.main === module) main().catch((error) => { if (!logger) setupLogging
 module.exports = {
   OBSERVATION_COLUMNS, SOURCE_IDS, buildRowKey, parseLooseNumber, parseKramaHtml, parseNeccEggHtml, parseCsbSilkHtml,
   parseSpicesBoardHtml, filterSpicesBoardRows, parseCoffeeBoardRawPriceText, parseRubberBoardDailyHtml, parseRubberBoardArchiveHtml, parseDmyDate, parseAbbrevMonthDate,
-  parseDottedDate, normalizeMarket, normalizeKrama, scrapeKramaWithFallback, validateObservations, buildTaxonomy,
+  parseDottedDate, normalizeMarket, normalizeKrama, scrapeKramaWithFallback, validateObservations, buildTaxonomy, SOURCE_VERIFICATION, SOURCE_VERIFICATION_URLS, getSourceVerificationUrl,
   makePayloads, loadAndMerge, publishSnapshot, reportDateStrings, parseArgs, htmlPage, runScrapeForDate, startUiServer,
 };
