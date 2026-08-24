@@ -132,7 +132,7 @@ Uploaded via Prajavani CMS media library (authenticated UI flow, batch of 15, ca
 | 126 | pomagranate-thumb-real.png | https://images.assettype.com/prajavani/2026-08-13/jrsngbnc/pomagranate-thumb-real.png |
 | 127 | potato-thumb-real.png | https://images.assettype.com/prajavani/2026-08-13/gvjgszh0/potato-thumb-real.png |
 | 128 | pv-square-logo.svg | https://images.assettype.com/prajavani/2026-08-13/bxr1ak9d/pv-square-logo.svg |
-| 129 | raddish-thumb-real.png | https://images.assettype.com/prajavani/2026-08-13/cdu131ia/raddish-thumb-real.png |
+| 129 | indian-radish-mooli.png | https://images.assettype.com/prajavani/2026-08-24/jewo9jzz/indian-radish-mooli.png |
 | 130 | ragi-thumb-real.png | https://images.assettype.com/prajavani/2026-08-13/k0w2zln6/ragi-thumb-real.png |
 | 131 | ram-for-each-thumb-real.png | https://images.assettype.com/prajavani/2026-08-13/nq7ax4nr/ram-for-each-thumb-real.png |
 | 132 | redgram-thumb-real.png | https://images.assettype.com/prajavani/2026-08-13/xthz55i7/redgram-thumb-real.png |

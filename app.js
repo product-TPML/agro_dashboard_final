@@ -229,7 +229,7 @@
     pineAppleThumb: "https://images.assettype.com/prajavani/2026-08-13/9c4zzmcf/pine-apple-thumb-real.png",
     pomagranateThumb: "https://images.assettype.com/prajavani/2026-08-13/jrsngbnc/pomagranate-thumb-real.png",
     potatoThumb: "https://images.assettype.com/prajavani/2026-08-13/gvjgszh0/potato-thumb-real.png",
-    raddishThumb: "https://images.assettype.com/prajavani/2026-08-13/cdu131ia/raddish-thumb-real.png",
+    raddishThumb: "https://images.assettype.com/prajavani/2026-08-24/jewo9jzz/indian-radish-mooli.png",
     ragiThumb: "https://images.assettype.com/prajavani/2026-08-13/k0w2zln6/ragi-thumb-real.png",
     redgramThumb: "https://images.assettype.com/prajavani/2026-08-13/xthz55i7/redgram-thumb-real.png",
     ridgeguardThumb: "https://images.assettype.com/prajavani/2026-08-13/jhtaylz4/ridgeguard-thumb-real.png",
