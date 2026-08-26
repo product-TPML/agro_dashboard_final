@@ -30,21 +30,25 @@ Dashboard static host (any host)
 
 The browser decodes `data/observations.json` in memory and derives the active result context from URL parameters such as commodity, market, variety, origin, and card. SQLite is never queried by the browser.
 
+`data/scraper-runs.json` is not loaded by the dashboard. It is a sanitized operational feed with 31 days of source-level records; the historical observation payload remains indefinite and is never deleted as part of run-log retention.
+
 ## Data pipelines
 
 ### Scraper pipeline
 
-`Launch Commodity Scraper.vbs` starts `scrape_krama.js --ui`, which opens a local source/date picker. The scraper supports Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board.
+`Launch Commodity Scraper.cmd` is the canonical Windows entry point. It checks for Node.js, installs Node.js LTS through WinGet when missing, puts the discovered Node directory on `PATH` for npm lifecycle scripts, installs the local npm dependencies, ensures a Chrome/Edge or Playwright Chromium browser is available, and then starts `scrape_krama.js --ui`. `Launch Commodity Scraper.vbs` remains a compatibility shortcut that delegates to the command launcher. The scraper supports Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board.
 
 ```text
 source websites
       → source adapters / normalization
       → taxonomy validation and row merge
       → temporary snapshot files
-      → atomic publication of data/*.json
+      → atomic publication of data/*.json (observations remain historical)
+      → source-level summary in data/scraper-runs.json
+      → optional Cloudflare JSON deployment
 ```
 
-The scraper preserves the existing snapshot when a source fails, produces no valid rows, or all rows are rejected. It writes structured JSONL logs under `logs/` and does not update `data/agro_dashboard.db`.
+The scraper preserves the existing observation snapshot when a source fails, produces no valid rows, or all rows are rejected. All Sources continues across source failures; successful sources can update the observation snapshot while failed sources are recorded as a partial run. Every source attempt receives a shared `run_id` and a sanitized 31-day summary in `data/scraper-runs.json`. Detailed JSONL logs remain under `logs/` and may contain diagnostics; they are never published. The scraper does not update `data/agro_dashboard.db`.
 
 When an individually selected source returns no rows or encounters a source request/parsing failure, the local picker returns and displays an underlined link plus source-specific manual verification instructions for that source's official report page. Runs with **All Sources** selected omit this link and instruction block; taxonomy-only skips continue to use the existing missing-items panel.
 
@@ -65,15 +69,21 @@ npx wrangler pages deploy <json-bundle> --project-name=agro-dashboard-data
 The cross-platform entry point is `npm run scrape:publish`, which owns the scrape → stage → deploy sequence. It runs `scripts/publish_pages.js` (Node standard library only), which:
 
 1. Loads `.env` (or the process environment when `.env` is absent) for `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; `CLOUDFLARE_PAGES_PROJECT` defaults to `agro-dashboard-data`. Secrets are never printed.
-2. Runs the scraper non-interactively (`node scrape_krama.js --no-ui --source all`, never `--publish`, to avoid recursion) and accepts a source/date override, so `npm run scrape:publish -- --source=krama --date=DD/MM/YYYY` works (npm forwards these as `npm_config_source`/`npm_config_date`; the `=` form is the reliable one). Direct invocation `node scripts/publish_pages.js --source=krama --date=DD/MM/YYYY` is also supported. Stray positional arguments are rejected rather than silently appended. It does not deploy if the scraper exits nonzero or is signaled.
-3. On success, stages `translations.json`, every `data/*.json` file (never the SQLite DB), and a generated `_headers` (public CORS `Access-Control-Allow-Origin: *` for GET/HEAD/OPTIONS and `Cache-Control: no-cache`) into a temporary bundle under the OS temp directory.
+2. Runs the scraper non-interactively (`node scrape_krama.js --no-ui --source all`, never `--publish`, to avoid recursion) and accepts a source/date override, so `npm run scrape:publish -- --source=krama --date=DD/MM/YYYY` works (npm forwards these as `npm_config_source`/`npm_config_date`; the `=` form is the reliable one). Direct invocation `node scripts/publish_pages.js --source=krama --date=DD/MM/YYYY` is also supported. Stray positional arguments are rejected rather than silently appended. A nonzero scrape exit does not prevent publication of the refreshed run summary; the existing observation snapshot is staged unchanged when the scrape failed.
+3. Stages `translations.json`, every `data/*.json` file (including `data/scraper-runs.json`, never the SQLite DB), and a generated `_headers` (public CORS `Access-Control-Allow-Origin: *` for GET/HEAD/OPTIONS and `Cache-Control: no-cache`) into a temporary bundle under the OS temp directory.
 4. Deploys with `npx wrangler pages deploy <bundle> --project-name=<project>` (using `npx.cmd` on Windows), passing the loaded environment, and removes the temp bundle in a `finally` block. It exits nonzero if deployment fails.
 
 The staging and deployment logic lives in the shared `scripts/publish_bundle.js` module (`stageAndDeploy({ rootDir })`), which returns `{ ok, ... }` without terminating the host process. Both `scripts/publish_pages.js` and the scraper reuse it.
 
-The Windows-only `Launch Commodity Scraper.vbs` picker now launches `node scrape_krama.js --ui --publish`, so each successful run selected in the UI is also deployed to Cloudflare Pages (the publish result is shown in the UI status and included in the `/run` JSON response). A failed scrape is not published; a failed deployment is reported but does not undo the local snapshot. `npm run scrape:publish` remains the cross-platform non-UI all-source entry point.
+The Windows-only command launcher selects publication based on local configuration. With valid `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` values in `.env`, it launches `node scrape_krama.js --ui --publish`, so each selected run also deploys the JSON bundle. Without complete credentials, it launches `node scrape_krama.js --ui` and updates local JSON only. A failed deployment is reported but does not undo the local snapshot. Publication responses expose the staged snapshot/run-log freshness timestamps; they do not claim the deployment currently being uploaded is already live. `npm run scrape:publish` remains the cross-platform non-UI all-source entry point.
+
+The repository is the source of truth for the standalone scraper distribution. `npm run package:scraper` rebuilds the sibling `Commodity Scraper Package` folder and ZIP from the scraper runtime, launcher files, translations, and JSON data, verifies JSON parity, and excludes `.env`, `node_modules`, SQLite files, and logs.
 
 Operators authenticate Wrangler on each trusted device with Cloudflare OAuth or an account-scoped API token; credentials are never stored in the repository. Concurrent manual runs should be avoided because the last successful Cloudflare Pages deployment becomes the live snapshot.
+
+### Google Sheets run-log pipeline
+
+`google-apps-script/Code.gs` imports the public `data/scraper-runs.json` endpoint into the existing spreadsheet. `importScraperRuns()` validates the top-level freshness timestamp and each source record, filters to the 31-day retention window, and deduplicates on `run_id + source`. A script lock prevents overlapping manual and scheduled imports. `createDailyTrigger()` replaces prior importer triggers and schedules the 9:00 AM IST execution window. Spreadsheet ID, destination tab, Cloudflare JSON URL, timezone, and optional freshness age are stored in Apps Script Properties; credentials and local JSONL logs are not involved.
 
 Source and export paths share canonical market aliases. The dashboard uses `Cochin` and `Karnataka` as the canonical market values, including their Kannada translations; legacy `COCHIN` and `KARNATAKA` values are normalized before validation and publication.
 
@@ -87,6 +97,7 @@ Supporting scripts include the observation codec, shared market alias normalizat
 
 - `.github/workflows/deploy-pages.yml` publishes the repository as a GitHub Pages static site.
 - Runtime translations and `data/*.json` files are served from the Cloudflare Pages data project at `https://agro-dashboard-data.pages.dev`; the dashboard host and the data project are independent, and the data project must send CORS headers for cross-origin access.
+- `data/scraper-runs.json` is operational data rather than dashboard observation data. It is published with the same Cloudflare bundle so Apps Script can query successful, failed, no-row, taxonomy-rejected, and partial source attempts without exposing raw local diagnostics.
 - The browser pushes analytics events to `window.dataLayer` through `analytics.js`. GTM container loading and the registered `card_details` custom dimension are deployment/measurement configuration outside the dashboard source. Page-view attribution is retained in browser history state so back/forward navigation does not add analytics fields to URLs.
 - `cms-migration/` contains a separate CMS entry scaffold and tooling for rewriting runtime URLs to Assettype-hosted assets.
 - External source websites are accessed only by the scraper; they are not runtime dashboard dependencies.

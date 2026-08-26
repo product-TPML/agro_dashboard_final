@@ -1,5 +1,6 @@
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 baseDir = fso.GetParentFolderName(WScript.ScriptFullName)
-command = "cmd /c cd /d """ & baseDir & """ && node scrape_krama.js --ui --publish"
-shell.Run command, 0, False
+launcher = fso.BuildPath(baseDir, "Launch Commodity Scraper.cmd")
+command = "cmd.exe /d /c call """ & launcher & """"
+shell.Run command, 1, False

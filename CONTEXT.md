@@ -15,6 +15,7 @@ The active results presentation is cards-only. There are older table/layout help
 - `styles.css` — visual system, responsive layout, cards, overlays, and chart styles
 - `translations.json` — UI copy plus commodity, market, and variety translations for English/Kannada
 - `data/observations.json` — browser-ready price observations in a compact dictionary-encoded payload (`version`/`columns`/`dictionaries`/`rows`); decoded in `app.js` (`loadObservations`) and produced by `scripts/observation_codec.js` via `build_static_site.js` / `merge_sister_price_data.js`
+- `data/scraper-runs.json` — sanitized operational summaries for the last 31 days; it is not used by the browser and does not limit observation history
 - `data/search-index.json` — commodity, market, and variety search index
 - `data/categories.json` — category definitions and commodity lists
 - `data/metadata.json` — generated counts and timestamp
@@ -63,20 +64,29 @@ The checked-in browser payload is newer than the retained SQLite source snapshot
 
 ## JSON-only scraper
 
-The repository also contains a six-source scraper that publishes only the four runtime JSON files and never updates `data/agro_dashboard.db`:
+The repository also contains a six-source scraper that publishes the four runtime observation JSON files plus the operational run log, and never updates `data/agro_dashboard.db`:
 
 ```text
 data/observations.json
 data/search-index.json
 data/categories.json
 data/metadata.json
+data/scraper-runs.json
 ```
 
 It covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
 
 Krama uses direct HTTP/ViewState submission first, then Playwright headless and headful fallbacks. The browser fallback detects installed Chromium/Edge/Chrome, submits the ASP.NET form, and parses the final HTML server-side. Shared market normalization includes `DEVDURGA` to `DEVADURGA` and legacy `COCHIN` to the canonical `Cochin`; it also preserves the existing `IISort  without Husk` canonical value.
 
-Successful rows merge by `rowKey`; an identical rerun replaces that row while retaining historical rows. Unknown commodity, market, variety, or grade taxonomy rows are skipped, grouped, and reported in the UI, CLI result, and structured log. If all rows are skipped, a source fails, returns no rows, or another validation error occurs, the existing JSON snapshot is retained. Publication uses temporary files and rollback handling so the four JSON files remain consistent.
+Successful rows merge by `rowKey`; an identical rerun replaces that row while retaining historical rows. Unknown commodity, market, variety, or grade taxonomy rows are skipped, grouped, and reported in the UI, CLI result, and structured log. If all rows are skipped, a source fails, returns no rows, or another validation error occurs, the existing observation JSON snapshot is retained. Publication uses temporary files and rollback handling so the observation JSON files remain consistent; the run log is appended independently so failures can be recorded without replacing observations.
+
+Each scraper execution writes one record per selected source to `data/scraper-runs.json`, using a shared `run_id` for All Sources. Records contain `run_timestamp`, `requested_report_date`, `actual_report_date`, `status`, `overall_status`, scraped/accepted/skipped/merged row counts, `snapshot_status`, stable `error_code`, sanitized `error_message`, and a source `verification_url` for individual failures. Statuses are `success`, `failed`, or `partial` at the overall-run level; source records identify taxonomy rejection and no-row failures separately. The file is retained for a rolling 31 days, while observations in `data/observations.json` remain historical indefinitely.
+
+All Sources attempts continue after an individual source fails. If at least one source produces accepted rows, the observation snapshot is atomically updated and the failed source record says `snapshot_status: preserved`; otherwise the complete existing observation snapshot is preserved. A failed scrape still writes its run summary, and the Cloudflare publish wrapper stages that summary even when the scraper exits nonzero. Cloudflare responses report freshness timestamps for the staged snapshot and run log, not the final live state of the deployment in progress. Detailed JSONL diagnostics remain local under `logs/` and raw stack traces or secrets are not copied to Cloudflare.
+
+### Google Sheets run-log import
+
+`google-apps-script/Code.gs` is the importer for the existing Google Sheet. Set `SCRAPER_SPREADSHEET_ID`, `SCRAPER_SHEET_NAME`, `CLOUDFLARE_JSON_URL` (normally `https://agro-dashboard-data.pages.dev/data/scraper-runs.json`), and `SCRAPER_TIMEZONE=Asia/Kolkata` in Apps Script Properties. Run `importScraperRuns()` manually or run `createDailyTrigger()` once to create the 9:00 AM IST daily trigger window. The importer validates Cloudflare HTTP/JSON responses and freshness metadata, filters records to 31 days, prevents overlapping imports with a script lock, and deduplicates using `run_id + source`. Error fields remain in the sheet so failed, no-row, taxonomy-rejected, and partial attempts remain queryable.
 
 `npm run build:data` still reads SQLite and can overwrite scraper-generated JSON. Do not run it casually after using the scraper.
 

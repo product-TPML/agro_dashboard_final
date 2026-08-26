@@ -57,15 +57,12 @@ async function main() {
   if (date) scrapeArgs.push("--date", date);
   console.log(`[publish] scraping: ${scrapeArgs.join(" ")}`);
   const scrape = await run(process.execPath, scrapeArgs, { cwd: ROOT });
-  if (scrape.code !== 0 || scrape.signal) {
-    console.error(`[publish] scraper exited with code ${scrape.code}${scrape.signal ? ` (${scrape.signal})` : ""}; not deploying.`);
-    process.exitCode = 1;
-    return;
-  }
+  const scrapeFailed = scrape.code !== 0 || scrape.signal;
+  if (scrapeFailed) console.error(`[publish] scraper exited with code ${scrape.code}${scrape.signal ? ` (${scrape.signal})` : ""}; deploying the refreshed run summary while preserving the observation snapshot.`);
 
   // 2. Stage and deploy via the shared module.
   const deploy = await stageAndDeploy({ rootDir: ROOT });
-  if (!deploy.ok) process.exitCode = 1;
+  if (scrapeFailed || !deploy.ok) process.exitCode = 1;
 }
 
 main().catch((err) => {

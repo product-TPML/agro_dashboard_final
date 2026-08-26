@@ -13,6 +13,9 @@ const { spawn } = require("child_process");
 const { decodeObservations, encodeObservations } = require("./scripts/observation_codec");
 const { normalizeMarketName } = require("./scripts/market_aliases");
 const { stageAndDeploy } = require("./scripts/publish_bundle");
+const {
+  appendRunRecords, createRunRecord, errorCode, newRunId, sanitizeErrorMessage,
+} = require("./scripts/scraper_run_log");
 
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
@@ -136,6 +139,13 @@ function getSourceVerificationUrl(sourceId) {
 
 let logger = null;
 let activeRunId = null;
+
+function codedError(code, message, cause = null) {
+  const error = new Error(message);
+  error.code = code;
+  if (cause) error.cause = cause;
+  return error;
+}
 
 function indiaParts(date = new Date()) {
   const formatter = new Intl.DateTimeFormat("en-GB", {
@@ -781,49 +791,189 @@ function loadAndMerge(newRows, dataDir = DATA_DIR) {
   existing.forEach((row) => { if (!taxonomy.categoryByCommodity.has(row.commodity)) throw new Error(`Existing row outside taxonomy: ${row.commodity}`); merged.set(row.rowKey, observation({ ...row, category: taxonomy.categoryByCommodity.get(row.commodity) })); });
   const normalizedNewRows = newRows.map((row) => observation({ ...row, category: row.category || taxonomy.categoryByCommodity.get(row.commodity) }));
   const acceptedNewRows = []; const unknownTaxonomies = new Map(); let skippedRowCount = 0;
+  const acceptedBySource = {}; const skippedBySource = {};
   normalizedNewRows.forEach((row) => {
     const issues = findUnknownTaxonomies(row, taxonomy, { enforceSourceFilters: true });
-    if (issues.length) { skippedRowCount += 1; collectUnknownTaxonomy(unknownTaxonomies, row, issues); return; }
+    if (issues.length) {
+      skippedRowCount += 1;
+      skippedBySource[row.sourceId] = (skippedBySource[row.sourceId] || 0) + 1;
+      collectUnknownTaxonomy(unknownTaxonomies, row, issues);
+      return;
+    }
+    acceptedBySource[row.sourceId] = (acceptedBySource[row.sourceId] || 0) + 1;
     acceptedNewRows.push(row);
   });
   validateObservations(acceptedNewRows, taxonomy, { enforceSourceFilters: true });
   acceptedNewRows.forEach((row) => merged.set(row.rowKey, row));
   const rows = [...merged.values()]; validateObservations(rows, taxonomy);
-  return { rows, categories, taxonomy, acceptedRowCount: acceptedNewRows.length, skippedRowCount, unknownTaxonomies: serializeUnknownTaxonomies(unknownTaxonomies) };
+  return {
+    rows, categories, taxonomy, acceptedRowCount: acceptedNewRows.length, skippedRowCount,
+    acceptedBySource, skippedBySource, unknownTaxonomies: serializeUnknownTaxonomies(unknownTaxonomies),
+  };
 }
 
 async function runScrapeForDate(dateInput, options = {}) {
-  const runId = crypto.randomUUID(); const sourceIds = options.sourceId === "all" ? SOURCE_IDS : [options.sourceId || "krama"]; const startedAt = new Date().toISOString();
-  const previousRunId = activeRunId; activeRunId = runId;
-  log("info", "run_started", { source: sourceIds.join(","), requestedDate: dateInput || null });
+  const runId = newRunId();
+  const sourceIds = options.sourceId === "all" ? SOURCE_IDS : [options.sourceId || "krama"];
+  const startedAt = new Date().toISOString();
+  const finishedAt = () => new Date().toISOString();
+  const dataDir = options.dataDir || DATA_DIR;
+  const sourceRunner = options.scrapeSource || scrapeSource;
+  const requestedDate = dateInput ? reportDateStrings(dateInput).fileDateStr : reportDateStrings().fileDateStr;
+  const outcomes = new Map(sourceIds.map((sourceId) => [sourceId, {
+    sourceId, status: "failed", overallStatus: "failed", observations: [], rowCount: 0,
+    acceptedRowCount: 0, skippedRowCount: 0, actualReportDate: null, snapshotStatus: "preserved",
+    errorCode: null, errorMessage: null,
+  }]));
+  const previousRunId = activeRunId;
+  activeRunId = runId;
+  log("info", "run_started", { source: sourceIds.join(","), requestedDate: requestedDate || null });
+
+  let merged = null;
+  let runError = null;
+  let snapshotUpdated = false;
   try {
-    const scraped = [];
-    for (const sourceId of sourceIds) { const result = await scrapeSource(sourceId, sourceId === "csb_silk" ? null : dateInput); if (!result.observations.length) throw new Error(`${sourceId} returned no rows`); scraped.push(...result.observations); log("info", "source_completed", { runId, source: sourceId, rows: result.observations.length }); }
-    const merged = loadAndMerge(scraped);
-    if (merged.skippedRowCount) log("warn", "taxonomy_rows_skipped", { source: sourceIds.join(","), skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies });
-    if (!merged.acceptedRowCount) { const error = new Error("All scraped rows were skipped because their taxonomy values are unknown."); error.skippedRowCount = merged.skippedRowCount; error.unknownTaxonomies = merged.unknownTaxonomies; error.taxonomyOnly = true; throw error; }
-    const payloads = makePayloads(merged.rows, merged.categories); validateObservations(decodeObservations(payloads["observations.json"]), merged.taxonomy); publishSnapshot(payloads, DATA_DIR, runId);
-    const reportDates = [...new Set(scraped.map((row) => row.reportDate))]; const result = { ok: true, runId, sourceId: sourceIds.length === 1 ? sourceIds[0] : "all", reportDate: reportDates.length === 1 ? reportDates[0] : reportDates.join(","), rowCount: scraped.length, acceptedRowCount: merged.acceptedRowCount, skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies, mergedRowCount: merged.rows.length, logPath: logger && logger.logPath, startedAt, finishedAt: new Date().toISOString() };
-    log("info", "run_completed", { ...result }); return result;
+    for (const sourceId of sourceIds) {
+      const outcome = outcomes.get(sourceId);
+      try {
+        const sourceResult = await sourceRunner(sourceId, sourceId === "csb_silk" ? null : dateInput);
+        outcome.observations = sourceResult.observations || [];
+        outcome.rowCount = outcome.observations.length;
+        const dates = [...new Set(outcome.observations.map((row) => row.reportDate).filter(Boolean))].sort();
+        outcome.actualReportDate = dates.length ? dates[dates.length - 1] : null;
+        if (!outcome.rowCount) throw codedError("NO_ROWS", `${sourceId} returned no rows`);
+        log("info", "source_completed", { runId, source: sourceId, rows: outcome.rowCount });
+      } catch (error) {
+        outcome.status = "failed";
+        outcome.errorCode = errorCode(error, error && error.message && /no rows/i.test(error.message) ? "NO_ROWS" : "SOURCE_ERROR");
+        outcome.errorMessage = error.message;
+        log("error", "source_failed", { runId, source: sourceId, error: error.stack || error.message });
+      }
+    }
+
+    const scraped = sourceIds.flatMap((sourceId) => outcomes.get(sourceId).observations);
+    if (!scraped.length) {
+      runError = codedError("NO_ROWS", "No source returned usable rows.");
+    } else {
+      try {
+        merged = loadAndMerge(scraped, dataDir);
+        for (const sourceId of sourceIds) {
+          const outcome = outcomes.get(sourceId);
+          outcome.acceptedRowCount = merged.acceptedBySource[sourceId] || 0;
+          outcome.skippedRowCount = merged.skippedBySource[sourceId] || 0;
+        }
+        if (merged.skippedRowCount) log("warn", "taxonomy_rows_skipped", { source: sourceIds.join(","), skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies });
+        if (!merged.acceptedRowCount) {
+          runError = codedError("TAXONOMY_REJECTED", "All scraped rows were skipped because their taxonomy values are unknown.");
+          runError.skippedRowCount = merged.skippedRowCount;
+          runError.unknownTaxonomies = merged.unknownTaxonomies;
+          for (const outcome of outcomes.values()) {
+            if (outcome.rowCount) { outcome.status = "failed"; outcome.errorCode = "TAXONOMY_REJECTED"; outcome.errorMessage = runError.message; }
+          }
+        } else {
+          const payloads = makePayloads(merged.rows, merged.categories);
+          validateObservations(decodeObservations(payloads["observations.json"]), merged.taxonomy);
+          publishSnapshot(payloads, dataDir, runId);
+          snapshotUpdated = true;
+          for (const outcome of outcomes.values()) {
+            if (outcome.rowCount && outcome.acceptedRowCount) { outcome.status = "success"; outcome.snapshotStatus = "updated"; }
+            else if (outcome.rowCount) { outcome.status = "failed"; outcome.errorCode = "TAXONOMY_REJECTED"; outcome.errorMessage = "All source rows were rejected by taxonomy validation."; }
+          }
+        }
+      } catch (error) {
+        runError = error.code ? error : codedError("VALIDATION_FAILED", error.message, error);
+        for (const outcome of outcomes.values()) {
+          if (outcome.rowCount && outcome.status !== "success") {
+            outcome.status = "failed";
+            outcome.errorCode = errorCode(runError, "VALIDATION_FAILED");
+            outcome.errorMessage = runError.message;
+          }
+        }
+      }
+    }
   } catch (error) {
-    log("error", "run_failed", { source: sourceIds.join(","), error: error.stack || error.message, skippedRowCount: error.skippedRowCount || 0, unknownTaxonomies: error.unknownTaxonomies || [], finishedAt: new Date().toISOString() });
-    const verification = sourceIds.length === 1 && !error.taxonomyOnly ? SOURCE_VERIFICATION[sourceIds[0]] : null;
-    return {
-      ok: false,
-      runId,
-      sourceId: sourceIds.join(","),
-      error: error.message,
-      skippedRowCount: error.skippedRowCount || 0,
-      unknownTaxonomies: error.unknownTaxonomies || [],
-      ...(verification ? {
-        verificationUrl: verification.url,
-        verificationLinkText: verification.linkText,
-        verificationSteps: verification.steps,
-      } : {}),
-      logPath: logger && logger.logPath,
-    };
+    runError = error.code ? error : codedError("VALIDATION_FAILED", error.message, error);
   }
-  finally { activeRunId = previousRunId; }
+
+  const successful = [...outcomes.values()].filter((outcome) => outcome.status === "success");
+  const failed = [...outcomes.values()].filter((outcome) => outcome.status !== "success");
+  const overallStatus = successful.length && failed.length ? "partial" : successful.length ? "success" : "failed";
+  for (const outcome of outcomes.values()) {
+    if (outcome.status !== "success" && !outcome.errorCode) {
+      outcome.errorCode = errorCode(runError, "SOURCE_ERROR");
+      outcome.errorMessage = runError ? runError.message : "Run failed.";
+    }
+    if (outcome.status === "failed" && snapshotUpdated && outcome.acceptedRowCount === 0) outcome.snapshotStatus = "preserved";
+  }
+  const reportDates = [...new Set([...outcomes.values()].flatMap((outcome) => outcome.observations.map((row) => row.reportDate).filter(Boolean)))].sort();
+  const result = {
+    ok: overallStatus === "success",
+    runId,
+    sourceId: sourceIds.length === 1 ? sourceIds[0] : "all",
+    reportDate: reportDates.length === 1 ? reportDates[0] : reportDates.join(","),
+    requestedReportDate: requestedDate,
+    overallStatus,
+    rowCount: [...outcomes.values()].reduce((sum, outcome) => sum + outcome.rowCount, 0),
+    acceptedRowCount: [...outcomes.values()].reduce((sum, outcome) => sum + outcome.acceptedRowCount, 0),
+    skippedRowCount: [...outcomes.values()].reduce((sum, outcome) => sum + outcome.skippedRowCount, 0),
+    unknownTaxonomies: merged ? merged.unknownTaxonomies : [],
+    mergedRowCount: merged ? merged.rows.length : 0,
+    snapshotStatus: snapshotUpdated ? "updated" : "preserved",
+    logPath: logger && logger.logPath,
+    startedAt,
+    finishedAt: finishedAt(),
+  };
+  if (overallStatus === "partial") {
+    result.error = "One or more sources failed; successful sources were retained.";
+    result.errorCode = "PARTIAL_RUN";
+  }
+  if (runError) {
+    result.error = sanitizeErrorMessage(runError.message);
+    result.errorCode = errorCode(runError, "SOURCE_ERROR");
+    log("error", "run_failed", { source: sourceIds.join(","), error: runError.stack || runError.message, errorCode: result.errorCode, skippedRowCount: result.skippedRowCount, unknownTaxonomies: result.unknownTaxonomies, finishedAt: result.finishedAt });
+  } else if (overallStatus === "partial") {
+    log("warn", "run_partial", { ...result });
+  } else {
+    log("info", "run_completed", { ...result });
+  }
+
+  const verificationAllowed = sourceIds.length === 1;
+  for (const outcome of outcomes.values()) {
+    if (outcome.status !== "success" && SOURCE_VERIFICATION[outcome.sourceId]) {
+      outcome.verificationUrl = SOURCE_VERIFICATION[outcome.sourceId].url;
+    }
+  }
+  const runRecords = [...outcomes.values()].map((outcome) => createRunRecord({
+    run_id: runId,
+    source: outcome.sourceId,
+    run_timestamp: startedAt,
+    requested_report_date: outcome.sourceId === "csb_silk" ? null : requestedDate,
+    actual_report_date: outcome.actualReportDate,
+    status: outcome.status,
+    overall_status: overallStatus,
+    row_count: outcome.rowCount,
+    accepted_row_count: outcome.acceptedRowCount,
+    skipped_row_count: outcome.skippedRowCount,
+    merged_row_count: merged ? merged.rows.length : 0,
+    snapshot_status: outcome.snapshotStatus,
+    error_code: outcome.errorCode,
+    error_message: outcome.errorMessage,
+    verification_url: outcome.verificationUrl || null,
+  }));
+  try {
+    appendRunRecords(dataDir, runRecords);
+  } catch (error) {
+    result.runLogError = sanitizeErrorMessage(error.message);
+    log("error", "run_log_write_failed", { error: error.stack || error.message });
+  }
+  if (overallStatus === "failed" && verificationAllowed && SOURCE_VERIFICATION[sourceIds[0]]) {
+    const verification = SOURCE_VERIFICATION[sourceIds[0]];
+    result.verificationUrl = verification.url;
+    result.verificationLinkText = verification.linkText;
+    result.verificationSteps = verification.steps;
+  }
+  activeRunId = previousRunId;
+  return result;
 }
 
 function htmlPage() {
@@ -1069,7 +1219,7 @@ async function startUiServer(config = {}) {
   const runner = config.runner || runScrapeForDate;
   let active = false; const server = require("http").createServer((req, res) => {
     if (req.method === "GET" && req.url === "/") { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); res.end(htmlPage()); return; }
-    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId }); if (result.ok && config.publish) result.publish = await stageAndDeploy({ rootDir: ROOT_DIR }); res.writeHead(result.ok ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
+    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId }); if (config.publish) result.publish = await stageAndDeploy({ rootDir: ROOT_DIR }); res.writeHead(result.ok ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
     res.writeHead(404); res.end("Not found");
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); const url = `http://127.0.0.1:${address.port}/`; log("info", "ui_started", { url }); if (config.openBrowser !== false) openBrowser(url); return server;
@@ -1079,12 +1229,12 @@ async function main() {
   const options = parseArgs(process.argv.slice(2)); setupLogging();
   if (options.uiMode) { await startUiServer({ publish: options.publish }); return; }
   const result = await runScrapeForDate(options.date, options); closeLogging();
-  if (!result.ok) { process.exitCode = 1; return; }
   if (options.publish) {
     const deploy = await stageAndDeploy({ rootDir: ROOT_DIR });
+    result.publish = deploy;
     if (!deploy.ok) process.exitCode = 1;
   }
-  process.exitCode = 0;
+  process.exitCode = (!result.ok || (options.publish && result.publish && !result.publish.ok)) ? 1 : 0;
 }
 
 if (require.main === module) main().catch((error) => { if (!logger) setupLogging(); log("error", "fatal", { error: error.stack || error.message }); closeLogging(); process.exitCode = 1; });
@@ -1094,4 +1244,5 @@ module.exports = {
   parseSpicesBoardHtml, filterSpicesBoardRows, parseCoffeeBoardRawPriceText, parseRubberBoardDailyHtml, parseRubberBoardArchiveHtml, parseDmyDate, parseAbbrevMonthDate,
   parseDottedDate, normalizeMarket, normalizeKrama, scrapeKramaWithFallback, validateObservations, buildTaxonomy, SOURCE_VERIFICATION, SOURCE_VERIFICATION_URLS, getSourceVerificationUrl,
   makePayloads, loadAndMerge, publishSnapshot, reportDateStrings, parseArgs, htmlPage, runScrapeForDate, startUiServer,
+  codedError,
 };

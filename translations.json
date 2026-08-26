@@ -351,7 +351,7 @@
     },
     "trend_note": {
       "en": "Trend is shown for this exact commodity, market, variety, and grade combination.",
-      "kn": "ಈ ನಿರ್ದಿಷ್ಟ ಸರಕು, ಮಾರುಕಟ್ಟೆ, ತಳಿ ಮತ್ತು ದರ್ಜೆಯ ಸಂಯೋಜನೆಗಾಗಿ ಪ್ರವೃತ್ತಿಯನ್ನು ತೋರಿಸಲಾಗಿದೆ."
+      "kn": "ಈ ನಿಖರ ಬೆಳೆಯ ಧಾರಣೆಯು ಮಾರುಕಟ್ಟೆ, ವೈವಿಧ್ಯತೆ ಹಾಗೂ ಶ್ರೇಣಿಯ ಸಂಯೋಜನೆಯನ್ನು ಆಧರಿಸಿದೆ"
     },
     "collapse_price_history_aria": {
       "en": "Collapse price history",

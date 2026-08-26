@@ -9,6 +9,11 @@ const path = require("path");
 
 const DEFAULT_PROJECT = "agro-dashboard-data";
 
+function readJsonIfPresent(file) {
+  if (!fs.existsSync(file)) return null;
+  try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch (_) { return null; }
+}
+
 function loadEnv(rootDir) {
   const env = { ...process.env };
   const envFile = path.join(rootDir, ".env");
@@ -70,6 +75,16 @@ async function stageAndDeploy({ rootDir = process.cwd() } = {}) {
       ].join("\n")
     );
 
+    // These timestamps describe the contents staged for this deployment. They
+    // are freshness metadata, not a claim that the deployment has finished or
+    // is already serving this version.
+    const metadata = readJsonIfPresent(path.join(dataDir, "metadata.json"));
+    const runLog = readJsonIfPresent(path.join(dataDir, "scraper-runs.json"));
+    const freshness = {
+      snapshot_generated_at: metadata && metadata.generatedAt ? metadata.generatedAt : null,
+      run_log_generated_at: runLog && runLog.generated_at ? runLog.generated_at : null,
+    };
+
     // Deploy with Wrangler, passing the loaded environment.
     const npx = process.platform === "win32" ? "npx.cmd" : "npx";
     const deployArgs = ["wrangler", "pages", "deploy", bundle, `--project-name=${project}`];
@@ -81,7 +96,7 @@ async function stageAndDeploy({ rootDir = process.cwd() } = {}) {
       return { ok: false, error: msg, code: deploy.code, signal: deploy.signal };
     }
     console.log("[publish] deployment complete.");
-    return { ok: true, project };
+    return { ok: true, project, freshness };
   } catch (err) {
     const msg = err.stack || err.message;
     console.error(`[publish] ${msg}`);

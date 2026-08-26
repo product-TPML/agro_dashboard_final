@@ -1516,6 +1516,7 @@ button:disabled {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+  text-align: center;
 }
 
 .history-layout[data-chart-summary-layout="compact"] {
