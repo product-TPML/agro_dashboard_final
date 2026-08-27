@@ -10,7 +10,7 @@
     compareRows: () => 0,
   };
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260820-7";
+  const APP_DATA_VERSION = "20260827-2";
   const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
@@ -2241,7 +2241,30 @@
       return null;
     }
 
-    return Number(row[priceKey]) - Number(comparableRow[priceKey]);
+    const delta = Number(row[priceKey]) - Number(comparableRow[priceKey]);
+    return Number.isFinite(delta) ? delta : null;
+  }
+
+  function getPriceMovement(row, priceKey, previousRow) {
+    const comparableRow = previousRow || getPreviousComparableRow(row);
+    const delta = getPreviousPriceDelta(row, priceKey, comparableRow);
+    if (delta === null) {
+      return { delta: null, percent: null, isSteep: false, direction: null };
+    }
+
+    const current = Number(row[priceKey]);
+    const previous = Number((comparableRow || {})[priceKey]);
+    const baseline = Math.abs(previous);
+    const percent = Number.isFinite(current) && Number.isFinite(previous) && baseline > 0
+      ? Math.abs(delta) / baseline * 100
+      : null;
+
+    return {
+      delta,
+      percent,
+      isSteep: delta !== 0 && percent !== null && percent >= 10,
+      direction: delta > 0 ? "hike" : delta < 0 ? "drop" : null,
+    };
   }
 
   function renderDeltaIcon(isGain) {
@@ -5330,6 +5353,12 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     const previousRow = getPreviousComparableRow(row);
     const priceColumns = getRowPriceProfile(row).columns;
     const freshnessMeta = getFreshnessMeta(row.reportDate);
+    const priceMovements = priceColumns.map((column) => ({
+      column,
+      movement: getPriceMovement(row, column.key, previousRow),
+    }));
+    const modalMovement = priceMovements.find(({ column }) => column.kind === "modal")?.movement || null;
+    const statusMeta = getStatusMeta(freshnessMeta, modalMovement);
     const detailEntries = buildCardDetailEntries(row, previousRow, presentation);
     const varietyValue = presentation.titleKind === "variety"
       ? ""
@@ -5365,21 +5394,21 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
               <strong class="card-variety-value">${escapeHtml(varietyValue)}</strong>
             </div>
             <div class="card-status-row">
-              <span class="status-pill status-pill-${escapeAttribute(freshnessMeta.tone)}">${escapeHtml(freshnessMeta.label)}</span>
+              <span class="status-pill status-pill-${escapeAttribute(statusMeta.tone)}">${escapeHtml(statusMeta.label)}</span>
             </div>
           </div>
         ` : `
           <div class="card-status-row">
-            <span class="status-pill status-pill-${escapeAttribute(freshnessMeta.tone)}">${escapeHtml(freshnessMeta.label)}</span>
+            <span class="status-pill status-pill-${escapeAttribute(statusMeta.tone)}">${escapeHtml(statusMeta.label)}</span>
           </div>
         `}
 
         <div class="stats-row" style="--stat-columns:${Math.min(priceColumns.length, 3)}">
-          ${priceColumns.map((column) => `
+          ${priceMovements.map(({ column, movement }) => `
             <div class="stat-block">
               <div class="stat-label">${renderPriceLabelForCard(column.kind, row)}</div>
               <div class="stat-value ${escapeAttribute(getStatTone(column.kind))}">${escapeHtml(formatCurrencyDisplay(row[column.key]))}</div>
-              ${renderCardDelta(getPreviousPriceDelta(row, column.key, previousRow))}
+              ${renderCardDelta(movement)}
             </div>
           `).join("")}
         </div>
@@ -5568,24 +5597,6 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     return `₹${formatCurrency(value)}`;
   }
 
-  function renderCardDelta(delta) {
-    if (delta === null) {
-      return `<div class="stat-delta flat"><span>-</span></div>`;
-    }
-
-    if (delta === 0) {
-      return `<div class="stat-delta up"><span>₹ 0</span></div>`;
-    }
-
-    const isGain = delta > 0;
-    return `
-      <div class="stat-delta ${isGain ? "up" : "down"}">
-        <span>₹ ${isGain ? "+" : "-"}${formatCurrency(Math.abs(delta))}</span>
-        <span class="delta-icon">${isGain ? "▲" : "▼"}</span>
-      </div>
-    `;
-  }
-
   function buildCardDetailEntries(row, previousRow, presentation) {
     const meta = presentation.meta.slice();
     const details = [
@@ -5601,8 +5612,8 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     return details.slice(0, 5);
   }
 
-  function renderCardDelta(delta) {
-    if (delta === null) {
+  function renderCardDelta(movement) {
+    if (!movement || movement.delta === null) {
       return `
         <div class="stat-delta flat">
           <span class="stat-delta-content">
@@ -5612,7 +5623,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       `;
     }
 
-    if (delta === 0) {
+    if (movement.delta === 0) {
       return `
         <div class="stat-delta up">
           <span class="stat-delta-content">
@@ -5622,11 +5633,12 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
       `;
     }
 
-    const isGain = delta > 0;
+    const isGain = movement.delta > 0;
+    const steepClass = movement.isSteep ? ` steep steep-${movement.direction}` : "";
     return `
-      <div class="stat-delta ${isGain ? "up" : "down"}">
+      <div class="stat-delta ${isGain ? "up" : "down"}${steepClass}">
         <span class="stat-delta-content">
-          <span class="stat-delta-value">&#8377; ${isGain ? "+" : "-"}${formatCurrency(Math.abs(delta))}</span>
+          <span class="stat-delta-value">${isGain ? "+" : "-"} &#8377; ${formatCurrency(Math.abs(movement.delta))}</span>
           <span class="delta-icon" aria-hidden="true">${isGain ? "&#9650;" : "&#9660;"}</span>
         </span>
       </div>
@@ -5656,6 +5668,18 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     return { tone: "stale", label: "Older update" };
   }
 
+  function getStatusMeta(freshnessMeta, modalMovement) {
+    if (freshnessMeta.tone !== "fresh" || !modalMovement || !modalMovement.isSteep) {
+      return freshnessMeta;
+    }
+
+    if (modalMovement.direction === "hike") {
+      return { tone: "steep-hike", label: getUiText("steep_hike", "Steep hike") };
+    }
+
+    return { tone: "steep-drop", label: getUiText("steep_drop", "Steep drop") };
+  }
+
   function renderPriceDelta(delta) {
     if (delta === null) {
       return `<span class="price-delta price-delta-flat">${escapeHtml(getUiText("no_earlier_update", "No earlier update"))}</span>`;
@@ -5668,7 +5692,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     const isGain = delta > 0;
     return `
       <span class="price-delta ${isGain ? "price-delta-gain" : "price-delta-loss"}">
-        <span>₹ ${isGain ? "+" : "-"}${formatCurrency(Math.abs(delta))}</span>
+        <span>${isGain ? "+" : "-"} ₹ ${formatCurrency(Math.abs(delta))}</span>
         ${renderDeltaIcon(isGain)}
       </span>
     `;

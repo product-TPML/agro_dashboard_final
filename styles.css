@@ -2517,6 +2517,18 @@ body {
     animation: none;
   }
 
+  .status-pill-steep-hike,
+  .status-pill-steep-drop,
+  .stat-delta.steep {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .stat-delta.steep {
+    text-shadow: 0 0 5px currentColor;
+  }
+
   .skeleton-hero,
   .skeleton-tabs,
   .skeleton-grid {
@@ -3450,6 +3462,20 @@ body {
   color: #a5523f;
 }
 
+.status-pill-steep-hike {
+  background: #d8f2e2;
+  color: #167343;
+  --steep-pill-glow: rgba(22, 115, 67, 0.16);
+  --steep-pill-glow-strong: rgba(22, 115, 67, 0.3);
+}
+
+.status-pill-steep-drop {
+  background: #f8e0e0;
+  color: #b42318;
+  --steep-pill-glow: rgba(180, 35, 24, 0.16);
+  --steep-pill-glow-strong: rgba(180, 35, 24, 0.3);
+}
+
 @keyframes fresh-status-pulse {
   0% {
     transform: scale(1);
@@ -3589,6 +3615,51 @@ body {
 
 .stat-delta.down {
   color: #ef4444;
+}
+
+.status-pill-steep-hike,
+.status-pill-steep-drop {
+  animation: steep-pill-pulse 1.35s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.stat-delta.steep {
+  animation: steep-price-pulse 1.35s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.stat-delta.steep-hike {
+  text-shadow: 0 0 0 currentColor;
+}
+
+.stat-delta.steep-drop {
+  text-shadow: 0 0 0 currentColor;
+}
+
+@keyframes steep-pill-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px var(--steep-pill-glow), 0 0 12px var(--steep-pill-glow-strong);
+  }
+}
+
+@keyframes steep-price-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 0 currentColor;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.72;
+    text-shadow: 0 0 5px currentColor, 0 0 11px currentColor;
+    transform: scale(1.045);
+  }
 }
 
 .stat-delta.flat {

@@ -465,6 +465,14 @@
       "en": "Older update",
       "kn": "ಹಿಂದಿನ ಅಪ್‌ಡೇಟ್‌"
     },
+    "steep_hike": {
+      "en": "Steep hike",
+      "kn": "Steep hike"
+    },
+    "steep_drop": {
+      "en": "Steep drop",
+      "kn": "Steep drop"
+    },
     "market_jump_open_aria": {
       "en": "Open market navigator",
       "kn": "ಮುಕ್ತ ಮಾರುಕಟ್ಟೆ ನಾವಿಕ"
@@ -653,7 +661,7 @@
     },
     "Chilly Red": {
       "en": "Chilly Red",
-      "kn": "ಒಣ ಮೆಣಸಿನಕಾಯಿ"
+      "kn": "ಕೆಂಪು ಮೆಣಸಿನಕಾಯಿ"
     },
     "Coco Brooms": {
       "en": "Coco Brooms",
