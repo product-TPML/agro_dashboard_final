@@ -1,4 +1,5 @@
 const fs = require("fs");
+const crypto = require("crypto");
 const path = require("path");
 const Database = require("better-sqlite3");
 const { decodeObservations, encodeObservations } = require("./observation_codec");
@@ -84,15 +85,17 @@ function main() {
       ...searchIndex,
       markets: [...new Set((searchIndex.markets || []).map(normalizeMarketName))].sort((left, right) => left.localeCompare(right)),
     };
+    const encodedObservations = encodeObservations(observations);
     const metadata = {
       generatedAt: new Date().toISOString(),
+      snapshotId: crypto.createHash("sha256").update(JSON.stringify(encodedObservations)).digest("hex"),
       observations: observations.length,
       commodities: normalizedSearchIndex.commodities.length,
       markets: normalizedSearchIndex.markets.length,
       varieties: normalizedSearchIndex.varieties.length,
     };
 
-    writeJson("observations.json", encodeObservations(observations));
+    writeJson("observations.json", encodedObservations);
     writeJson("search-index.json", normalizedSearchIndex);
     writeJson("metadata.json", metadata);
 

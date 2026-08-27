@@ -5,6 +5,7 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const { stageAndDeploy, loadEnv } = require("./publish_bundle.js");
+const { clearRemoteSyncState, readRemoteSyncState } = require("./remote_snapshot_sync.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const SCRAPER = path.join(ROOT, "scrape_krama.js");
@@ -21,6 +22,7 @@ function run(cmd, args, opts) {
 }
 
 async function main() {
+  clearRemoteSyncState(ROOT);
   const env = loadEnv(ROOT);
   const token = env.CLOUDFLARE_API_TOKEN;
   const accountId = env.CLOUDFLARE_ACCOUNT_ID;
@@ -52,7 +54,7 @@ async function main() {
   if (source == null && env.npm_config_source && env.npm_config_source !== "true") source = env.npm_config_source;
   if (date == null && env.npm_config_date && env.npm_config_date !== "true") date = env.npm_config_date;
 
-  const scrapeArgs = ["scrape_krama.js", "--no-ui"];
+  const scrapeArgs = ["scrape_krama.js", "--no-ui", "--sync-remote"];
   scrapeArgs.push("--source", source || "all");
   if (date) scrapeArgs.push("--date", date);
   console.log(`[publish] scraping: ${scrapeArgs.join(" ")}`);
@@ -60,8 +62,22 @@ async function main() {
   const scrapeFailed = scrape.code !== 0 || scrape.signal;
   if (scrapeFailed) console.error(`[publish] scraper exited with code ${scrape.code}${scrape.signal ? ` (${scrape.signal})` : ""}; deploying the refreshed run summary while preserving the observation snapshot.`);
 
-  // 2. Stage and deploy via the shared module.
-  const deploy = await stageAndDeploy({ rootDir: ROOT });
+  // 2. Stage and deploy via the shared module. The child scraper writes the
+  // baseline state only after remote reconciliation succeeds; without it,
+  // publishing a complete local bundle would be unsafe.
+  let syncState;
+  try { syncState = readRemoteSyncState(ROOT); }
+  catch (error) {
+    console.error(`[publish] ${error.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  if (!syncState || !syncState.fingerprint) {
+    console.error("[publish] remote snapshot reconciliation did not complete; Cloudflare publication was skipped.");
+    process.exitCode = 1;
+    return;
+  }
+  const deploy = await stageAndDeploy({ rootDir: ROOT, expectedSnapshotFingerprint: syncState.fingerprint });
   if (scrapeFailed || !deploy.ok) process.exitCode = 1;
 }
 

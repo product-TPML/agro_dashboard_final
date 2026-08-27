@@ -53,6 +53,7 @@ The scraper specifically depends on:
 - `scripts/market_aliases.js`
 - `scripts/publish_bundle.js`
 - `scripts/publish_pages.js`
+- `scripts/remote_snapshot_sync.js`
 - `scripts/scraper_run_log.js`
 - `google-apps-script/Code.gs` for the optional Google Sheets import
 - Existing JSON files under `data/`
@@ -115,6 +116,7 @@ The file must be in the repository root:
 CLOUDFLARE_API_TOKEN=your-pages-edit-token
 CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
 CLOUDFLARE_PAGES_PROJECT=agro-dashboard-data
+CLOUDFLARE_DATA_BASE_URL=https://agro-dashboard-data.pages.dev
 ```
 
 Important:
@@ -123,6 +125,8 @@ Important:
 - Do not commit `.env` to GitHub.
 - The API token must have permission to deploy to Cloudflare Pages.
 - The Cloudflare project defaults to `agro-dashboard-data`.
+- `CLOUDFLARE_DATA_BASE_URL` defaults to `https://agro-dashboard-data.pages.dev` and must be an HTTPS URL without embedded credentials.
+- The publisher reads the live `data/observations.json`, `data/scraper-runs.json`, and `data/metadata.json` before scraping. Do not disable this reconciliation for a publish-enabled run.
 
 The repository already ignores `.env` files through `.gitignore`.
 
@@ -182,6 +186,8 @@ The date format is:
 DD/MM/YYYY
 ```
 
+Before publication, the scraper reconciles the local snapshot with the live Cloudflare snapshot. This imports remote-only historical observations and run records before the new scrape is merged. Cloudflare data wins conflicts with old local rows; the current scrape wins last. A second live snapshot check runs immediately before Wrangler deployment. If the live snapshot changed during the run, deployment is cancelled and the command must be retried.
+
 Central Silk Board reads the current page and does not require a date in the same way as the other sources.
 
 ## Scraper flow
@@ -231,6 +237,8 @@ The scraper automatically:
 - Writes one source-level summary per selected source with a shared `run_id` for All Sources.
 - Keeps only the latest 31 days in `data/scraper-runs.json` and never removes historical observations.
 - Continues the remaining sources during an All Sources run after a source failure, reporting `partial` when appropriate.
+- Reconciles stale local observations and run logs with the current Cloudflare snapshot before publishing.
+- Cancels publication when Cloudflare cannot be read, the remote JSON is invalid, or the live snapshot changes during the run.
 
 ## Rebuilding the shareable scraper package
 
@@ -303,7 +311,9 @@ If a source fails, returns no rows, or produces only invalid rows:
 - Details are written to a structured log file under `logs/`.
 - A sanitized source-level run record is written to `data/scraper-runs.json` with a stable error code/message, counts, snapshot status, and verification URL.
 - For All Sources, other sources continue. Accepted rows can update the snapshot while failed sources remain marked `snapshot_status: preserved`.
-- `npm run scrape:publish` still stages and deploys the refreshed run summary after a scrape failure; it does not report the in-progress deployment as final live state.
+- `npm run scrape:publish` can still stage and deploy the refreshed run summary after a source scrape failure, but only when remote reconciliation and the final remote version check succeed.
+
+If remote reconciliation fails, the command reports a stable error code such as `REMOTE_TIMEOUT`, `REMOTE_HTTP_ERROR`, `REMOTE_INVALID_JSON`, `REMOTE_SCHEMA_INVALID`, or `REMOTE_VERSION_CHANGED`. Cloudflare publication is skipped, and the live snapshot is left untouched. Fix the network/configuration issue or rerun after another publisher has finished; do not manually publish an older local bundle.
 
 If scraping succeeds but Cloudflare publication fails:
 
@@ -346,18 +356,22 @@ If the scraper does not work:
 
 5. If publishing, confirm the file is named `.env` and contains valid Cloudflare credentials.
 
-6. Check the latest file under:
+6. If publishing reports a remote synchronization error, confirm `CLOUDFLARE_DATA_BASE_URL` is reachable and points to the same Cloudflare project as `CLOUDFLARE_PAGES_PROJECT`.
+
+7. If publishing reports `REMOTE_VERSION_CHANGED`, another publisher updated Cloudflare while this run was active. Run the same scrape again so it reconciles with the newer snapshot.
+
+8. Check the latest file under:
 
    ```text
    logs/
    ```
 
-7. Confirm that the local JSON files were updated under:
+9. Confirm that the local JSON files were updated under:
 
    ```text
    data/
    ```
 
-8. Check the scraper result for skipped rows or missing taxonomy items.
+10. Check the scraper result for skipped rows or missing taxonomy items.
 
-9. If Google Sheets reports stale data, check `generated_at` in the public `data/scraper-runs.json`, the `SCRAPER_MAX_AGE_HOURS` property, and that Cloudflare publication completed.
+11. If Google Sheets reports stale data, check `generated_at` in the public `data/scraper-runs.json`, the `SCRAPER_MAX_AGE_HOURS` property, and that Cloudflare publication completed.

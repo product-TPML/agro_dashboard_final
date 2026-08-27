@@ -10,8 +10,8 @@
     "scrape": "node scrape_krama.js",
     "scrape:publish": "node scripts/publish_pages.js",
     "package:scraper": "node scripts/package_scraper.js",
-    "test": "node --test --experimental-test-isolation=none test/scraper.test.js test/scraper_run_log.test.js test/analytics.test.js test/result_ordering.test.js",
-    "check": "node --check app.js && node --check analytics.js && node --check result_ordering.js && node --check scripts/build_static_site.js && node --check scripts/market_aliases.js && node --check scripts/normalize_market_values.js && node --check scripts/package_scraper.js && node --check scripts/scraper_run_log.js && node --check scrape_krama.js && node --check test/scraper.test.js && node --check test/analytics.test.js && node --check test/result_ordering.test.js && node --check scripts/publish_pages.js"
+    "test": "node --test --experimental-test-isolation=none test/scraper.test.js test/scraper_run_log.test.js test/remote_snapshot_sync.test.js test/analytics.test.js test/result_ordering.test.js",
+    "check": "node --check app.js && node --check analytics.js && node --check result_ordering.js && node --check scripts/build_static_site.js && node --check scripts/market_aliases.js && node --check scripts/normalize_market_values.js && node --check scripts/observation_codec.js && node --check scripts/package_scraper.js && node --check scripts/remote_snapshot_sync.js && node --check scripts/scraper_run_log.js && node --check scrape_krama.js && node --check test/scraper.test.js && node --check test/analytics.test.js && node --check test/result_ordering.test.js && node --check test/remote_snapshot_sync.test.js && node --check scripts/publish_pages.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",

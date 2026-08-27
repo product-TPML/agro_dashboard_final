@@ -23,7 +23,7 @@ const ROOT_FILES = [
   "scrape_krama.js",
   "translations.json",
 ];
-const SCRIPT_FILES = ["market_aliases.js", "observation_codec.js", "package_scraper.js", "publish_bundle.js", "publish_pages.js", "scraper_run_log.js"];
+const SCRIPT_FILES = ["market_aliases.js", "observation_codec.js", "package_scraper.js", "publish_bundle.js", "publish_pages.js", "remote_snapshot_sync.js", "scraper_run_log.js"];
 const GENERATED_ROOT_FILES = new Set(ROOT_FILES);
 const GOOGLE_APPS_SCRIPT_FILES = ["Code.gs"];
 const GENERATED_DIRS = ["data", "scripts", "google-apps-script"];

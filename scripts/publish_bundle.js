@@ -6,6 +6,8 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { clearRemoteSyncState, readRemoteSyncState, verifyRemoteSnapshot } = require("./remote_snapshot_sync");
+const { sanitizeErrorMessage } = require("./scraper_run_log");
 
 const DEFAULT_PROJECT = "agro-dashboard-data";
 
@@ -43,14 +45,33 @@ function run(cmd, args, opts) {
   });
 }
 
-async function stageAndDeploy({ rootDir = process.cwd() } = {}) {
+async function stageAndDeploy({ rootDir = process.cwd(), expectedSnapshotFingerprint = null } = {}) {
+  // A state file is single-use. Remove any stale marker before validating the
+  // current publish attempt; callers pass the expected fingerprint explicitly
+  // when they have completed reconciliation.
+  let previousState;
+  try { previousState = readRemoteSyncState(rootDir); }
+  catch (error) {
+    clearRemoteSyncState(rootDir);
+    const msg = sanitizeErrorMessage(error.message);
+    console.error(`[publish] ${msg}`);
+    return { ok: false, error: msg, errorCode: error.code || "LOCAL_SYNC_STATE_INVALID" };
+  }
+  clearRemoteSyncState(rootDir);
   const env = loadEnv(rootDir);
   const token = env.CLOUDFLARE_API_TOKEN;
   const accountId = env.CLOUDFLARE_ACCOUNT_ID;
   if (!token || !accountId) {
     const msg = "CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required (set in .env or the environment).";
     console.error(`[publish] ${msg}`);
-    return { ok: false, error: msg };
+    return { ok: false, error: msg, errorCode: "CLOUDFLARE_CREDENTIALS_MISSING" };
+  }
+  let expected = expectedSnapshotFingerprint;
+  if (!expected) expected = previousState?.fingerprint || null;
+  if (!expected) {
+    const msg = "Cloudflare publication requires a successful remote snapshot reconciliation; run the scraper again.";
+    console.error(`[publish] ${msg}`);
+    return { ok: false, error: msg, errorCode: "REMOTE_SYNC_REQUIRED" };
   }
   const project = env.CLOUDFLARE_PAGES_PROJECT || DEFAULT_PROJECT;
 
@@ -82,8 +103,14 @@ async function stageAndDeploy({ rootDir = process.cwd() } = {}) {
     const runLog = readJsonIfPresent(path.join(dataDir, "scraper-runs.json"));
     const freshness = {
       snapshot_generated_at: metadata && metadata.generatedAt ? metadata.generatedAt : null,
+      snapshot_id: metadata && metadata.snapshotId ? metadata.snapshotId : null,
       run_log_generated_at: runLog && runLog.generated_at ? runLog.generated_at : null,
     };
+
+    // Re-read the remote snapshot immediately before deployment. Cloudflare
+    // Pages replaces the complete deployment, so a changed baseline means the
+    // local bundle is no longer safe to publish.
+    await verifyRemoteSnapshot({ env, expectedFingerprint: expected });
 
     // Deploy with Wrangler, passing the loaded environment.
     const npx = process.platform === "win32" ? "npx.cmd" : "npx";
@@ -96,13 +123,14 @@ async function stageAndDeploy({ rootDir = process.cwd() } = {}) {
       return { ok: false, error: msg, code: deploy.code, signal: deploy.signal };
     }
     console.log("[publish] deployment complete.");
-    return { ok: true, project, freshness };
+    return { ok: true, project, freshness, remoteSnapshotFingerprint: expected };
   } catch (err) {
-    const msg = err.stack || err.message;
+    const msg = sanitizeErrorMessage(err.message || err.stack);
     console.error(`[publish] ${msg}`);
-    return { ok: false, error: msg };
+    return { ok: false, error: msg, errorCode: err.code || "PUBLISH_FAILED" };
   } finally {
     fs.rmSync(bundle, { recursive: true, force: true });
+    clearRemoteSyncState(rootDir);
   }
 }
 

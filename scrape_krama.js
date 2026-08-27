@@ -10,9 +10,10 @@ const http = require("http");
 const https = require("https");
 const path = require("path");
 const { spawn } = require("child_process");
-const { decodeObservations, encodeObservations } = require("./scripts/observation_codec");
+const { decodeObservations, encodeObservations, observationSnapshotId } = require("./scripts/observation_codec");
 const { normalizeMarketName } = require("./scripts/market_aliases");
-const { stageAndDeploy } = require("./scripts/publish_bundle");
+const { loadEnv, stageAndDeploy } = require("./scripts/publish_bundle");
+const { reconcileRemoteSnapshot } = require("./scripts/remote_snapshot_sync");
 const {
   appendRunRecords, createRunRecord, errorCode, newRunId, sanitizeErrorMessage,
 } = require("./scripts/scraper_run_log");
@@ -189,7 +190,7 @@ function log(level, event, details = {}) {
 }
 
 function parseArgs(argv) {
-  const options = { date: null, sourceId: "krama", uiMode: argv.length === 0, pauseOnExit: false, publish: false };
+  const options = { date: null, sourceId: "krama", uiMode: argv.length === 0, pauseOnExit: false, publish: false, syncRemote: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") { printHelp(); process.exit(0); }
@@ -201,9 +202,11 @@ function parseArgs(argv) {
     else if (arg === "--no-ui") options.uiMode = false;
     else if (arg === "--no-pause") options.pauseOnExit = false;
     else if (arg === "--publish") options.publish = true;
+    else if (arg === "--sync-remote") options.syncRemote = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
   if (![...SOURCE_IDS, "all"].includes(options.sourceId)) throw new Error(`Unknown source: ${options.sourceId}`);
+  options.syncRemote = options.syncRemote || options.publish;
   return options;
 }
 
@@ -220,6 +223,7 @@ Options:
   --no-ui             Run directly for automation.
   --no-pause          Kept for launcher compatibility; never pauses CLI runs.
   --publish           After a successful run, deploy the JSON snapshot to Cloudflare Pages.
+  --sync-remote       Reconcile local observations and run logs with Cloudflare before scraping.
   --help, -h          Show this help.
 
 Notes:
@@ -762,11 +766,13 @@ function buildSearchIndex(rows, categories) {
 
 function makePayloads(rows, categories) {
   const observations = [...rows].sort(compareRows); const searchIndex = buildSearchIndex(observations, categories);
+  const encodedObservations = encodeObservations(observations);
+  const snapshotId = observationSnapshotId(encodedObservations);
   return {
-    "observations.json": encodeObservations(observations),
+    "observations.json": encodedObservations,
     "search-index.json": searchIndex,
     "categories.json": { categories: (categories.categories || []).map((category) => ({ ...category, commodities: [...category.commodities].sort((a, b) => a.localeCompare(b)), commodityCount: category.commodities.length })) },
-    "metadata.json": { generatedAt: new Date().toISOString(), observations: observations.length, commodities: searchIndex.commodities.length, markets: searchIndex.markets.length, varieties: searchIndex.varieties.length },
+    "metadata.json": { generatedAt: new Date().toISOString(), snapshotId, observations: observations.length, commodities: searchIndex.commodities.length, markets: searchIndex.markets.length, varieties: searchIndex.varieties.length },
   };
 }
 
@@ -832,61 +838,83 @@ async function runScrapeForDate(dateInput, options = {}) {
   let merged = null;
   let runError = null;
   let snapshotUpdated = false;
+  let remoteSync = null;
   try {
-    for (const sourceId of sourceIds) {
-      const outcome = outcomes.get(sourceId);
+    if (options.syncRemote || options.publish) {
       try {
-        const sourceResult = await sourceRunner(sourceId, sourceId === "csb_silk" ? null : dateInput);
-        outcome.observations = sourceResult.observations || [];
-        outcome.rowCount = outcome.observations.length;
-        const dates = [...new Set(outcome.observations.map((row) => row.reportDate).filter(Boolean))].sort();
-        outcome.actualReportDate = dates.length ? dates[dates.length - 1] : null;
-        if (!outcome.rowCount) throw codedError("NO_ROWS", `${sourceId} returned no rows`);
-        log("info", "source_completed", { runId, source: sourceId, rows: outcome.rowCount });
+        const runtimeRoot = options.rootDir || (dataDir === DATA_DIR ? ROOT_DIR : path.dirname(dataDir));
+        remoteSync = await reconcileRemoteSnapshot({
+          rootDir: runtimeRoot,
+          dataDir,
+          runId,
+          env: loadEnv(runtimeRoot),
+          buildPayloads: makePayloads,
+          publishSnapshot,
+        });
+        log("info", "remote_snapshot_reconciled", { runId, fingerprint: remoteSync.fingerprint, mergedRowCount: remoteSync.merged_row_count });
       } catch (error) {
-        outcome.status = "failed";
-        outcome.errorCode = errorCode(error, error && error.message && /no rows/i.test(error.message) ? "NO_ROWS" : "SOURCE_ERROR");
-        outcome.errorMessage = error.message;
-        log("error", "source_failed", { runId, source: sourceId, error: error.stack || error.message });
+        remoteSync = { ok: false, errorCode: errorCode(error, "REMOTE_SYNC_FAILED"), error: sanitizeErrorMessage(error.message) };
+        runError = error.code ? error : codedError("REMOTE_SYNC_FAILED", error.message, error);
+        log("error", "remote_snapshot_sync_failed", { runId, error: error.stack || error.message, errorCode: errorCode(runError, "REMOTE_SYNC_FAILED") });
       }
     }
 
-    const scraped = sourceIds.flatMap((sourceId) => outcomes.get(sourceId).observations);
-    if (!scraped.length) {
-      runError = codedError("NO_ROWS", "No source returned usable rows.");
-    } else {
-      try {
-        merged = loadAndMerge(scraped, dataDir);
-        for (const sourceId of sourceIds) {
-          const outcome = outcomes.get(sourceId);
-          outcome.acceptedRowCount = merged.acceptedBySource[sourceId] || 0;
-          outcome.skippedRowCount = merged.skippedBySource[sourceId] || 0;
+    if (!runError) {
+      for (const sourceId of sourceIds) {
+        const outcome = outcomes.get(sourceId);
+        try {
+          const sourceResult = await sourceRunner(sourceId, sourceId === "csb_silk" ? null : dateInput);
+          outcome.observations = sourceResult.observations || [];
+          outcome.rowCount = outcome.observations.length;
+          const dates = [...new Set(outcome.observations.map((row) => row.reportDate).filter(Boolean))].sort();
+          outcome.actualReportDate = dates.length ? dates[dates.length - 1] : null;
+          if (!outcome.rowCount) throw codedError("NO_ROWS", `${sourceId} returned no rows`);
+          log("info", "source_completed", { runId, source: sourceId, rows: outcome.rowCount });
+        } catch (error) {
+          outcome.status = "failed";
+          outcome.errorCode = errorCode(error, error && error.message && /no rows/i.test(error.message) ? "NO_ROWS" : "SOURCE_ERROR");
+          outcome.errorMessage = error.message;
+          log("error", "source_failed", { runId, source: sourceId, error: error.stack || error.message });
         }
-        if (merged.skippedRowCount) log("warn", "taxonomy_rows_skipped", { source: sourceIds.join(","), skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies });
-        if (!merged.acceptedRowCount) {
-          runError = codedError("TAXONOMY_REJECTED", "All scraped rows were skipped because their taxonomy values are unknown.");
-          runError.skippedRowCount = merged.skippedRowCount;
-          runError.unknownTaxonomies = merged.unknownTaxonomies;
-          for (const outcome of outcomes.values()) {
-            if (outcome.rowCount) { outcome.status = "failed"; outcome.errorCode = "TAXONOMY_REJECTED"; outcome.errorMessage = runError.message; }
+      }
+
+      const scraped = sourceIds.flatMap((sourceId) => outcomes.get(sourceId).observations);
+      if (!scraped.length) {
+        runError = codedError("NO_ROWS", "No source returned usable rows.");
+      } else {
+        try {
+          merged = loadAndMerge(scraped, dataDir);
+          for (const sourceId of sourceIds) {
+            const outcome = outcomes.get(sourceId);
+            outcome.acceptedRowCount = merged.acceptedBySource[sourceId] || 0;
+            outcome.skippedRowCount = merged.skippedBySource[sourceId] || 0;
           }
-        } else {
-          const payloads = makePayloads(merged.rows, merged.categories);
-          validateObservations(decodeObservations(payloads["observations.json"]), merged.taxonomy);
-          publishSnapshot(payloads, dataDir, runId);
-          snapshotUpdated = true;
-          for (const outcome of outcomes.values()) {
-            if (outcome.rowCount && outcome.acceptedRowCount) { outcome.status = "success"; outcome.snapshotStatus = "updated"; }
-            else if (outcome.rowCount) { outcome.status = "failed"; outcome.errorCode = "TAXONOMY_REJECTED"; outcome.errorMessage = "All source rows were rejected by taxonomy validation."; }
+          if (merged.skippedRowCount) log("warn", "taxonomy_rows_skipped", { source: sourceIds.join(","), skippedRowCount: merged.skippedRowCount, unknownTaxonomies: merged.unknownTaxonomies });
+          if (!merged.acceptedRowCount) {
+            runError = codedError("TAXONOMY_REJECTED", "All scraped rows were skipped because their taxonomy values are unknown.");
+            runError.skippedRowCount = merged.skippedRowCount;
+            runError.unknownTaxonomies = merged.unknownTaxonomies;
+            for (const outcome of outcomes.values()) {
+              if (outcome.rowCount) { outcome.status = "failed"; outcome.errorCode = "TAXONOMY_REJECTED"; outcome.errorMessage = runError.message; }
+            }
+          } else {
+            const payloads = makePayloads(merged.rows, merged.categories);
+            validateObservations(decodeObservations(payloads["observations.json"]), merged.taxonomy);
+            publishSnapshot(payloads, dataDir, runId);
+            snapshotUpdated = true;
+            for (const outcome of outcomes.values()) {
+              if (outcome.rowCount && outcome.acceptedRowCount) { outcome.status = "success"; outcome.snapshotStatus = "updated"; }
+              else if (outcome.rowCount) { outcome.status = "failed"; outcome.errorCode = "TAXONOMY_REJECTED"; outcome.errorMessage = "All source rows were rejected by taxonomy validation."; }
+            }
           }
-        }
-      } catch (error) {
-        runError = error.code ? error : codedError("VALIDATION_FAILED", error.message, error);
-        for (const outcome of outcomes.values()) {
-          if (outcome.rowCount && outcome.status !== "success") {
-            outcome.status = "failed";
-            outcome.errorCode = errorCode(runError, "VALIDATION_FAILED");
-            outcome.errorMessage = runError.message;
+        } catch (error) {
+          runError = error.code ? error : codedError("VALIDATION_FAILED", error.message, error);
+          for (const outcome of outcomes.values()) {
+            if (outcome.rowCount && outcome.status !== "success") {
+              outcome.status = "failed";
+              outcome.errorCode = errorCode(runError, "VALIDATION_FAILED");
+              outcome.errorMessage = runError.message;
+            }
           }
         }
       }
@@ -922,6 +950,7 @@ async function runScrapeForDate(dateInput, options = {}) {
     logPath: logger && logger.logPath,
     startedAt,
     finishedAt: finishedAt(),
+    remoteSync,
   };
   if (overallStatus === "partial") {
     result.error = "One or more sources failed; successful sources were retained.";
@@ -1219,7 +1248,7 @@ async function startUiServer(config = {}) {
   const runner = config.runner || runScrapeForDate;
   let active = false; const server = require("http").createServer((req, res) => {
     if (req.method === "GET" && req.url === "/") { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); res.end(htmlPage()); return; }
-    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId }); if (config.publish) result.publish = await stageAndDeploy({ rootDir: ROOT_DIR }); res.writeHead(result.ok ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
+    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId, syncRemote: config.publish }); if (config.publish) { if (!result.remoteSync || !result.remoteSync.ok) result.publish = { ok: false, error: result.error || "Remote snapshot reconciliation failed.", errorCode: result.errorCode || "REMOTE_SYNC_FAILED" }; else result.publish = await stageAndDeploy({ rootDir: ROOT_DIR, expectedSnapshotFingerprint: result.remoteSync.fingerprint }); } res.writeHead(result.ok && (!config.publish || result.publish.ok) ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
     res.writeHead(404); res.end("Not found");
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); const url = `http://127.0.0.1:${address.port}/`; log("info", "ui_started", { url }); if (config.openBrowser !== false) openBrowser(url); return server;
@@ -1230,7 +1259,9 @@ async function main() {
   if (options.uiMode) { await startUiServer({ publish: options.publish }); return; }
   const result = await runScrapeForDate(options.date, options); closeLogging();
   if (options.publish) {
-    const deploy = await stageAndDeploy({ rootDir: ROOT_DIR });
+    const deploy = result.remoteSync && result.remoteSync.ok
+      ? await stageAndDeploy({ rootDir: ROOT_DIR, expectedSnapshotFingerprint: result.remoteSync.fingerprint })
+      : { ok: false, error: result.error || "Remote snapshot reconciliation failed; publication was skipped.", errorCode: result.errorCode || "REMOTE_SYNC_FAILED" };
     result.publish = deploy;
     if (!deploy.ok) process.exitCode = 1;
   }

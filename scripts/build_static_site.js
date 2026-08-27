@@ -1,4 +1,5 @@
 const fs = require("fs");
+const crypto = require("crypto");
 const path = require("path");
 const Database = require("better-sqlite3");
 const { encodeObservations } = require("./observation_codec");
@@ -84,8 +85,10 @@ function main() {
       })),
     };
 
+    const encodedObservations = encodeObservations(observations);
     const metadata = {
       generatedAt: new Date().toISOString(),
+      snapshotId: crypto.createHash("sha256").update(JSON.stringify(encodedObservations)).digest("hex"),
       observations: observations.length,
       commodities: searchIndex.commodities.length,
       markets: searchIndex.markets.length,
@@ -93,7 +96,7 @@ function main() {
     };
 
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    writeJson("observations.json", encodeObservations(observations));
+    writeJson("observations.json", encodedObservations);
     writeJson("search-index.json", searchIndex);
     writeJson("categories.json", buildCategoryData(db));
     writeJson("metadata.json", metadata);

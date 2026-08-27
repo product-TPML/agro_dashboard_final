@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("fs");
+const crypto = require("crypto");
 const path = require("path");
 const Database = require("better-sqlite3");
 const { decodeObservations, encodeObservations } = require("./observation_codec");
@@ -70,16 +71,18 @@ function normalizeRuntimeArtifacts() {
   if (!translations.markets[CANONICAL_MARKET]) translations.markets[CANONICAL_MARKET] = translations.markets.COCHIN;
   delete translations.markets.COCHIN;
 
+  const encodedObservations = encodeObservations(observations);
   const metadata = {
     ...readJson("metadata.json"),
     generatedAt: new Date().toISOString(),
+    snapshotId: crypto.createHash("sha256").update(JSON.stringify(encodedObservations)).digest("hex"),
     observations: observations.length,
     commodities: searchIndex.commodities.length,
     markets: searchIndex.markets.length,
     varieties: searchIndex.varieties.length,
   };
 
-  writeJson("observations.json", encodeObservations(observations));
+  writeJson("observations.json", encodedObservations);
   writeJson("search-index.json", searchIndex);
   writeJson("metadata.json", metadata);
   fs.writeFileSync(path.join(ROOT_DIR, "translations.json"), `${JSON.stringify(translations, null, 2)}\n`, "utf8");

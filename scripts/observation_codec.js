@@ -1,5 +1,7 @@
 "use strict";
 
+const crypto = require("crypto");
+
 // Compact dictionary-encoded observation payloads:
 // { version:1, columns:[...], dictionaries:{column:[unique values]}, rows:[[index|null,...]] }
 // A null cell encodes a null/undefined original value; anything else is an index
@@ -53,4 +55,8 @@ function decodeObservations(payload) {
   });
 }
 
-module.exports = { encodeObservations, decodeObservations };
+function observationSnapshotId(payload) {
+  return crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
+module.exports = { encodeObservations, decodeObservations, observationSnapshotId };

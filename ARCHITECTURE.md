@@ -41,6 +41,7 @@ The browser decodes `data/observations.json` in memory and derives the active re
 ```text
 source websites
       → source adapters / normalization
+      → optional Cloudflare snapshot reconciliation
       → taxonomy validation and row merge
       → temporary snapshot files
       → atomic publication of data/*.json (observations remain historical)
@@ -68,18 +69,19 @@ npx wrangler pages deploy <json-bundle> --project-name=agro-dashboard-data
 
 The cross-platform entry point is `npm run scrape:publish`, which owns the scrape → stage → deploy sequence. It runs `scripts/publish_pages.js` (Node standard library only), which:
 
-1. Loads `.env` (or the process environment when `.env` is absent) for `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; `CLOUDFLARE_PAGES_PROJECT` defaults to `agro-dashboard-data`. Secrets are never printed.
-2. Runs the scraper non-interactively (`node scrape_krama.js --no-ui --source all`, never `--publish`, to avoid recursion) and accepts a source/date override, so `npm run scrape:publish -- --source=krama --date=DD/MM/YYYY` works (npm forwards these as `npm_config_source`/`npm_config_date`; the `=` form is the reliable one). Direct invocation `node scripts/publish_pages.js --source=krama --date=DD/MM/YYYY` is also supported. Stray positional arguments are rejected rather than silently appended. A nonzero scrape exit does not prevent publication of the refreshed run summary; the existing observation snapshot is staged unchanged when the scrape failed.
-3. Stages `translations.json`, every `data/*.json` file (including `data/scraper-runs.json`, never the SQLite DB), and a generated `_headers` (public CORS `Access-Control-Allow-Origin: *` for GET/HEAD/OPTIONS and `Cache-Control: no-cache`) into a temporary bundle under the OS temp directory.
-4. Deploys with `npx wrangler pages deploy <bundle> --project-name=<project>` (using `npx.cmd` on Windows), passing the loaded environment, and removes the temp bundle in a `finally` block. It exits nonzero if deployment fails.
+1. Loads `.env` (or the process environment when `.env` is absent) for Cloudflare credentials, `CLOUDFLARE_PAGES_PROJECT`, and `CLOUDFLARE_DATA_BASE_URL` (defaulting to `https://agro-dashboard-data.pages.dev`). Secrets are never printed.
+2. Before a publish-enabled scrape, fetches and validates the live observations, run log, and metadata JSON. Local observations are unioned with the live snapshot, with the live row winning an old local conflict; the current scrape is applied afterward and wins matching `rowKey`s. Local and live run records are combined by `run_id + source`, then the existing 31-day retention is applied.
+3. Runs the scraper non-interactively (`node scrape_krama.js --no-ui --sync-remote --source all`, never `--publish`, to avoid recursion) and accepts a source/date override. A nonzero source scrape can still publish its sanitized run record, but only after successful reconciliation. If reconciliation fails, publication is skipped so an old local bundle cannot replace the live snapshot.
+4. Stages `translations.json`, every `data/*.json` file (including `data/scraper-runs.json`, never the SQLite DB), and a generated `_headers` into a temporary bundle under the OS temp directory. `metadata.json` includes a deterministic observation `snapshotId`.
+5. Re-fetches the live JSON immediately before deployment and compares its fingerprint with the pre-scrape baseline. If Cloudflare changed, deployment is cancelled with `REMOTE_VERSION_CHANGED`; the operator must run the scrape again. Otherwise it deploys with `npx wrangler pages deploy <bundle> --project-name=<project>` and removes the temp bundle in a `finally` block.
 
 The staging and deployment logic lives in the shared `scripts/publish_bundle.js` module (`stageAndDeploy({ rootDir })`), which returns `{ ok, ... }` without terminating the host process. Both `scripts/publish_pages.js` and the scraper reuse it.
 
-The Windows-only command launcher selects publication based on local configuration. With valid `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` values in `.env`, it launches `node scrape_krama.js --ui --publish`, so each selected run also deploys the JSON bundle. Without complete credentials, it launches `node scrape_krama.js --ui` and updates local JSON only. A failed deployment is reported but does not undo the local snapshot. Publication responses expose the staged snapshot/run-log freshness timestamps; they do not claim the deployment currently being uploaded is already live. `npm run scrape:publish` remains the cross-platform non-UI all-source entry point.
+The Windows-only command launcher selects publication based on local configuration. With valid Cloudflare credentials in `.env`, it launches `node scrape_krama.js --ui --publish`; each selected run first reconciles with the live snapshot and then deploys only if the final version check passes. Without complete credentials, it launches `node scrape_krama.js --ui` and updates local JSON only. Remote access, schema, and version-conflict errors are reported without deployment. Publication responses expose the staged snapshot/run-log freshness timestamps; they do not claim the deployment currently being uploaded is already live. `npm run scrape:publish` remains the cross-platform non-UI all-source entry point.
 
 The repository is the source of truth for the standalone scraper distribution. `npm run package:scraper` rebuilds the sibling `Commodity Scraper Package` folder and ZIP from the scraper runtime, launcher files, translations, and JSON data, verifies JSON parity, and excludes `.env`, `node_modules`, SQLite files, and logs.
 
-Operators authenticate Wrangler on each trusted device with Cloudflare OAuth or an account-scoped API token; credentials are never stored in the repository. Concurrent manual runs should be avoided because the last successful Cloudflare Pages deployment becomes the live snapshot.
+Operators authenticate Wrangler only on trusted publishing devices with Cloudflare OAuth or an account-scoped API token; credentials are never stored in the repository. Remote reconciliation prevents detected stale snapshots from being published. Cloudflare Pages has no transactional compare-and-swap deployment lock, so a central lock/publisher would still be required to eliminate the small race between the final read and deployment.
 
 ### Google Sheets run-log pipeline
 

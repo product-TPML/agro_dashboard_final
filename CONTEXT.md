@@ -18,7 +18,7 @@ The active results presentation is cards-only. There are older table/layout help
 - `data/scraper-runs.json` — sanitized operational summaries for the last 31 days; it is not used by the browser and does not limit observation history
 - `data/search-index.json` — commodity, market, and variety search index
 - `data/categories.json` — category definitions and commodity lists
-- `data/metadata.json` — generated counts and timestamp
+- `data/metadata.json` — generated counts, deterministic snapshot fingerprint, and timestamp
 - `scripts/merge_sister_price_data.js` — merges sister-repo SQLite price rows into the checked-in observations while keeping the current taxonomy authoritative
 - `data/agro_dashboard.db` — SQLite source snapshot used only by the build script
 - `scripts/build_static_site.js` — exports the SQLite snapshot to the four JSON files above and applies the dashboard category overrides; writes `observations.json` in compact form via `scripts/observation_codec.js`
@@ -32,22 +32,22 @@ The active results presentation is cards-only. There are older table/layout help
 
 The checked-in JSON is the current compact dashboard snapshot. The current repo's categories remain authoritative; rows for commodities outside the current taxonomy are excluded, and source category values are replaced with the current category assignments. `data/metadata.json` currently reports:
 
-- 73,886 observations
+- 76,085 observations
 - 147 commodities
-- 178 markets
+- 177 markets
 - 369 varieties
-- generated at `2026-08-20T10:06:06.809Z`
+- generated at `2026-08-26T09:15:25.129Z`
 
 Latest report dates in this snapshot by source are:
 
 | Source | Latest report date |
 | --- | --- |
-| Krama (`krama`) | 2026-08-18 |
-| NECC eggs (`necc_egg`) | 2026-08-18 |
-| Central Silk Board (`csb_silk`) | 2026-08-17 |
-| Rubber Board (`rubber_board`) | 2026-08-17 |
-| Coffee Board (`coffee_board`) | 2026-08-14 |
-| Spices Board (`spices_board`) | 2026-08-13 |
+| Krama (`krama`) | 2026-08-25 |
+| NECC eggs (`necc_egg`) | 2026-08-25 |
+| Central Silk Board (`csb_silk`) | 2026-08-24 |
+| Rubber Board (`rubber_board`) | 2026-08-25 |
+| Coffee Board (`coffee_board`) | 2026-08-23 |
+| Spices Board (`spices_board`) | 2026-08-17 |
 
 `build_static_site.js` reads `data/agro_dashboard.db` and rewrites only:
 
@@ -74,13 +74,15 @@ data/metadata.json
 data/scraper-runs.json
 ```
 
-It covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
+It covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; publish-enabled automation also uses `--sync-remote`. `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
 
 Krama uses direct HTTP/ViewState submission first, then Playwright headless and headful fallbacks. The browser fallback detects installed Chromium/Edge/Chrome, submits the ASP.NET form, and parses the final HTML server-side. Shared market normalization includes `DEVDURGA` to `DEVADURGA` and legacy `COCHIN` to the canonical `Cochin`; it also preserves the existing `IISort  without Husk` canonical value.
 
 Successful rows merge by `rowKey`; an identical rerun replaces that row while retaining historical rows. Unknown commodity, market, variety, or grade taxonomy rows are skipped, grouped, and reported in the UI, CLI result, and structured log. If all rows are skipped, a source fails, returns no rows, or another validation error occurs, the existing observation JSON snapshot is retained. Publication uses temporary files and rollback handling so the observation JSON files remain consistent; the run log is appended independently so failures can be recorded without replacing observations.
 
 Each scraper execution writes one record per selected source to `data/scraper-runs.json`, using a shared `run_id` for All Sources. Records contain `run_timestamp`, `requested_report_date`, `actual_report_date`, `status`, `overall_status`, scraped/accepted/skipped/merged row counts, `snapshot_status`, stable `error_code`, sanitized `error_message`, and a source `verification_url` for individual failures. Statuses are `success`, `failed`, or `partial` at the overall-run level; source records identify taxonomy rejection and no-row failures separately. The file is retained for a rolling 31 days, while observations in `data/observations.json` remain historical indefinitely.
+
+Publish-enabled runs first fetch `https://agro-dashboard-data.pages.dev/data/observations.json`, `scraper-runs.json`, and `metadata.json` (or the configured `CLOUDFLARE_DATA_BASE_URL`). Remote observations are merged into the local snapshot before the current scrape; remote records win old local conflicts and current scrape rows win last. Run logs are merged and deduplicated by `run_id + source`. A final remote fingerprint check cancels deployment if another publisher changed the snapshot during the run. Remote network, HTTP, JSON, schema, environment, and version-conflict failures never publish the local bundle.
 
 All Sources attempts continue after an individual source fails. If at least one source produces accepted rows, the observation snapshot is atomically updated and the failed source record says `snapshot_status: preserved`; otherwise the complete existing observation snapshot is preserved. A failed scrape still writes its run summary, and the Cloudflare publish wrapper stages that summary even when the scraper exits nonzero. Cloudflare responses report freshness timestamps for the staged snapshot and run log, not the final live state of the deployment in progress. Detailed JSONL diagnostics remain local under `logs/` and raw stack traces or secrets are not copied to Cloudflare.
 
