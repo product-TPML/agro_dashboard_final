@@ -431,7 +431,7 @@
     },
     "freshness_week": {
       "en": "Updated this week",
-      "kn": "ಈ ವಾರದ ಅಪ್‌ಡೇಟ್‌"
+      "kn": "ಈವಾರದ ಧಾರಣೆ"
     },
     "trend_note_egg": {
       "en": "Trend is shown for this exact commodity and market combination.",
@@ -455,7 +455,7 @@
     },
     "freshness_recent": {
       "en": "Recently updated",
-      "kn": "ಇತ್ತೀಚಿನ ಅಪ್‌ಡೇಟ್‌"
+      "kn": "ಇತ್ತೀಚಿನ ಧಾರಣೆ"
     },
     "filter_selected_one": {
       "en": "1 selected",
@@ -463,15 +463,15 @@
     },
     "freshness_old": {
       "en": "Older update",
-      "kn": "ಹಿಂದಿನ ಅಪ್‌ಡೇಟ್‌"
+      "kn": "ಹಿಂದಿನ ಧಾರಣೆ"
     },
     "steep_hike": {
       "en": "Steep hike",
-      "kn": "Steep hike"
+      "kn": "ದಿಢೀರ್ ಏರಿಕೆ"
     },
     "steep_drop": {
       "en": "Steep drop",
-      "kn": "Steep drop"
+      "kn": "ದಿಢೀರ್ ಕುಸಿತ"
     },
     "market_jump_open_aria": {
       "en": "Open market navigator",

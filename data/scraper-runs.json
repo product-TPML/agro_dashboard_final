@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-27T06:05:20.829Z",
+  "generated_at": "2026-08-27T09:36:40.927Z",
   "retention_days": 31,
   "runs": [
     {
@@ -389,6 +389,40 @@
       "accepted_row_count": 4,
       "skipped_row_count": 0,
       "merged_row_count": 76214,
+      "snapshot_status": "updated",
+      "error_code": null,
+      "error_message": null,
+      "verification_url": null
+    },
+    {
+      "run_id": "48dc9a5d-d709-44a4-a816-b7c87a419312",
+      "source": "necc_egg",
+      "run_timestamp": "2026-08-27T06:40:54.600Z",
+      "requested_report_date": "2026-08-27",
+      "actual_report_date": "2026-08-27",
+      "status": "success",
+      "overall_status": "success",
+      "row_count": 3,
+      "accepted_row_count": 3,
+      "skipped_row_count": 0,
+      "merged_row_count": 76217,
+      "snapshot_status": "updated",
+      "error_code": null,
+      "error_message": null,
+      "verification_url": null
+    },
+    {
+      "run_id": "288a5e69-2fc1-4d33-9a4d-d74211d295ae",
+      "source": "necc_egg",
+      "run_timestamp": "2026-08-27T09:35:41.413Z",
+      "requested_report_date": "2026-08-27",
+      "actual_report_date": "2026-08-27",
+      "status": "success",
+      "overall_status": "success",
+      "row_count": 3,
+      "accepted_row_count": 3,
+      "skipped_row_count": 0,
+      "merged_row_count": 76217,
       "snapshot_status": "updated",
       "error_code": null,
       "error_message": null,

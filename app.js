@@ -10,7 +10,7 @@
     compareRows: () => 0,
   };
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260827-2";
+  const APP_DATA_VERSION = "20260827-3";
   const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
@@ -5660,12 +5660,12 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     const diffDays = Number.isNaN(then.getTime()) ? 999 : Math.max(0, Math.floor((now.getTime() - then.getTime()) / 86400000));
 
     if (diffDays <= 2) {
-      return { tone: "fresh", label: "Recently updated" };
+      return { tone: "fresh", label: getUiText("freshness_recent", "Recently updated") };
     }
     if (diffDays <= 7) {
-      return { tone: "aging", label: "Updated this week" };
+      return { tone: "aging", label: getUiText("freshness_week", "Updated this week") };
     }
-    return { tone: "stale", label: "Older update" };
+    return { tone: "stale", label: getUiText("freshness_old", "Older update") };
   }
 
   function getStatusMeta(freshnessMeta, modalMovement) {
