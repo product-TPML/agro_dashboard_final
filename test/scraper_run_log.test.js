@@ -98,7 +98,7 @@ test("All Sources continues after failures and records a shared partial run", as
   assert.equal(result.overallStatus, "partial");
   assert.equal(result.snapshotStatus, "updated");
   const log = JSON.parse(fs.readFileSync(path.join(dir, "scraper-runs.json"), "utf8"));
-  assert.equal(log.runs.length, 6);
+  assert.equal(log.runs.length, 7);
   assert.equal(new Set(log.runs.map((item) => item.run_id)).size, 1);
   assert.equal(log.runs.find((item) => item.source === "necc_egg").status, "success");
   assert.equal(log.runs.find((item) => item.source === "krama").error_code, "SOURCE_ERROR");

@@ -10,7 +10,7 @@
     compareRows: () => 0,
   };
   const LOCALE_STORAGE_KEY = "commodity-dashboard-locale";
-  const APP_DATA_VERSION = "20260827-3";
+  const APP_DATA_VERSION = "20260828-1";
   const DATA_BASE_URL = "https://agro-dashboard-data.pages.dev";
   const FILTER_HINT_DURATION_MS = 5000;
   const FILTER_HINT_COLLAPSE_MS = 320;
@@ -168,6 +168,7 @@
     categoryNutsSeedsBadge: "https://images.assettype.com/prajavani/2026-08-13/hbv38hnl/category-nuts-seeds-badge.png",
     categoryGrainsPulsesBadge: "https://images.assettype.com/prajavani/2026-08-13/qfvzl1vb/category-grains-pulses-badge.png",
     categoryMiscBadge: "https://images.assettype.com/prajavani/2026-08-13/481lh7bs/category-misc-badge.png",
+    categoryOilsBadge: "https://images.assettype.com/prajavani/2026-08-28/4sjnnwhc/category-oils.png",
     chapparadaAvareThumb: "https://images.assettype.com/prajavani/2026-08-13/mby0el6h/chapparada-avare-thumb-real.png",
     chennangidalThumb: "https://images.assettype.com/prajavani/2026-08-13/3aw7cw2g/chennangidal-thumb-real.png",
     chikoosSapotaThumb: "https://images.assettype.com/prajavani/2026-08-13/7b59evmk/chikoos-sapota-thumb-real.png",
@@ -212,6 +213,12 @@
     maizeThumb: "https://images.assettype.com/prajavani/2026-08-13/xm375ulo/maize-thumb-real.png",
     milletsThumb: "https://images.assettype.com/prajavani/2026-08-14/p72j426a/millets-thumb-real.png",
     marketThumb: "https://images.assettype.com/prajavani/2026-08-13/gin0a510/market-thumb.png",
+    oilGroundnutThumb: "https://images.assettype.com/prajavani/2026-08-28/tri08gfd/oil-groundnut-new.png",
+    oilMustardThumb: "https://images.assettype.com/prajavani/2026-08-28/0kyyfrb9/oil-mustard-new.png",
+    oilPalmThumb: "https://images.assettype.com/prajavani/2026-08-28/58y145xj/oil-palm-new.png",
+    oilSoyaThumb: "https://images.assettype.com/prajavani/2026-08-28/u54152w8/oil-soya-new.png",
+    oilSunflowerThumb: "https://images.assettype.com/prajavani/2026-08-28/8gwp9tex/oil-sunflower-new.png",
+    oilVanaspatiThumb: "https://images.assettype.com/prajavani/2026-08-28/pbvdbj2u/oil-vanaspati.png",
     matakiThumb: "https://images.assettype.com/prajavani/2026-08-13/6tielbni/mataki-thumb-real.png",
     methiSeedsThumb: "https://images.assettype.com/prajavani/2026-08-13/ai92htkg/methi-seeds-thumb-real.png",
     moathThumb: "https://images.assettype.com/prajavani/2026-08-13/x1363es5/moath-thumb-real.png",
@@ -308,6 +315,7 @@
 
   CATEGORY_TAB_THUMBS.spices = ASSETS.categorySpicesBadge;
   CATEGORY_TAB_THUMBS.livestock_and_poultry = ASSETS.categoryLivestockPoultryBadge;
+  CATEGORY_TAB_THUMBS.oils = ASSETS.categoryOilsBadge;
 
   const BAKED_COMMODITY_THUMBS = {
     Apple: ASSETS.appleThumb,
@@ -459,6 +467,12 @@
   };
 
   BAKED_COMMODITY_THUMBS.Egg = ASSETS.eggThumb;
+  BAKED_COMMODITY_THUMBS["Groundnut Oil"] = ASSETS.oilGroundnutThumb;
+  BAKED_COMMODITY_THUMBS["Mustard Oil"] = ASSETS.oilMustardThumb;
+  BAKED_COMMODITY_THUMBS["Palm Oil"] = ASSETS.oilPalmThumb;
+  BAKED_COMMODITY_THUMBS["Soya Oil"] = ASSETS.oilSoyaThumb;
+  BAKED_COMMODITY_THUMBS["Sunflower Oil"] = ASSETS.oilSunflowerThumb;
+  BAKED_COMMODITY_THUMBS.Vanaspati = ASSETS.oilVanaspatiThumb;
   COMMODITY_ICONS.Egg = "\u{1F95A}";
 
   const initialRoute = parseRoute();
@@ -1465,6 +1479,22 @@
   }
 
   function getRowPriceProfile(row) {
+    if (row && row.sourceId === "oil_prices") {
+      return {
+        mode: "single",
+        columns: [
+          {
+            kind: "max",
+            key: "modalPrice",
+            label: getSinglePriceLabel(row),
+            color: PRICE_COLORS.max,
+            strokeWidth: "3.5",
+            dashArray: "",
+          },
+        ],
+      };
+    }
+
     if (row && row.sourceId === "necc_egg") {
       return {
         mode: "single",
@@ -5408,19 +5438,23 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
             <div class="stat-block">
               <div class="stat-label">${renderPriceLabelForCard(column.kind, row)}</div>
               <div class="stat-value ${escapeAttribute(getStatTone(column.kind))}">${escapeHtml(formatCurrencyDisplay(row[column.key]))}</div>
-              ${renderCardDelta(movement)}
+              ${renderCardDelta(movement, freshnessMeta)}
             </div>
           `).join("")}
         </div>
 
         <div class="detail-grid">
           ${detailEntries.map((entry) => `
-            <div class="meta-item meta-item-${escapeAttribute(entry.kind || "default")}">
+            <div class="meta-item meta-item-${escapeAttribute(entry.kind || "default")} ${row.sourceId === "oil_prices" && entry.kind === "source" ? "meta-item-oil-source" : ""}">
               <div class="meta-label">${escapeHtml(entry.label)}</div>
               <div class="meta-value">${escapeHtml(entry.value)}${entry.subvalue ? `<span class="meta-subvalue"> ${escapeHtml(entry.subvalue)}</span>` : ""}</div>
             </div>
           `).join("")}
         </div>
+
+        ${row.sourceId === "oil_prices" ? `
+          <p class="card-source-disclaimer">${escapeHtml(getUiText("oil_prices_disclaimer", "The prices indicated are All India Average Wholesale Price"))}</p>
+        ` : ""}
 
         ${isExpanded ? `
           <div class="graph-panel result-card-history">
@@ -5612,7 +5646,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     return details.slice(0, 5);
   }
 
-  function renderCardDelta(movement) {
+  function renderCardDelta(movement, freshnessMeta) {
     if (!movement || movement.delta === null) {
       return `
         <div class="stat-delta flat">
@@ -5634,7 +5668,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     }
 
     const isGain = movement.delta > 0;
-    const steepClass = movement.isSteep ? ` steep steep-${movement.direction}` : "";
+    const steepClass = movement.isSteep && freshnessMeta?.tone === "fresh"
+      ? ` steep steep-${movement.direction}`
+      : "";
     return `
       <div class="stat-delta ${isGain ? "up" : "down"}${steepClass}">
         <span class="stat-delta-content">
@@ -5646,6 +5682,9 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
   }
 
   function formatSourceName(sourceId) {
+    if (sourceId === "oil_prices") {
+      return "Department of Consumer Affairs";
+    }
     const raw = String(sourceId || "krama").replaceAll("_", " ").trim();
     if (!raw) {
       return "Krama";

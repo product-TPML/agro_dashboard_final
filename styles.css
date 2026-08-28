@@ -2525,10 +2525,6 @@ body {
     transform: none;
   }
 
-  .stat-delta.steep {
-    text-shadow: 0 0 5px currentColor;
-  }
-
   .skeleton-hero,
   .skeleton-tabs,
   .skeleton-grid {
@@ -3628,14 +3624,6 @@ body {
   transform-origin: center;
 }
 
-.stat-delta.steep-hike {
-  text-shadow: 0 0 0 currentColor;
-}
-
-.stat-delta.steep-drop {
-  text-shadow: 0 0 0 currentColor;
-}
-
 @keyframes steep-pill-pulse {
   0%,
   100% {
@@ -3651,13 +3639,11 @@ body {
   0%,
   100% {
     opacity: 1;
-    text-shadow: 0 0 0 currentColor;
     transform: scale(1);
   }
 
   50% {
-    opacity: 0.72;
-    text-shadow: 0 0 5px currentColor, 0 0 11px currentColor;
+    opacity: 1;
     transform: scale(1.045);
   }
 }
@@ -3673,6 +3659,14 @@ body {
   margin: 14px 20px 0;
   padding-top: 14px;
   border-top: 1px solid #d4d4d4;
+}
+
+.card-source-disclaimer {
+  margin: 14px 20px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .meta-item {
@@ -4403,6 +4397,14 @@ body {
     grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr;
     gap: 30px;
     row-gap: 0;
+  }
+
+  .detail-grid .meta-item-source.meta-item-oil-source {
+    grid-column: span 2;
+  }
+
+  .detail-grid .meta-item-oil-source .meta-value {
+    white-space: nowrap;
   }
 
   .stats-row .stat-block,

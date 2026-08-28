@@ -20,6 +20,7 @@ Every source attempt also writes a sanitized operational summary to `data/scrape
 | Spices Board | Fetches Kerala prices for the selected date range and checks Cochin/Kochi market rows. |
 | Coffee Board | Selects the relevant month and year, downloads the archive PDF, and extracts prices for the selected date. |
 | Rubber Board | Checks the daily price page first, then the archive page if no usable rows are found. |
+| Oil Prices | Reads the current Department of Consumer Affairs All India Average Wholesale Price - Oils table, parses its report date, and imports six All India Average prices per Qtl. No date selection or historical archive is available. |
 
 ## Requirements on the local system
 
@@ -189,6 +190,7 @@ DD/MM/YYYY
 Before publication, the scraper reconciles the local snapshot with the live Cloudflare snapshot. This imports remote-only historical observations and run records before the new scrape is merged. Cloudflare data wins conflicts with old local rows; the current scrape wins last. A second live snapshot check runs immediately before Wrangler deployment. If the live snapshot changed during the run, deployment is cancelled and the command must be retried.
 
 Central Silk Board reads the current page and does not require a date in the same way as the other sources.
+Oil Prices also reads the current page, extracts the report date from the page heading, and does not require a date input. It imports Groundnut Oil, Mustard Oil, Palm Oil, Soya Oil, Sunflower Oil, and Vanaspati under the `Oils` category.
 
 ## Scraper flow
 

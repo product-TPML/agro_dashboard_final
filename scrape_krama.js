@@ -1,6 +1,6 @@
 "use strict";
 
-// JSON-only six-source scraper for the compact dashboard snapshot.
+// JSON-only seven-source scraper for the compact dashboard snapshot.
 // This intentionally does not write data/agro_dashboard.db. Running npm run build:data
 // afterwards will export the older SQLite snapshot over these JSON files.
 
@@ -25,7 +25,7 @@ const INDIA_TIME_ZONE = "Asia/Kolkata";
 const MAX_RETRIES = 3;
 const TIMEOUT_NAV = 90000;
 const TIMEOUT_CLICK = 30000;
-const SOURCE_IDS = ["krama", "necc_egg", "csb_silk", "rubber_board", "spices_board", "coffee_board"];
+const SOURCE_IDS = ["krama", "necc_egg", "csb_silk", "rubber_board", "spices_board", "oil_prices", "coffee_board"];
 const OBSERVATION_COLUMNS = [
   "rowKey", "reportDate", "sourceId", "commodity", "perishability", "category", "market",
   "variety", "grade", "arrivals", "unit", "minPrice", "maxPrice", "modalPrice",
@@ -37,6 +37,7 @@ const SOURCE_DISPLAY_UNITS = {
   spices_board: "per KG",
   coffee_board: "50 Kg",
   rubber_board: "per 100 kg",
+  oil_prices: "Qtl",
 };
 const RUBBER_GRADES = [
   { gradeId: "7", variety: "RSS4" },
@@ -48,12 +49,12 @@ const COFFEE_VARIETIES = ["Arabica Parchment", "Arabica Cherry", "Robusta Parchm
 const TARGET_NECC_MARKETS = new Set(["BENGALURU", "MYSURU", "HOSAPETE"]);
 const TARGET_RUBBER_MARKETS = new Set(["KOTTAYAM", "KOCHI"]);
 const RAW_RUBBER_MARKETS = new Set(["Kottayam", "Kochi"]);
-const KNOWN_CANONICAL_MARKETS = new Set(["DEVADURGA"]);
+const KNOWN_CANONICAL_MARKETS = new Set(["DEVADURGA", "All India Average"]);
 const TARGET_SPICES_MARKET = "Cochin";
 const SPICES_EXCLUDED = new Set(["Pepper"]);
 const CATEGORY_DEFINITIONS = [
   ["fruits", "Fruits"], ["vegetables", "Vegetables"], ["nuts_and_seeds", "Nuts and Seeds"],
-  ["grains_and_pulses", "Grains and Pulses"], ["spices", "Spices"],
+  ["grains_and_pulses", "Grains and Pulses"], ["oils", "Oils"], ["spices", "Spices"],
   ["livestock_and_poultry", "Livestock and Poultry"], ["miscellaneous", "Miscellaneous"],
 ];
 
@@ -66,6 +67,7 @@ const URLS = {
   rubberArchive: "https://rubberboard.gov.in/archives",
   spices: "https://www.indianspices.com/marketing/price/domestic/current-market-price.html",
   coffeeArchive: "https://coffeeboard.gov.in/Market_Info_Archives.aspx",
+  oilPrices: "https://fcainfoweb.nic.in/",
 };
 
 const SOURCE_VERIFICATION = Object.freeze({
@@ -125,6 +127,16 @@ const SOURCE_VERIFICATION = Object.freeze({
       "Select the same date you were fetching for",
       "Check Kottayam and Kochi for RSS4, RSS5, ISNR20, and Latex (60%)",
       "If the daily page is empty, check the archive for the same date",
+      "Report to Product team if data is present but not being scraped",
+    ]),
+  }),
+  oil_prices: Object.freeze({
+    url: URLS.oilPrices,
+    linkText: "Open Oil Prices report",
+    steps: Object.freeze([
+      "Open the All India Average Wholesale Price section",
+      "Check the report date and the All India Average Wholesale Price - Oils table",
+      "Check the six oil rows and their per-quintal prices",
       "Report to Product team if data is present but not being scraped",
     ]),
   }),
@@ -218,7 +230,7 @@ Usage:
 
 Options:
   --date DD/MM/YYYY  Selected date for date-aware sources; default is today in IST.
-  --source ID        krama | necc_egg | csb_silk | spices_board | coffee_board | rubber_board | all
+  --source ID        krama | necc_egg | csb_silk | spices_board | oil_prices | coffee_board | rubber_board | all
   --ui               Start the local source/date picker and /run endpoint.
   --no-ui             Run directly for automation.
   --no-pause          Kept for launcher compatibility; never pauses CLI runs.
@@ -534,6 +546,46 @@ function parseCsbSilkHtml(html) {
   return rows;
 }
 
+const OIL_COMMODITIES = Object.freeze(new Map([
+  ["groundnut oil", "Groundnut Oil"],
+  ["mustard oil", "Mustard Oil"],
+  ["vanaspati", "Vanaspati"],
+  ["soya oil", "Soya Oil"],
+  ["sunflower oil", "Sunflower Oil"],
+  ["palm oil", "Palm Oil"],
+]));
+
+function normalizeOilCommodity(value) {
+  const normalized = decodeHtmlText(value).replace(/\s*\(\s*packed\s*\)\s*$/i, "")
+    .replace(/\s+/g, " ").trim().toLowerCase();
+  return OIL_COMMODITIES.get(normalized) || null;
+}
+
+function parseOilPricesHtml(html) {
+  const pageText = decodeHtmlText(String(html || "").replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " "));
+  const heading = pageText.match(/All India Average Wholesale Price[^\r\n]*?As\s+on\s+(\d{1,2}[\/-]\d{1,2}[\/-]\d{4})/i);
+  if (!heading) throw new Error("Oil Prices report date heading missing");
+  const reportDate = parseDmyDate(heading[1], heading[1].includes("/") ? "/" : "-");
+  const tables = [...String(html || "").matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)];
+  const oilsTable = tables.find((table) => /All India Average Wholesale Price\s*-\s*Oils/i.test(decodeHtmlText(table[1])))
+    || tables.find((table) => /Groundnut\s+Oil|Mustard\s+Oil|Vanaspati|Soya\s+Oil|Sunflower\s+Oil|Palm\s+Oil/i.test(decodeHtmlText(table[1])) && !/All India Average Retail Price/i.test(decodeHtmlText(table[1])));
+  if (!oilsTable) throw new Error("Oil Prices Oils table missing");
+  const rows = [];
+  for (const match of oilsTable[1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...match[1].matchAll(/<(?:td|th)\b[^>]*>([\s\S]*?)<\/(?:td|th)>/gi)].map((cell) => decodeHtmlText(cell[1]));
+    const commodity = normalizeOilCommodity(cells[0]);
+    if (!commodity) continue;
+    let price = null;
+    for (const cell of cells.slice(1)) {
+      try { price = parseLooseNumber(cell); } catch (_) { price = null; }
+      if (price !== null) break;
+    }
+    if (price === null || price <= 0) continue;
+    rows.push({ commodity, price });
+  }
+  return { reportDate, rows };
+}
+
 function parseSpicesBoardHtml(html) {
   const body = html.match(/<div class="tabstable marketprice">[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/i);
   if (!body) throw new Error("Spices Board market table missing");
@@ -616,9 +668,20 @@ async function scrapeSource(sourceId, dateInput) {
     if (report.status !== 200) throw new Error(`NECC POST returned status ${report.status}`);
     const observations = parseNeccEggHtml(report.body, fileDateStr); return { sourceId, observations, commodityCount: observations.length ? 1 : 0 };
   }
-  if (sourceId === "csb_silk") {
-    const response = await retry(() => httpGet(URLS.csb), sourceId, "GET silk prices");
-    if (response.status !== 200) throw new Error(`CSB GET returned status ${response.status}`);
+  if (sourceId === "csb_silk" || sourceId === "oil_prices") {
+    const response = await retry(() => httpGet(sourceId === "csb_silk" ? URLS.csb : URLS.oilPrices), sourceId, sourceId === "csb_silk" ? "GET silk prices" : "GET All India oil prices");
+    if (response.status !== 200) throw new Error(`${sourceId === "csb_silk" ? "CSB" : "Oil Prices"} GET returned status ${response.status}`);
+    if (sourceId === "oil_prices") {
+      const report = parseOilPricesHtml(response.body);
+      const observations = report.rows.map((row) => observation({
+        rowKey: buildRowKey([report.reportDate, sourceId, row.commodity, "All India Average"]),
+        reportDate: report.reportDate, sourceId, commodity: row.commodity, perishability: "non-perishable",
+        category: "oils", market: "All India Average", variety: "", grade: "", arrivals: null, unit: "Qtl",
+        minPrice: null, maxPrice: null, modalPrice: row.price, canonicalPrice: null, canonicalPriceUnit: null,
+        priceDisplayUnit: "Qtl",
+      }));
+      return { sourceId, observations, commodityCount: new Set(observations.map((row) => row.commodity)).size };
+    }
     const rows = parseCsbSilkHtml(response.body); const observations = rows.map((row) => { const reportDate = parseDmyDate(row.date, "-"); const market = normalizeMarket(sourceId, row.market); return observation({ rowKey: buildRowKey([reportDate, sourceId, "Silk", market, row.variety, ""]), reportDate, sourceId, commodity: "Silk", perishability: "non-perishable", category: "miscellaneous", market, variety: row.variety, grade: "", arrivals: parseLooseNumber(row.quantity), unit: "Quintal", minPrice: parseLooseNumber(row.min), maxPrice: parseLooseNumber(row.max), modalPrice: parseLooseNumber(row.average), canonicalPrice: null, canonicalPriceUnit: null, priceDisplayUnit: "Kg" }); });
     return { sourceId, observations, commodityCount: observations.length ? 1 : 0 };
   }
@@ -725,6 +788,7 @@ function validateObservations(rows, taxonomy, options = {}) {
     if (enforceSourceFilters && row.sourceId === "rubber_board" && (!TARGET_RUBBER_MARKETS.has(row.market) || !["RSS4", "RSS5", "ISNR20", "Latex (60%)"].includes(row.variety))) throw new Error("Invalid Rubber target row");
     if (enforceSourceFilters && row.sourceId === "coffee_board" && (!COFFEE_VARIETIES.includes(row.variety) || row.market !== "Karnataka")) throw new Error("Invalid Coffee target row");
     if (enforceSourceFilters && row.sourceId === "spices_board" && (row.market !== TARGET_SPICES_MARKET || row.commodity === "Pepper")) throw new Error("Invalid Spices target row");
+    if (enforceSourceFilters && row.sourceId === "oil_prices" && (row.market !== "All India Average" || !OIL_COMMODITIES.has(row.commodity.toLowerCase()) || row.variety || row.grade || row.arrivals !== null || row.unit !== "Qtl" || row.minPrice !== null || row.maxPrice !== null || typeof row.modalPrice !== "number" || row.modalPrice <= 0)) throw new Error("Invalid Oil Prices target row");
   }
   return rows;
 }
@@ -863,7 +927,7 @@ async function runScrapeForDate(dateInput, options = {}) {
       for (const sourceId of sourceIds) {
         const outcome = outcomes.get(sourceId);
         try {
-          const sourceResult = await sourceRunner(sourceId, sourceId === "csb_silk" ? null : dateInput);
+          const sourceResult = await sourceRunner(sourceId, sourceId === "csb_silk" || sourceId === "oil_prices" ? null : dateInput);
           outcome.observations = sourceResult.observations || [];
           outcome.rowCount = outcome.observations.length;
           const dates = [...new Set(outcome.observations.map((row) => row.reportDate).filter(Boolean))].sort();
@@ -976,7 +1040,7 @@ async function runScrapeForDate(dateInput, options = {}) {
     run_id: runId,
     source: outcome.sourceId,
     run_timestamp: startedAt,
-    requested_report_date: outcome.sourceId === "csb_silk" ? null : requestedDate,
+    requested_report_date: outcome.sourceId === "csb_silk" || outcome.sourceId === "oil_prices" ? null : requestedDate,
     actual_report_date: outcome.actualReportDate,
     status: outcome.status,
     overall_status: overallStatus,
@@ -1055,7 +1119,8 @@ function htmlPageImproved() {
       <option value="spices_board">Spices Board</option>
       <option value="coffee_board">Coffee Board</option>
       <option value="rubber_board">Rubber Board</option>
-      <option value="all">All six sources</option>
+      <option value="oil_prices">Oil Prices</option>
+      <option value="all">All seven sources</option>
     </select>
     <label id="dateLabel" for="date">Date</label>
     <input id="date" type="date">
@@ -1095,7 +1160,8 @@ function htmlPageImproved() {
       spices_board: 'Spices Board',
       coffee_board: 'Coffee Board',
       rubber_board: 'Rubber Board',
-      all: 'all six sources'
+      oil_prices: 'Oil Prices',
+      all: 'all seven sources'
     };
     let busy = false;
 
@@ -1248,7 +1314,7 @@ async function startUiServer(config = {}) {
   const runner = config.runner || runScrapeForDate;
   let active = false; const server = require("http").createServer((req, res) => {
     if (req.method === "GET" && req.url === "/") { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); res.end(htmlPage()); return; }
-    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId, syncRemote: config.publish }); if (config.publish) { if (!result.remoteSync || !result.remoteSync.ok) result.publish = { ok: false, error: result.error || "Remote snapshot reconciliation failed.", errorCode: result.errorCode || "REMOTE_SYNC_FAILED" }; else result.publish = await stageAndDeploy({ rootDir: ROOT_DIR, expectedSnapshotFingerprint: result.remoteSync.fingerprint }); } res.writeHead(result.ok && (!config.publish || result.publish.ok) ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
+    if (req.method === "POST" && req.url === "/run") { if (active) { res.writeHead(409, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: "A scrape is already in progress." })); return; } let body = ""; req.on("data", (chunk) => { body += chunk; }); req.on("end", async () => { active = true; try { const payload = JSON.parse(body || "{}"); const sourceId = [...SOURCE_IDS, "all"].includes(payload.sourceId) ? payload.sourceId : "krama"; const date = sourceId === "csb_silk" || sourceId === "oil_prices" ? null : normalizeUiDate(payload.date); const result = await runner(date, { sourceId, syncRemote: config.publish }); if (config.publish) { if (!result.remoteSync || !result.remoteSync.ok) result.publish = { ok: false, error: result.error || "Remote snapshot reconciliation failed.", errorCode: result.errorCode || "REMOTE_SYNC_FAILED" }; else result.publish = await stageAndDeploy({ rootDir: ROOT_DIR, expectedSnapshotFingerprint: result.remoteSync.fingerprint }); } res.writeHead(result.ok && (!config.publish || result.publish.ok) ? 200 : 500, { "Content-Type": "application/json" }); res.end(JSON.stringify(result)); } catch (error) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: error.message })); } finally { active = false; } }); return; }
     res.writeHead(404); res.end("Not found");
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); const url = `http://127.0.0.1:${address.port}/`; log("info", "ui_started", { url }); if (config.openBrowser !== false) openBrowser(url); return server;
@@ -1271,7 +1337,7 @@ async function main() {
 if (require.main === module) main().catch((error) => { if (!logger) setupLogging(); log("error", "fatal", { error: error.stack || error.message }); closeLogging(); process.exitCode = 1; });
 
 module.exports = {
-  OBSERVATION_COLUMNS, SOURCE_IDS, buildRowKey, parseLooseNumber, parseKramaHtml, parseNeccEggHtml, parseCsbSilkHtml,
+  OBSERVATION_COLUMNS, SOURCE_IDS, buildRowKey, parseLooseNumber, parseKramaHtml, parseNeccEggHtml, parseCsbSilkHtml, parseOilPricesHtml,
   parseSpicesBoardHtml, filterSpicesBoardRows, parseCoffeeBoardRawPriceText, parseRubberBoardDailyHtml, parseRubberBoardArchiveHtml, parseDmyDate, parseAbbrevMonthDate,
   parseDottedDate, normalizeMarket, normalizeKrama, scrapeKramaWithFallback, validateObservations, buildTaxonomy, SOURCE_VERIFICATION, SOURCE_VERIFICATION_URLS, getSourceVerificationUrl,
   makePayloads, loadAndMerge, publishSnapshot, reportDateStrings, parseArgs, htmlPage, runScrapeForDate, startUiServer,

@@ -23,6 +23,16 @@ test("source parsers accept saved fixtures and reject malformed input", () => {
   assert.equal(scraper.parseKramaHtml(fixture("krama.html")).commodities[0].data[0].Market, "Mysuru");
   assert.equal(scraper.parseNeccEggHtml(fixture("necc.html"), "2026-08-17").length, 3);
   assert.equal(scraper.parseCsbSilkHtml(fixture("csb.html"))[0].variety, "Bivoltine Seed Cocoon");
+  const oilReport = scraper.parseOilPricesHtml(fixture("oil-prices.html"));
+  assert.equal(oilReport.reportDate, "2026-08-27");
+  assert.deepEqual(oilReport.rows, [
+    { commodity: "Groundnut Oil", price: 19683.68 },
+    { commodity: "Mustard Oil", price: 19044.24 },
+    { commodity: "Vanaspati", price: 15581.98 },
+    { commodity: "Soya Oil", price: 15555.1 },
+    { commodity: "Sunflower Oil", price: 18211.99 },
+    { commodity: "Palm Oil", price: 14005.4 },
+  ]);
   const spiceRows = scraper.parseSpicesBoardHtml(fixture("spices.html"));
   assert.equal(spiceRows.length, 2);
   assert.deepEqual(scraper.filterSpicesBoardRows(spiceRows).map((item) => item.commodity), ["Clove"]);
@@ -62,6 +72,7 @@ test("source verification links use the official report pages", () => {
     spices_board: "https://www.indianspices.com/marketing/price/domestic/current-market-price.html",
     coffee_board: "https://coffeeboard.gov.in/Market_Info_Archives.aspx",
     rubber_board: "https://rubberboard.gov.in/public",
+    oil_prices: "https://fcainfoweb.nic.in/",
   });
   assert.equal(scraper.getSourceVerificationUrl("all"), undefined);
   assert.deepEqual(scraper.SOURCE_VERIFICATION.krama.steps, [
@@ -201,7 +212,7 @@ test("help text is represented in the local UI and source contract", () => {
   assert.match(scraper.htmlPage(), /variety: 'Variety'/);
   assert.match(scraper.htmlPage(), /grade: 'Grade'/);
   assert.match(scraper.htmlPage(), /not available in database/);
-  assert.deepEqual(scraper.SOURCE_IDS, ["krama", "necc_egg", "csb_silk", "rubber_board", "spices_board", "coffee_board"]);
+  assert.deepEqual(scraper.SOURCE_IDS, ["krama", "necc_egg", "csb_silk", "rubber_board", "spices_board", "oil_prices", "coffee_board"]);
 });
 
 test("local UI serves the picker and routes /run to the scraper", async () => {

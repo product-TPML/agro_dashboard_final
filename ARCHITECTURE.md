@@ -36,7 +36,7 @@ The browser decodes `data/observations.json` in memory and derives the active re
 
 ### Scraper pipeline
 
-`Launch Commodity Scraper.cmd` is the canonical Windows entry point. It checks for Node.js, installs Node.js LTS through WinGet when missing, puts the discovered Node directory on `PATH` for npm lifecycle scripts, installs the local npm dependencies, ensures a Chrome/Edge or Playwright Chromium browser is available, and then starts `scrape_krama.js --ui`. `Launch Commodity Scraper.vbs` remains a compatibility shortcut that delegates to the command launcher. The scraper supports Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board.
+`Launch Commodity Scraper.cmd` is the canonical Windows entry point. It checks for Node.js, installs Node.js LTS through WinGet when missing, puts the discovered Node directory on `PATH` for npm lifecycle scripts, installs the local npm dependencies, ensures a Chrome/Edge or Playwright Chromium browser is available, and then starts `scrape_krama.js --ui`. `Launch Commodity Scraper.vbs` remains a compatibility shortcut that delegates to the command launcher. The scraper supports Krama, NECC eggs, Central Silk Board, Spices Board, Oil Prices, Coffee Board, and Rubber Board. Oil Prices reads the current Department of Consumer Affairs All India Average Wholesale Price - Oils table and publishes six `Oils` commodities with `All India Average` as the market and `modalPrice` as the single displayed price.
 
 ```text
 source websites

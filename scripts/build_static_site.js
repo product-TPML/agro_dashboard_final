@@ -15,6 +15,7 @@ const SOURCE_PRICE_DISPLAY_UNITS = {
   spices_board: "per KG",
   coffee_board: "50 Kg",
   rubber_board: "per 100 kg",
+  oil_prices: "Qtl",
 };
 
 const CATEGORY_OVERRIDES = {
@@ -40,6 +41,12 @@ const CATEGORY_OVERRIDES = {
   "Cowpea (Veg)": "vegetables",
   Millets: "grains_and_pulses",
   "Other Fruits": "fruits",
+  "Groundnut Oil": "oils",
+  "Mustard Oil": "oils",
+  "Palm Oil": "oils",
+  "Soya Oil": "oils",
+  "Sunflower Oil": "oils",
+  Vanaspati: "oils",
 };
 
 function main() {
@@ -146,6 +153,7 @@ function buildCategoryData(db) {
     { id: "vegetables", label: "Vegetables" },
     { id: "nuts_and_seeds", label: "Nuts and Seeds" },
     { id: "grains_and_pulses", label: "Grains and Pulses" },
+    { id: "oils", label: "Oils" },
     { id: "spices", label: "Spices" },
     { id: "livestock_and_poultry", label: "Livestock and Poultry" },
     { id: "miscellaneous", label: "Miscellaneous" },

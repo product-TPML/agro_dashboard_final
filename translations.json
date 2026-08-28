@@ -27,7 +27,7 @@
     },
     "home_intro": {
       "en": "Use the search bar to search for prices of commodities, markets, or varieties of your choice. Use filters to narrow down your search.",
-      "kn": "ನಿಮ್ಮ ಆಯ್ಕೆಯ ಸರಕುಗಳು, ಮಾರುಕಟ್ಟೆಗಳು ಅಥವಾ ತಳಿಗಳ ಬೆಲೆಗಳನ್ನು ಹುಡುಕಲು ಹುಡುಕಾಟ ಪಟ್ಟಿಯನ್ನು ಬಳಸಿ. ನಿಮ್ಮ ಹುಡುಕಾಟವನ್ನು ಸುಗಮಗೊಳಿಸಲು ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಬಳಸಿ."
+      "kn": "ನೀವು ಹುಡುಕುತ್ತಿರುವ ಬೆಳೆ, ಮಾರುಕಟ್ಟೆ ಅಥವಾ ತಳಿಗಳ ಬೆಲೆಯ ಮಾಹಿತಿಗಾಗಿ ಇಲ್ಲಿರುವ ಸರ್ಚ್ ಬಾರ್ ಕ್ಲಿಕ್ ಮಾಡಿ. ಹುಡುಕಾಟವನ್ನು ಇನ್ನಷ್ಟು ಸರಳಗೊಳಿಸಲು ಫಿಲ್ಟರ್ ಬಳಸಿ"
     },
     "search_label": {
       "en": "Search commodities, markets, or varieties",
@@ -77,6 +77,10 @@
       "en": "Grains and Pulses",
       "kn": "ಧಾನ್ಯಗಳು ಮತ್ತು ಬೇಳೆಕಾಳುಗಳು"
     },
+    "category_oils": {
+      "en": "Oils",
+      "kn": "ಅಡುಗೆ ಎಣ್ಣೆ"
+    },
     "category_spices": {
       "en": "Spices",
       "kn": "ಮಸಾಲೆಗಳು"
@@ -96,6 +100,10 @@
     "footer_disclaimer": {
       "en": "All prices are sourced from official websites, sources of which are mentioned on each commodity card",
       "kn": "ಎಲ್ಲಾ ಬೆಲೆಗಳನ್ನು ಅಧಿಕೃತ ವೆಬ್‌ಸೈಟ್‌ಗಳಿಂದ ಪಡೆಯಲಾಗಿದೆ, ಆ ಮೂಲಗಳನ್ನು ಪ್ರತಿ ಸರಕಿನ ಕಾರ್ಡ್‌ನಲ್ಲಿ ಉಲ್ಲೇಖಿಸಲಾಗಿದೆ"
+    },
+    "oil_prices_disclaimer": {
+      "en": "The prices indicated are All India Average Wholesale Price",
+      "kn": "ರಾಷ್ಟ್ರಮಟ್ಟದ ಸರಾಸರಿ ಸಗಟು ಬೆಲೆ"
     },
     "footer_back_to_prajavani": {
       "en": "Back to Prajavani",
@@ -771,6 +779,10 @@
       "en": "Groundnut",
       "kn": "ಕಡಲೆಕಾಯಿ"
     },
+    "Groundnut Oil": {
+      "en": "Groundnut Oil",
+      "kn": "ಶೇಂಗಾ ಎಣ್ಣೆ"
+    },
     "Groundnut Seed": {
       "en": "Groundnut Seed",
       "kn": "ಶೇಂಗಾ ಬೀಜ"
@@ -862,6 +874,10 @@
     "Mustard": {
       "en": "Mustard",
       "kn": "ಸಾಸಿವೆ"
+    },
+    "Mustard Oil": {
+      "en": "Mustard Oil",
+      "kn": "ಸಾಸಿವೆ ಎಣ್ಣೆ"
     },
     "Navane": {
       "en": "Navane",
@@ -983,9 +999,17 @@
       "en": "Soyabeen",
       "kn": "ಸೋಯಾಬೀನ್"
     },
+    "Soya Oil": {
+      "en": "Soya Oil",
+      "kn": "ಸೋಯಾ ಎಣ್ಣೆ"
+    },
     "Sunflower": {
       "en": "Sunflower",
       "kn": "ಸೂರ್ಯಕಾಂತಿ"
+    },
+    "Sunflower Oil": {
+      "en": "Sunflower Oil",
+      "kn": "ಸೂರ್ಯಕಾಂತಿ ಎಣ್ಣೆ"
     },
     "Suvarnagadde": {
       "en": "Suvarnagadde",
@@ -1098,9 +1122,21 @@
     "Coffee": {
       "en": "Coffee",
       "kn": "ಕಾಫಿ"
+    },
+    "Palm Oil": {
+      "en": "Palm Oil",
+      "kn": "ಪಾಮೊಲಿನ್‌"
+    },
+    "Vanaspati": {
+      "en": "Vanaspati",
+      "kn": "ವನಸ್ಪತಿ"
     }
   },
   "markets": {
+    "All India Average": {
+      "en": "All India Average",
+      "kn": "ರಾಷ್ಟ್ರಮಟ್ಟದ ಸರಾಸರಿ"
+    },
     "ANNIGERI": {
       "en": "ANNIGERI",
       "kn": "ಅಣ್ಣಿಗೇರಿ"

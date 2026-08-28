@@ -15,7 +15,7 @@ The hosted dashboard includes:
 - Price deltas and inline price history
 - English/Kannada localization
 
-The map workflow is intentionally excluded. The JSON-only six-source scraper is available at
+The map workflow is intentionally excluded. The JSON-only seven-source scraper is available at
 `scrape_krama.js`, with a hidden Windows launcher at `Launch Commodity Scraper.vbs`.
 
 ## Social previews
@@ -44,7 +44,7 @@ the scraper. The scraper never updates SQLite; use `node scrape_krama.js --no-ui
 
 ## Scraper
 
-The scraper covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber
+The scraper covers Krama, NECC eggs, Central Silk Board, Spices Board, Oil Prices, Coffee Board, and Rubber
 Board. It merges successful observations into the existing compact snapshot by `rowKey`, validates
 the complete result, and atomically publishes observations, search index, categories, and metadata.
 Rows with unknown commodity, market, variety, or grade taxonomy are skipped and reported in the UI,

@@ -32,22 +32,23 @@ The active results presentation is cards-only. There are older table/layout help
 
 The checked-in JSON is the current compact dashboard snapshot. The current repo's categories remain authoritative; rows for commodities outside the current taxonomy are excluded, and source category values are replaced with the current category assignments. `data/metadata.json` currently reports:
 
-- 76,085 observations
-- 147 commodities
-- 177 markets
+- 76,223 observations
+- 153 commodities
+- 178 markets
 - 369 varieties
-- generated at `2026-08-26T09:15:25.129Z`
+- generated at `2026-08-28T05:49:22.701Z`
 
 Latest report dates in this snapshot by source are:
 
 | Source | Latest report date |
 | --- | --- |
-| Krama (`krama`) | 2026-08-25 |
-| NECC eggs (`necc_egg`) | 2026-08-25 |
-| Central Silk Board (`csb_silk`) | 2026-08-24 |
+| Krama (`krama`) | 2026-08-26 |
+| NECC eggs (`necc_egg`) | 2026-08-27 |
+| Central Silk Board (`csb_silk`) | 2026-08-26 |
 | Rubber Board (`rubber_board`) | 2026-08-25 |
 | Coffee Board (`coffee_board`) | 2026-08-23 |
 | Spices Board (`spices_board`) | 2026-08-17 |
+| Oil Prices (`oil_prices`) | 2026-08-27 |
 
 `build_static_site.js` reads `data/agro_dashboard.db` and rewrites only:
 
@@ -64,7 +65,7 @@ The checked-in browser payload is newer than the retained SQLite source snapshot
 
 ## JSON-only scraper
 
-The repository also contains a six-source scraper that publishes the four runtime observation JSON files plus the operational run log, and never updates `data/agro_dashboard.db`:
+The repository also contains a seven-source scraper that publishes the four runtime observation JSON files plus the operational run log, and never updates `data/agro_dashboard.db`:
 
 ```text
 data/observations.json
@@ -74,7 +75,7 @@ data/metadata.json
 data/scraper-runs.json
 ```
 
-It covers Krama, NECC eggs, Central Silk Board, Spices Board, Coffee Board, and Rubber Board. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; publish-enabled automation also uses `--sync-remote`. `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
+It covers Krama, NECC eggs, Central Silk Board, Spices Board, Oil Prices, Coffee Board, and Rubber Board. Oil Prices reads the current Department of Consumer Affairs All India Average Wholesale Price - Oils table, normalizes six oil commodities into the `oils` category, uses `All India Average` as the market, stores its single price in `modalPrice` with display unit `Qtl`, and does not require a date input or historical archive. Use `node scrape_krama.js --help` for all options. Automation uses `--no-ui --source SOURCE --date DD/MM/YYYY`; publish-enabled automation also uses `--sync-remote`. `Launch Commodity Scraper.vbs` opens the hidden local source/date picker.
 
 Krama uses direct HTTP/ViewState submission first, then Playwright headless and headful fallbacks. The browser fallback detects installed Chromium/Edge/Chrome, submits the ASP.NET form, and parses the final HTML server-side. Shared market normalization includes `DEVDURGA` to `DEVADURGA` and legacy `COCHIN` to the canonical `Cochin`; it also preserves the existing `IISort  without Husk` canonical value.
 
@@ -98,7 +99,7 @@ All Sources attempts continue after an individual source fails. If at least one 
 
 - Hero section with responsive background artwork and search.
 - The header brand uses `assets/commodity-logo.svg`; the home hero/banner brand uses `assets/pv-square-logo.svg` so the banner does not repeat the header wordmark. Both placements are clickable home links and are constrained per placement so they do not bleed into adjacent controls.
-- Seven category tabs, in order: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, Spices, Livestock and Poultry, and Miscellaneous.
+- Eight category tabs, in order: Fruits, Vegetables, Nuts and Seeds, Grains and Pulses, Oils, Spices, Livestock and Poultry, and Miscellaneous.
 - Category-specific commodity gallery with counts and real commodity thumbnails.
 - Desktop category rails use a small left gutter and start from the left so the first category remains fully visible when the rail overflows.
 - The search overlay X closes the overlay and clears the active search term; clicking outside the overlay only closes it.
@@ -111,6 +112,7 @@ The current category assignments are:
 - `spices`: `Clove`, `Dry Chillies`, `Mace`, `Nutmeg`, `Pepper`, and `Turmeric`
 - `livestock_and_poultry`: `Bull (For Each)`, `Calf (For Each)`, `Cow (For Each)`, `Egg`, `Goat (For Each)`, `He Baffalo (For Each)`, `Ox (For Each)`, `Ram (For Each)`, `She Baffalo (For Each)`, `She Goat (For Each)`, and `Sheep (For Each)`
 - `grains_and_pulses` additionally contains `Bullar` and `Sajje`
+- `oils`: `Groundnut Oil`, `Mustard Oil`, `Palm Oil`, `Soya Oil`, `Sunflower Oil`, and `Vanaspati`
 
 The repository preserves these canonical source names, including the existing `He Baffalo (For Each)` and `She Baffalo (For Each)` spellings, for search, filters, translations, assets, and URL compatibility.
 
@@ -165,7 +167,7 @@ Price display is source-aware rather than one universal three-price layout:
 - Standard Krama rows use max, modal, and min prices.
 - Coffee rows use max/min prices.
 - Silk rows use max/average/min prices.
-- NECC egg, Spices Board, and Rubber Board rows use one canonical price.
+- NECC egg, Spices Board, Rubber Board, and Oil Prices rows use one displayed price; Oil Prices uses `modalPrice` and `Qtl`.
 - Labels and units are derived from the row/source data, including quintal, kg, 50 kg, 100 kg, 100 pieces, and piece-style units.
 
 Price deltas compare the displayed row against the previous comparable actual database update. History is rendered as custom responsive inline SVG; no chart library is used. The chart supports the relevant one-, two-, or three-metric price series, hover/click date selection, an active-point summary, horizontal scrolling, responsive summary layouts, and an explanatory trend note.
@@ -234,7 +236,7 @@ npx --yes http-server . -p 4173
 
 Then open `http://127.0.0.1:4173`. A static-file server is sufficient; there is no application server or API to start.
 
-The current browser/data cache version is `20260820-7`, referenced consistently by `app.js` and the CSS/JS tags in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
+The current browser/data cache version is `20260828-1`, referenced consistently by `app.js` and the JS tag in `index.html`. Use a hard refresh after frontend changes if an existing browser session retains an older bundle.
 
 Starting the static server does not modify the data files. `npm run build:data` is the data-export command and should only be run when a full SQLite-to-JSON refresh is intended.
 
