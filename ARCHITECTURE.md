@@ -24,6 +24,7 @@ Dashboard static host (any host)
 - `analytics.js` — browser-safe data-layer contract for GTM page-view and card-expansion events; it does not require a GTM container to be present.
 - `result_ordering.js` — shared canonical market, freshness, and tie-breaker ordering used by result cards.
 - `styles.css` — responsive visual system and component styling.
+- `embed.js` — auto-height Dharane price touchpoint for CMS home and article pages; it injects an isolated Shadow DOM widget, fetches only the compact latest-price feed, and links to dashboard commodity routes. `embed-cloudflare.html` is the standalone production variant with the widget code inline; it uses only the Cloudflare Pages JSON endpoints and has no local fallback. `embed-bookmarklet.txt` is the generated one-line clipboard bookmarklet source: `npm run build:bookmarklet` runs `scripts/build_bookmarklet.js` (Node standard library only), which gzips and Base64-encodes `embed-cloudflare-tight.html` into a self-contained bookmarklet that decodes with `atob` + `Uint8Array`, decompresses via `Blob` + `DecompressionStream('gzip')` + `Response.text()`, and copies the exact HTML to the clipboard (Clipboard API with a textarea/`execCommand` fallback). It works without deployment and must be regenerated after any change to `embed-cloudflare-tight.html`. `embed.html` is a local preview shell for the standard script.
 - `translations.json` — English/Kannada UI and taxonomy translations.
 - `data/` — browser-ready observations, taxonomy, search indexes, aliases, transliterations, and metadata.
 - `assets/` and `fonts/` — local working assets; production image references primarily use the Prajavani Assettype CDN.
@@ -92,6 +93,8 @@ Source and export paths share canonical market aliases. The dashboard uses `Coch
 ### SQLite export pipeline
 
 `npm run build:data` runs `scripts/build_static_site.js`, which reads the SQLite snapshot and rewrites the observations, search index, categories, and metadata JSON files. This is a separate, older data path and can overwrite scraper-produced JSON; do not run it casually after scraping.
+
+`embed.js` and `embed-cloudflare.html` consume the existing `data/observations.json` and `data/scraper-runs.json` payloads, include rows whose successful source run was announced today or yesterday, derive the latest max-price row and previous comparable delta in the browser, inject an auto-height Shadow DOM widget, shuffle four changed-price entries on wide desktop, three on medium widths, and two on mobile on load and every nine seconds, render the dashboard-style up/down delta arrows with a 3D top-roll refresh, and send card clicks to `?view=table&type=commodity&commodity=...&origin=embed`. The standard script can fall back to repository-local JSON files; the standalone HTML variant fails closed when any Cloudflare JSON endpoint is unavailable.
 
 Supporting scripts include the observation codec, shared market alias normalization, sister-database merge, search transliteration generation, and CMS hosted-bundle generation.
 

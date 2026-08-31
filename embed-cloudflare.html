@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="kn">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <title>Prajavani Dharane Price Widget</title>
+    <style>html, body { margin: 0; }</style>
+  </head>
+  <body>
+    <script data-lang="kn">
+(() => {
+  const script = document.currentScript;
+  if (!script) return;
+  if (script.parentNode.querySelector("[data-dharane-price-embed]")) return;
+
+  const pageUrl = new URL(document.baseURI);
+  const locale = pageUrl.searchParams.get("lang") === "en" || script.dataset.lang === "en" ? "en" : "kn";
+  const FONT_FAMILY = "Prajavani Text";
+  const FONT_REGULAR_URL = "https://fea.assettype.com/tpml/assets/PrajavaniTextRegular.woff2";
+  const FONT_SEMIBOLD_URL = "https://fea.assettype.com/tpml/assets/PrajavaniTextSemibold.woff2";
+  const FONT_HEADLINE_URL = "https://fea.assettype.com/tpml/assets/PvHeadlineSemibold3.woff2";
+  const fontReady = typeof FontFace === "function"
+    ? Promise.all([
+      new FontFace(FONT_FAMILY, `url("${FONT_REGULAR_URL}")`, { weight: "400" }).load(),
+      new FontFace(FONT_FAMILY, `url("${FONT_SEMIBOLD_URL}")`, { weight: "600" }).load(),
+      new FontFace("Prajavani Headline", `url("${FONT_HEADLINE_URL}")`, { weight: "600" }).load(),
+    ]).then((fonts) => { fonts.forEach((font) => document.fonts.add(font)); return fonts; }).catch(() => null)
+    : Promise.resolve(null);
+  const DATA_URL = "https://agro-dashboard-data.pages.dev/data/observations.json";
+  const RUNS_URL = "https://agro-dashboard-data.pages.dev/data/scraper-runs.json";
+  const FALLBACK_THUMB = "https://images.assettype.com/prajavani/2026-08-13/7wu70bpd/commodity-thumb.png";
+  const IMAGE_URLS = {
+    Apple: "https://images.assettype.com/prajavani/2026-08-13/4am9snf2/apple-thumb-real.png",
+    Alasandikai: "https://images.assettype.com/prajavani/2026-08-13/nnr21zyd/alasandikai-thumb-real.png",
+    Arecanut: "https://images.assettype.com/prajavani/2026-08-13/0c44d4lk/arecanut-thumb-real.png",
+    "Ash Gourd": "https://images.assettype.com/prajavani/2026-08-13/ugqwjpxa/ash-gourd-thumb-real.png",
+    Avare: "https://images.assettype.com/prajavani/2026-08-13/5x1hskff/avare-thumb-real.png",
+    Banana: "https://images.assettype.com/prajavani/2026-08-13/ow7stfjd/banana-thumb-real.png",
+    "Banana Green": "https://images.assettype.com/prajavani/2026-08-13/1s6426cf/banana-green-thumb-real.png",
+    Beans: "https://images.assettype.com/prajavani/2026-08-13/fhiz6eqo/beans-thumb-real.png",
+    Beetroot: "https://images.assettype.com/prajavani/2026-08-13/h0qcoab1/beetroot-thumb-real.png",
+    "Betal Leaves": "https://images.assettype.com/prajavani/2026-08-13/q0wzqyhb/betal-leaves-thumb-real.png",
+    "Bitter Gourd": "https://images.assettype.com/prajavani/2026-08-13/nyzchoyo/bitter-gourd-thumb-real.png",
+    "Bottle Gourd": "https://images.assettype.com/prajavani/2026-08-13/cjoakjmo/bottle-gourd-thumb-real.png",
+    Brinjal: "https://images.assettype.com/prajavani/2026-08-13/jfl7t8sx/brinjal-thumb-real.png",
+    "Bunch Beans": "https://images.assettype.com/prajavani/2026-08-13/1nzqb7e8/bunch-beans-thumb-real.png",
+    Cabbage: "https://images.assettype.com/prajavani/2026-08-13/oeiubaai/cabbage-thumb-real.png",
+    Cashewnut: "https://images.assettype.com/prajavani/2026-08-13/c4eux0hn/cashewnut-thumb-real.png",
+    Capsicum: "https://images.assettype.com/prajavani/2026-08-13/m4tdhaed/capsicum-thumb-real.png",
+    Carrot: "https://images.assettype.com/prajavani/2026-08-13/rruxamdj/carrot-thumb-real.png",
+    "Castor Seed": "https://images.assettype.com/prajavani/2026-08-13/dtmdgoyg/castor-seed-thumb-real.png",
+    Cauliflower: "https://images.assettype.com/prajavani/2026-08-13/sgeh8b8m/cauliflower-thumb-real.png",
+    "Chapparada Avare": "https://images.assettype.com/prajavani/2026-08-13/mby0el6h/chapparada-avare-thumb-real.png",
+    "Chikoos (Sapota)": "https://images.assettype.com/prajavani/2026-08-13/7b59evmk/chikoos-sapota-thumb-real.png",
+    "Chilly Capsicum": "https://images.assettype.com/prajavani/2026-08-13/uprgb06j/chilly-capsicum-thumb-real.png",
+    "Chilly Red": "https://images.assettype.com/prajavani/2026-08-13/8t5mzwk4/chilly-red-thumb-real.png",
+    "Coconut (Per 1000)": "https://images.assettype.com/prajavani/2026-08-13/d35br9k2/coconut-per-1000-thumb-real.png",
+    Copra: "https://images.assettype.com/prajavani/2026-08-13/2pvebcs9/copra-thumb-real.png",
+    Coriander: "https://images.assettype.com/prajavani/2026-08-13/9taognsr/coriander-thumb-real.png",
+    "Coriander Seed": "https://images.assettype.com/prajavani/2026-08-13/97hzokyl/coriander-seed-thumb-real.png",
+    "Cotton Seed": "https://images.assettype.com/prajavani/2026-08-13/gcm8e4dp/cotton-seed-thumb-real.png",
+    Cumminseed: "https://images.assettype.com/prajavani/2026-08-13/1uixteoo/cumminseed-thumb-real.png",
+    Cucumbar: "https://images.assettype.com/prajavani/2026-08-13/21kplzej/cucumbar-thumb-real.png",
+    "Drum Stick": "https://images.assettype.com/prajavani/2026-08-13/gx61xwyf/drum-stick-thumb-real.png",
+    Garlic: "https://images.assettype.com/prajavani/2026-08-13/k7ty5wqh/garlic-thumb-real.png",
+    Ginger: "https://images.assettype.com/prajavani/2026-08-13/175w3k5a/ginger-thumb-real.png",
+    Gingelly: "https://images.assettype.com/prajavani/2026-08-13/kzxsl59y/gingelly-thumb-real.png",
+    Grapes: "https://images.assettype.com/prajavani/2026-08-13/75g24q5m/grapes-thumb-real.png",
+    "Green Avare (W)": "https://images.assettype.com/prajavani/2026-08-13/v44kxlpx/green-avare-w-thumb-real.png",
+    "Green Chilly": "https://images.assettype.com/prajavani/2026-08-13/quosrjw2/green-chilly-thumb-real.png",
+    "Green Ginger": "https://images.assettype.com/prajavani/2026-08-13/gt4fjssy/green-ginger-thumb-real.png",
+    "Green Peas": "https://images.assettype.com/prajavani/2026-08-13/lstwypdo/green-peas-thumb-real.png",
+    Groundnut: "https://images.assettype.com/prajavani/2026-08-13/pkvy9kui/groundnut-thumb-real.png",
+    "Groundnut Seed": "https://images.assettype.com/prajavani/2026-08-13/wkrvp8o6/groundnut-seed-thumb-real.png",
+    Gurellu: "https://images.assettype.com/prajavani/2026-08-13/ch5tuvnr/gurellu-thumb-real.png",
+    Guava: "https://images.assettype.com/prajavani/2026-08-13/aclhn8i3/guava-thumb-real.png",
+    "Honge Seed": "https://images.assettype.com/prajavani/2026-08-13/k4335wt6/honge-seed-thumb-real.png",
+    "Jack Fruit": "https://images.assettype.com/prajavani/2026-08-13/sr02pita/jack-fruit-thumb-real.png",
+    Karbuja: "https://images.assettype.com/prajavani/2026-08-13/e28nvcac/karbuja-thumb-real.png",
+    "Knool Khol": "https://images.assettype.com/prajavani/2026-08-13/6tntp8ub/knool-khol-thumb-real.png",
+    "Ladies Finger": "https://images.assettype.com/prajavani/2026-08-13/f2j79oeu/ladies-finger-thumb-real.png",
+    "Lime (Lemon)": "https://images.assettype.com/prajavani/2026-08-13/0c66t2g1/lime-lemon-thumb-real.png",
+    Mango: "https://images.assettype.com/prajavani/2026-08-13/0536wdlq/mango-thumb-real.png",
+    "Mango (Raw-Ripe)": "https://images.assettype.com/prajavani/2026-08-13/7ljscp16/mango-raw-ripe-thumb-real.png",
+    Mousambi: "https://images.assettype.com/prajavani/2026-08-13/ky7krc2e/mousambi-thumb-real.png",
+    "Methi Seeds": "https://images.assettype.com/prajavani/2026-08-13/ai92htkg/methi-seeds-thumb-real.png",
+    Mustard: "https://images.assettype.com/prajavani/2026-08-13/mpqzjzie/mustard-thumb-real.png",
+    "Neem Seed": "https://images.assettype.com/prajavani/2026-08-13/sy507z3y/neem-seed-thumb-real.png",
+    "Niger Seed": "https://images.assettype.com/prajavani/2026-08-13/6wt8e493/niger-seed-thumb-real.png",
+    Onion: "https://images.assettype.com/prajavani/2026-08-13/3clr44nq/onion-thumb-real.png",
+    Orange: "https://images.assettype.com/prajavani/2026-08-13/mruzak5f/orange-thumb-real.png",
+    Papaya: "https://images.assettype.com/prajavani/2026-08-13/xftmed6h/papaya-thumb-real.png",
+    "Peas Wet": "https://images.assettype.com/prajavani/2026-08-13/k73k0t78/peas-wet-thumb-real.png",
+    "Pine Apple": "https://images.assettype.com/prajavani/2026-08-13/9c4zzmcf/pine-apple-thumb-real.png",
+    Pomagranate: "https://images.assettype.com/prajavani/2026-08-13/jrsngbnc/pomagranate-thumb-real.png",
+    Potato: "https://images.assettype.com/prajavani/2026-08-13/gvjgszh0/potato-thumb-real.png",
+    Raddish: "https://images.assettype.com/prajavani/2026-08-24/jewo9jzz/indian-radish-mooli.png",
+    Ridgeguard: "https://images.assettype.com/prajavani/2026-08-13/jhtaylz4/ridgeguard-thumb-real.png",
+    Safflower: "https://images.assettype.com/prajavani/2026-08-13/i7yjy1kg/safflower-thumb-real.png",
+    Seemebadanekai: "https://images.assettype.com/prajavani/2026-08-13/ousen76v/seemebadanekai-thumb-real.png",
+    Sesamum: "https://images.assettype.com/prajavani/2026-08-13/09srwb5b/sesamum-thumb-real.png",
+    Snakeguard: "https://images.assettype.com/prajavani/2026-08-13/qvwln4nu/snakeguard-thumb-real.png",
+    Sunflower: "https://images.assettype.com/prajavani/2026-08-13/yb8svclp/sunflower-thumb-real.png",
+    Suvarnagadde: "https://images.assettype.com/prajavani/2026-08-13/hxy9h25x/suvarnagadde-thumb-real.png",
+    "Sweet Potato": "https://images.assettype.com/prajavani/2026-08-13/xjdxf79x/sweet-potato-thumb-real.png",
+    "Sweet Pumpkin": "https://images.assettype.com/prajavani/2026-08-13/d1c3xxab/sweet-pumpkin-thumb-real.png",
+    "Tamarind Fruit": "https://images.assettype.com/prajavani/2026-08-13/9ou2sojv/tamarind-fruit-thumb-real.png",
+    "Tamarind Seed": "https://images.assettype.com/prajavani/2026-08-13/bb8i5w7e/tamarind-seed-thumb-real.png",
+    "Tender Coconut": "https://images.assettype.com/prajavani/2026-08-13/w621uwo0/tender-coconut-thumb-real.png",
+    Thogarikai: "https://images.assettype.com/prajavani/2026-08-13/hvt9a34k/thogarikai-thumb-real.png",
+    Thondekai: "https://images.assettype.com/prajavani/2026-08-13/hn1nxoew/thondekai-thumb-real.png",
+    Tomato: "https://images.assettype.com/prajavani/2026-08-13/jg8ey66q/tomato-thumb-real.png",
+    "Alasande Gram": "https://images.assettype.com/prajavani/2026-08-13/wcdzmstc/alasande-gram-thumb-real.png",
+    Avaredal: "https://images.assettype.com/prajavani/2026-08-13/x4s4peph/avaredal-thumb-real.png",
+    Bajra: "https://images.assettype.com/prajavani/2026-08-13/lgbmwnc9/bajra-thumb-real.png",
+    Barley: "https://images.assettype.com/prajavani/2026-08-13/3xxhg0w8/barley-thumb-real.png",
+    "Bengal Gramdal": "https://images.assettype.com/prajavani/2026-08-13/pwlx77oy/bengal-gramdal-thumb-real.png",
+    Bengalgram: "https://images.assettype.com/prajavani/2026-08-13/lqfwl3zv/bengalgram-thumb-real.png",
+    "Black Gramdal": "https://images.assettype.com/prajavani/2026-08-13/bnj7beyp/black-gramdal-thumb-real.png",
+    Blackgram: "https://images.assettype.com/prajavani/2026-08-13/k8l920nd/blackgram-thumb-real.png",
+    Chennangidal: "https://images.assettype.com/prajavani/2026-08-13/3aw7cw2g/chennangidal-thumb-real.png",
+    Cowpea: "https://images.assettype.com/prajavani/2026-08-13/zzxxu2qv/cowpea-thumb-real.png",
+    "Cowpea (Veg)": "https://images.assettype.com/prajavani/2026-08-14/fgxqanhe/cowpea-veg-thumb-real.png",
+    "Duster Beans": "https://images.assettype.com/prajavani/2026-08-13/qv5xobqg/duster-beans-thumb-real.png",
+    "Foxtail Millet": "https://images.assettype.com/prajavani/2026-08-13/em5m5n8n/foxtail-millet-thumb-real.png",
+    "Green Gramdal": "https://images.assettype.com/prajavani/2026-08-13/olx98jt0/green-gramdal-thumb-real.png",
+    Greengram: "https://images.assettype.com/prajavani/2026-08-13/mzlps8rk/greengram-thumb-real.png",
+    "Horse Gram": "https://images.assettype.com/prajavani/2026-08-13/v8cga1y4/horse-gram-thumb-real.png",
+    Jowar: "https://images.assettype.com/prajavani/2026-08-13/nbv5byo9/jowar-thumb-real.png",
+    Maize: "https://images.assettype.com/prajavani/2026-08-13/xm375ulo/maize-thumb-real.png",
+    Mataki: "https://images.assettype.com/prajavani/2026-08-13/6tielbni/mataki-thumb-real.png",
+    Millets: "https://images.assettype.com/prajavani/2026-08-14/p72j426a/millets-thumb-real.png",
+    Moath: "https://images.assettype.com/prajavani/2026-08-13/x1363es5/moath-thumb-real.png",
+    Navane: "https://images.assettype.com/prajavani/2026-08-13/fsi4b50n/navane-thumb-real.png",
+    Paddy: "https://images.assettype.com/prajavani/2026-08-13/gs984cak/paddy-thumb-real.png",
+    Ragi: "https://images.assettype.com/prajavani/2026-08-13/k0w2zln6/ragi-thumb-real.png",
+    Redgram: "https://images.assettype.com/prajavani/2026-08-13/xthz55i7/redgram-thumb-real.png",
+    Rice: "https://images.assettype.com/prajavani/2026-08-13/ya7aj13o/rice-thumb-real.png",
+    "Same/Savi": "https://images.assettype.com/prajavani/2026-08-13/9dwck7j5/same-savi-thumb-real.png",
+    Soyabeen: "https://images.assettype.com/prajavani/2026-08-13/utdfardf/soyabeen-thumb-real.png",
+    Tur: "https://images.assettype.com/prajavani/2026-08-13/stc1o66f/tur-thumb-real.png",
+    "Tur Dal": "https://images.assettype.com/prajavani/2026-08-13/uzxcgli7/tur-dal-thumb-real.png",
+    "Water Melon": "https://images.assettype.com/prajavani/2026-08-13/gkuavoce/water-melon-thumb-real.png",
+    Wheat: "https://images.assettype.com/prajavani/2026-08-13/aglc7v0s/wheat-thumb-real.png",
+    "White Pumpkin": "https://images.assettype.com/prajavani/2026-08-13/mc8za9gx/white-pumpkin-thumb-real.png",
+    "All Flowers": "https://images.assettype.com/prajavani/2026-08-13/0vc3h4fw/all-flowers-thumb-real.png",
+    Antawala: "https://images.assettype.com/prajavani/2026-08-13/nomkhkk6/antawala-thumb-real.png",
+    "Bull (For Each)": "https://images.assettype.com/prajavani/2026-08-13/kd291c9c/bull-for-each-thumb-real.png",
+    Bullar: "https://images.assettype.com/prajavani/2026-08-13/evenxfpc/bullar-thumb-real.png",
+    "Calf (For Each)": "https://images.assettype.com/prajavani/2026-08-13/zld9llai/calf-for-each-thumb-real.png",
+    Clove: "https://images.assettype.com/prajavani/2026-08-13/qkhkxx2q/clove-thumb-real.png",
+    "Coco Brooms": "https://images.assettype.com/prajavani/2026-08-13/ipf1mgpo/coco-brooms-thumb-real.png",
+    Coffee: "https://images.assettype.com/prajavani/2026-08-13/q7zafuyw/coffee-thumb-real.png",
+    Cotton: "https://images.assettype.com/prajavani/2026-08-13/3o85ldro/cotton-thumb-real.png",
+    "Cow (For Each)": "https://images.assettype.com/prajavani/2026-08-13/xf8xhkzo/cow-for-each-thumb-real.png",
+    Crysanthamum: "https://images.assettype.com/prajavani/2026-08-13/xma5l0bf/crysanthamum-thumb-real.png",
+    "Dry Chillies": "https://images.assettype.com/prajavani/2026-08-13/oz49tlr1/dry-chillies-thumb-real.png",
+    "Dry Grapes": "https://images.assettype.com/prajavani/2026-08-13/jxuh528z/dry-grapes-thumb-real.png",
+    "Goat (For Each)": "https://images.assettype.com/prajavani/2026-08-13/zjcfk4vt/goat-for-each-thumb-real.png",
+    "He Baffalo (For Each)": "https://images.assettype.com/prajavani/2026-08-13/uele8n6z/he-baffalo-for-each-thumb-real.png",
+    Jaggery: "https://images.assettype.com/prajavani/2026-08-13/8tfoz2up/jaggery-thumb-real.png",
+    Lint: "https://images.assettype.com/prajavani/2026-08-13/c56z142r/lint-thumb-real.png",
+    Mace: "https://images.assettype.com/prajavani/2026-08-13/xt167dj5/mace-thumb-real.png",
+    Marygold: "https://images.assettype.com/prajavani/2026-08-13/kbcome3u/marygold-thumb-real.png",
+    Nutmeg: "https://images.assettype.com/prajavani/2026-08-13/aixbisvl/nutmeg-thumb-real.png",
+    "Other Fruits": "https://images.assettype.com/prajavani/2026-08-14/t3et57ns/other-fruits-thumb-real.png",
+    "Ox (For Each)": "https://images.assettype.com/prajavani/2026-08-13/wcv807e0/ox-for-each-thumb-real.png",
+    Pepper: "https://images.assettype.com/prajavani/2026-08-13/gtvr3nia/pepper-thumb-real.png",
+    "Ram (For Each)": "https://images.assettype.com/prajavani/2026-08-13/nq7ax4nr/ram-for-each-thumb-real.png",
+    Rose: "https://images.assettype.com/prajavani/2026-08-13/uxy8znz3/rose-thumb-real.png",
+    Rubber: "https://images.assettype.com/prajavani/2026-08-13/dqq80cps/rubber-thumb-real.png",
+    Sajje: "https://images.assettype.com/prajavani/2026-08-13/0dyi78pn/sajje-thumb-real.png",
+    "She Baffalo (For Each)": "https://images.assettype.com/prajavani/2026-08-13/y62utzpt/she-baffalo-for-each-thumb-real.png",
+    "She Goat (For Each)": "https://images.assettype.com/prajavani/2026-08-13/ndlxg33m/she-goat-for-each-thumb-real.png",
+    "Sheep (For Each)": "https://images.assettype.com/prajavani/2026-08-13/js5tn1ig/sheep-for-each-thumb-real.png",
+    Silk: "https://images.assettype.com/prajavani/2026-08-13/87cz627z/silk-thumb-real.png",
+    Soapnut: "https://images.assettype.com/prajavani/2026-08-13/98indrww/soapnut-thumb-real.png",
+    Turmeric: "https://images.assettype.com/prajavani/2026-08-13/unotzv97/turmeric-thumb-real.png",
+    Egg: "https://images.assettype.com/prajavani/2026-08-13/k50hnazo/egg-thumb-real.png",
+  };
+  const TRANSLATIONS_URL = "https://agro-dashboard-data.pages.dev/translations.json";
+  const DASHBOARD_URL = "https://product-tpml.github.io/agro_dashboard_final/";
+  const copy = {
+    en: { kicker: "Latest market prices", title: "Today's prices", change: "Change from previous update", viewAll: "View all prices", updated: "Updated", loading: "Loading prices...", error: "Prices are temporarily unavailable.", noRecent: "No market updates were announced today or yesterday." },
+    kn: { kicker: "ಇತ್ತೀಚಿನ ಮಾರುಕಟ್ಟೆ ಧಾರಣೆ", title: "ಇಂದಿನ ಧಾರಣೆಗಳು", change: "ಹಿಂದಿನ ನವೀಕರಣದಿಂದ ಬದಲಾವಣೆ", viewAll: "ಎಲ್ಲಾ ಧಾರಣೆಗಳು", updated: "ನವೀಕರಣ", loading: "ಧಾರಣೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...", error: "ಧಾರಣೆಗಳು ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ.", noRecent: "ಇಂದು ಅಥವಾ ನಿನ್ನೆ ಯಾವುದೇ ಮಾರುಕಟ್ಟೆ ನವೀಕರಣ ಪ್ರಕಟವಾಗಿಲ್ಲ." },
+  }[locale];
+  const styles = `
+    :host { display: block; width: 100%; margin: 12px 0; color: #263329; text-align: left; }
+    :host, * { font-family: "${FONT_FAMILY}", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    a { color: inherit; }
+    .embed-shell { width: 100%; overflow: hidden; border: 1px solid #d8e0d5; border-radius: 14px; background: #f3f6ef; box-shadow: 0 5px 16px rgba(17, 48, 37, .1); }
+    .embed-header { position: relative; overflow: hidden; padding: 5px 10px; background: #144231; color: #fff; }
+    .embed-header::after { position: absolute; right: -34px; bottom: -66px; width: 180px; height: 180px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 50%; content: ""; box-shadow: 0 0 0 22px rgba(255, 255, 255, .035), 0 0 0 44px rgba(255, 255, 255, .025); }
+    .embed-head-row { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .embed-brand { display: inline-flex; align-items: center; min-width: 0; }
+    .embed-brand img { display: block; width: 104px; height: 24px; object-fit: contain; object-position: left center; }
+    .embed-title-row { flex: 1; min-width: 0; }
+    .embed-kicker { overflow: hidden; margin: 0 0 1px; color: #bce4c5; font-size: 10px; font-weight: 700; line-height: normal; letter-spacing: .04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .embed-header .updated-at { color: rgba(255, 255, 255, .66); font-size: 9px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+    h1 { overflow: hidden; margin: 0; font-family: "Prajavani Headline", "Prajavani Text", system-ui, sans-serif; font-size: clamp(17px, 3vw, 22px); line-height: normal; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+    .mobile-all-prices { display: none; }
+    .price-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 6px 10px; }
+    .price-grid.is-three-up { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .price-grid.is-two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .price-card { min-width: 0; border: 1px solid #d8e0d5; border-radius: 12px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04); transition: transform .18s ease, box-shadow .18s ease; }
+    .price-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(17, 48, 37, .11); }
+    .price-card a { display: flex; align-items: center; gap: 8px; min-height: 82px; padding: 9px 10px; text-decoration: none; }
+    .price-card.is-wiping-out { animation: board-wipe .42s cubic-bezier(.65, 0, .84, .36) var(--wipe-delay, 0ms) both; will-change: clip-path, opacity, transform; }
+    .commodity-image { display: block; width: 42px; height: 42px; flex: 0 0 42px; overflow: hidden; border: 1px solid rgba(63, 125, 74, .13); border-radius: 8px; background: #f2f5ec; }
+    .commodity-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .compact-copy { min-width: 0; }
+    .commodity-name { display: block; overflow: hidden; color: #263329; font-size: 16px; font-weight: 700; line-height: normal; text-overflow: ellipsis; white-space: nowrap; }
+    .commodity-meta { display: block; overflow: hidden; margin-top: 2px; color: #667064; font-size: 10px; line-height: normal; text-overflow: ellipsis; white-space: nowrap; }
+    .compact-price { display: flex; align-items: baseline; gap: 4px; margin-top: 4px; white-space: nowrap; }
+    .price { color: #c2410c; font-size: 17px; font-weight: 700; line-height: normal; letter-spacing: -.03em; }
+    .price-unit { overflow: hidden; color: #667064; font-size: 9px; line-height: normal; text-overflow: ellipsis; }
+    .price-delta { display: inline-flex; align-items: center; gap: 3px; margin-top: 5px; padding: 0; border: 0; border-radius: 0; font-size: 10px; font-weight: 700; line-height: normal; }
+    .price-delta.up { color: #14804a; }
+    .price-delta.down { color: #c2410c; }
+    .price-delta.flat, .price-delta.none { color: #667064; }
+    .delta-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex: 0 0 14px; font-size: 10px; line-height: 1; }
+    .price-grid.is-refresh { perspective: 700px; }
+    .price-grid.is-refresh .price-card { animation: top-roll .72s cubic-bezier(.2, .8, .25, 1) both; backface-visibility: hidden; transform-origin: top center; }
+    .price-grid.is-refresh .price-card:nth-child(2) { animation-delay: 70ms; }
+    .price-grid.is-refresh .price-card:nth-child(3) { animation-delay: 140ms; }
+    .price-grid.is-refresh .price-card:nth-child(4) { animation-delay: 210ms; }
+    .price-grid.is-refresh .price-delta { animation: delta-pop .9s cubic-bezier(.2, .8, .25, 1) both; }
+    .price-delta.steep-up, .price-delta.steep-down { font-weight: 900; transform-origin: left center; }
+    .price-delta.steep-up { animation: steep-up-emphasis .75s ease-in-out infinite; }
+    .price-delta.steep-down { animation: steep-down-emphasis .75s ease-in-out infinite; }
+    .price-grid.is-refresh .price-delta.steep-up { animation: steep-up-emphasis .75s ease-in-out infinite; }
+    .price-grid.is-refresh .price-delta.steep-down { animation: steep-down-emphasis .75s ease-in-out infinite; }
+    .price-card.steep-up .compact-copy { animation: steep-up-card .75s ease-in-out infinite; }
+    .price-card.steep-down .compact-copy { animation: steep-down-card .75s ease-in-out infinite; }
+    .price-card.steep-up > a { animation: steep-up-card .75s ease-in-out infinite; }
+    .price-card.steep-down > a { animation: steep-down-card .75s ease-in-out infinite; }
+    @keyframes top-roll { 0% { opacity: 0; transform: rotateX(-78deg) translateY(-12px); } 58% { opacity: 1; transform: rotateX(8deg) translateY(1px); } 100% { opacity: 1; transform: rotateX(0) translateY(0); } }
+    @keyframes delta-pop { 0% { opacity: 0; transform: scale(.65); box-shadow: 0 0 0 0 currentColor; } 45% { opacity: 1; transform: scale(1.16); box-shadow: 0 0 0 5px transparent; } 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 transparent; } }
+    @keyframes steep-up-emphasis { 0%, 100% { color: #14804a; transform: scale(1); } 50% { color: #0b6b3a; transform: scale(1.08); } }
+    @keyframes steep-down-emphasis { 0%, 100% { color: #c2410c; transform: scale(1); } 50% { color: #a9320a; transform: scale(1.08); } }
+    @keyframes steep-up-card { 0%, 100% { background: #fff; } 50% { background: #dff3e5; } }
+    @keyframes steep-down-card { 0%, 100% { background: #fff; } 50% { background: #ffe4dc; } }
+    @keyframes board-wipe { 0% { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(0) scaleX(1); } 48% { opacity: 1; clip-path: inset(0 0 0 48%); transform: translateX(6px) scaleX(.98); } 100% { opacity: 0; clip-path: inset(0 0 0 100%); transform: translateX(14px) scaleX(.9); } }
+    .updated-at { color: #667064; font-size: 10px; line-height: normal; }
+    .all-prices { display: inline-flex; align-items: center; gap: 3px; max-width: 124px; padding: 4px 7px; border-radius: 999px; background: #3f7d4a; color: #fff; font-size: 10px; font-weight: 700; line-height: normal; text-decoration: none; white-space: nowrap; }
+    .state { padding: 26px 18px; color: #667064; font-size: 13px; line-height: 1.4; text-align: center; }
+    @media (min-width: 901px) { .price-card { overflow: hidden; } .price-card a { align-items: stretch; min-height: 82px; padding: 0; } .commodity-image { width: 76px; height: auto; min-height: 100%; flex-basis: 76px; border: 0; border-radius: 0; } .compact-copy { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 6px 10px; } }
+    @media (max-width: 900px) { .price-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 620px) { .price-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .embed-title-row { display: none; } .embed-brand img { width: 96px; height: 22px; } .all-prices { display: none; } .mobile-all-prices { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; padding: 3px 6px; border: 1px solid rgba(188, 228, 197, .55); border-radius: 999px; background: #3f7d4a; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0; text-decoration: none; white-space: nowrap; } .price-card { overflow: hidden; } .price-card a { align-items: stretch; padding: 0; } .commodity-image { width: 76px; height: auto; min-height: 100%; flex-basis: 76px; border: 0; border-radius: 0; } .compact-copy { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 6px 0; } .price-delta { margin-top: 3px; } .commodity-name, .commodity-meta, .price, .price-unit, .price-delta, .updated-at, .all-prices, .mobile-all-prices { line-height: normal; } }
+    @media (max-width: 380px) { .embed-header { padding-inline: 8px; } .embed-head-row { gap: 6px; } .embed-brand img { width: 88px; } .price-grid { padding-inline: 8px; } .commodity-image { width: 68px; flex-basis: 68px; } .commodity-name { font-size: 14px; } .price { font-size: 15px; } }
+    @media (prefers-reduced-motion: reduce) { .price-card { transition: none; } .price-grid.is-refresh .price-card, .price-grid.is-refresh .price-delta, .price-card.is-wiping-out, .price-card.steep-up .compact-copy, .price-card.steep-down .compact-copy, .price-card.steep-up > a, .price-card.steep-down > a { animation: none; } .price-delta.steep-up, .price-delta.steep-down { transform: scale(1.08); } }
+  `;
+  const host = document.createElement("section");
+  host.setAttribute("data-dharane-price-embed", "true");
+  host.setAttribute("aria-live", "polite");
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `<style>${styles}</style><main class="embed-shell"><div class="state">${copy.loading}</div></main>`;
+  script.parentNode.insertBefore(host, script.nextSibling);
+  const widget = root.querySelector(".embed-shell");
+  const setWidgetVisibility = (visible) => { host.hidden = !visible; host.setAttribute("aria-hidden", String(!visible)); };
+  let renderedCount = 0;
+  let refreshTimer = null;
+  let lastCommodityKeys = new Set();
+  let rotationCount = 0;
+
+  const escapeHtml = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[character]));
+  const fetchJson = (url) => fetch(url, { cache: "no-store" }).then((response) => { if (!response.ok) throw new Error(`Request failed: ${response.status}`); return response.json(); });
+  const translate = (translations, group, value) => translations && translations[group] && translations[group][value] && translations[group][value][locale] || value;
+  const commodityKey = (value) => String(value || "").trim().toLowerCase();
+  const isSteep = (item) => typeof item.deltaMaxPrice === "number" && Number.isFinite(item.previousMaxPrice) && item.previousMaxPrice > 0 && Math.abs(item.deltaMaxPrice) >= item.previousMaxPrice * 0.1;
+  const shuffle = (items) => { for (let i = items.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; } return items; };
+  const formatPrice = (value) => `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value)}`;
+  const formatDate = (value) => new Intl.DateTimeFormat(locale === "kn" ? "kn-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`));
+  const dashboardLink = (commodity) => { const url = new URL(DASHBOARD_URL); url.searchParams.set("view", "table"); url.searchParams.set("type", "commodity"); url.searchParams.set("commodity", commodity); url.searchParams.set("origin", "embed"); return url.href; };
+  const deltaIcon = (delta) => delta > 0
+    ? `<span class="delta-icon" aria-hidden="true">&#9650;</span>`
+    : delta < 0 ? `<span class="delta-icon" aria-hidden="true">&#9660;</span>` : "";
+
+  const visibleCount = () => { const width = host.getBoundingClientRect().width || window.innerWidth; return width >= 900 ? 4 : width >= 620 ? 3 : 2; };
+
+  const decodeObservations = (payload) => Array.isArray(payload) ? payload : (payload.rows || []).map((encodedRow) => {
+    const row = {};
+    encodedRow.forEach((cell, index) => { row[payload.columns[index]] = cell === null ? null : payload.dictionaries[payload.columns[index]][cell]; });
+    return row;
+  });
+
+  const recentAnnouncedDates = (runLog) => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setHours(0, 0, 0, 0);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return new Set((runLog.runs || [])
+      .filter((run) => run.status === "success" && run.actual_report_date && new Date(run.run_timestamp) >= yesterday && new Date(run.run_timestamp) <= now)
+      .map((run) => run.actual_report_date));
+  };
+
+  const buildFeed = (payload, runLog) => {
+    const rows = decodeObservations(payload);
+    const announcedDates = recentAnnouncedDates(runLog);
+    const latestByCommodity = new Map();
+    rows.filter((row) => announcedDates.has(row.reportDate) && row.commodity && typeof row.maxPrice === "number" && Number.isFinite(row.maxPrice)).forEach((row) => {
+      const current = latestByCommodity.get(commodityKey(row.commodity));
+      if (!current || row.reportDate > current.reportDate || row.reportDate === current.reportDate && row.maxPrice > current.maxPrice) latestByCommodity.set(commodityKey(row.commodity), row);
+    });
+    return { prices: [...latestByCommodity.values()].sort((a, b) => a.commodity.localeCompare(b.commodity)).map((row) => {
+      const previous = rows.filter((candidate) => candidate.commodity === row.commodity && candidate.market === row.market && candidate.variety === row.variety && candidate.sourceId === row.sourceId && candidate.grade === row.grade && candidate.reportDate < row.reportDate && typeof candidate.maxPrice === "number")
+        .sort((a, b) => b.reportDate.localeCompare(a.reportDate) || b.maxPrice - a.maxPrice)[0];
+      return { ...row, previousMaxPrice: previous ? previous.maxPrice : null, deltaMaxPrice: previous ? row.maxPrice - previous.maxPrice : null, unit: row.priceDisplayUnit || row.unit || "", imageUrl: IMAGE_URLS[row.commodity] || FALLBACK_THUMB };
+    }) };
+  };
+
+  function render(feed, translations, animate = false) {
+    const recent = feed.prices || [];
+    const changed = recent.filter((item) => item.deltaMaxPrice !== null && item.deltaMaxPrice !== 0);
+    const count = visibleCount();
+    renderedCount = count;
+    const pool = changed.length >= count ? changed : recent;
+    const fresh = pool.filter((item) => !lastCommodityKeys.has(commodityKey(item.commodity)));
+    const selectionPool = fresh.length >= count ? fresh : pool;
+    const prices = shuffle(selectionPool.slice()).slice(0, count);
+    const layoutClass = count === 4 ? "" : count === 3 ? " is-three-up" : " is-two-up";
+    if (rotationCount > 0 && rotationCount % 3 === 0 && !prices.some(isSteep)) {
+      const steepCandidate = shuffle(pool.filter(isSteep).filter((item) => !prices.some((price) => commodityKey(price.commodity) === commodityKey(item.commodity))))[0] || shuffle(pool.filter(isSteep))[0];
+      if (steepCandidate) prices[0] = steepCandidate;
+    }
+    if (!prices.length) {
+      setWidgetVisibility(false);
+      widget.innerHTML = "";
+      return;
+    }
+    setWidgetVisibility(true);
+    lastCommodityKeys = new Set(prices.map((item) => commodityKey(item.commodity)));
+    const cards = prices.map((item) => {
+      const commodity = translate(translations, "commodities", item.commodity);
+      const variety = item.variety ? translate(translations, "varieties", item.variety) : "";
+      const delta = item.deltaMaxPrice;
+      const steep = isSteep(item);
+      const deltaClass = `${delta === null ? "none" : delta > 0 ? "up" : delta < 0 ? "down" : "flat"}${steep ? delta > 0 ? " steep-up" : " steep-down" : ""}`;
+      const deltaValue = delta === null ? "-" : delta === 0 ? "-" : `${delta > 0 ? "+" : "-"}₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(Math.abs(delta))}`;
+      const steepCardClass = steep ? delta > 0 ? " steep-up" : " steep-down" : "";
+      return `<article class="price-card${steepCardClass}"><a href="${escapeHtml(dashboardLink(item.commodity))}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(commodity)} ${escapeHtml(formatPrice(item.maxPrice))}"><span class="commodity-image"><img src="${escapeHtml(item.imageUrl)}" alt="" loading="lazy" decoding="async"></span><span class="compact-copy"><span class="commodity-name">${escapeHtml(commodity)}</span><span class="commodity-meta">${escapeHtml(variety || item.market || item.commodity)}</span><span class="compact-price"><span class="price">${escapeHtml(formatPrice(item.maxPrice))}</span><span class="price-unit">/ ${escapeHtml(item.unit || "")}</span></span><span class="price-delta ${deltaClass}" aria-label="${escapeHtml(copy.change)} ${escapeHtml(deltaValue)}">${escapeHtml(deltaValue)} ${deltaIcon(delta)}</span></span></a></article>`;
+    }).join("");
+    const latestDate = prices.map((item) => item.reportDate).sort().pop();
+    const homeUrl = `${DASHBOARD_URL}?origin=embed`;
+    widget.innerHTML = `<header class="embed-header"><div class="embed-head-row"><a class="embed-brand" href="${homeUrl}" target="_blank" rel="noopener noreferrer" aria-label="Prajavani Dharane home"><img src="https://images.assettype.com/prajavani/2026-08-13/4obejd3s/commodity-logo.svg" alt="Prajavani Dharane"></a><div class="embed-title-row"><p class="embed-kicker">${copy.kicker}<span class="updated-at"> · ${copy.updated}: ${formatDate(latestDate)}</span></p><h1>${copy.title}</h1></div><a class="mobile-all-prices" href="${homeUrl}" target="_blank" rel="noopener noreferrer" aria-label="${copy.viewAll}">${copy.viewAll} <span aria-hidden="true">→</span></a><a class="all-prices" href="${homeUrl}" target="_blank" rel="noopener noreferrer">${copy.viewAll} <span aria-hidden="true">→</span></a></div></header><section class="price-grid${layoutClass}${animate ? " is-refresh" : ""}" aria-label="${copy.kicker}">${cards}</section>`;
+  }
+
+  function refresh(feed, translations) {
+    const renderRefresh = () => { rotationCount += 1; render(feed, translations, true); };
+    const cards = [...root.querySelectorAll(".price-card")];
+    if (!cards.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      renderRefresh();
+      return;
+    }
+    cards.forEach((card, index) => {
+      card.style.setProperty("--wipe-delay", `${index * 120}ms`);
+      card.classList.add("is-wiping-out");
+    });
+    if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => {
+      refreshTimer = null;
+      renderRefresh();
+    }, 420 + Math.max(0, cards.length - 1) * 120);
+  }
+
+  Promise.all([fontReady, fetchJson(DATA_URL), fetchJson(RUNS_URL), fetchJson(TRANSLATIONS_URL)])
+    .then(([, observations, runLog, translations]) => {
+      const feed = buildFeed(observations, runLog);
+      render(feed, translations);
+      window.setInterval(() => refresh(feed, translations), 9000);
+      if (window.ResizeObserver) {
+        new ResizeObserver(() => { const count = visibleCount(); if (count !== renderedCount) refresh(feed, translations); }).observe(host);
+      }
+    })
+    .catch(() => { setWidgetVisibility(false); widget.innerHTML = ""; });
+})();
+    </script>
+  </body>
+</html>
