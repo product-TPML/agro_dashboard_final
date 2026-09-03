@@ -128,6 +128,7 @@
   const ASSETS = {
     logo: `https://images.assettype.com/prajavani/2026-08-13/4obejd3s/commodity-logo.svg`,
     heroLogo: `https://images.assettype.com/prajavani/2026-08-13/bxr1ak9d/pv-square-logo.svg`,
+    sponsorLogo: "https://indianbank.bank.in/documents/d/guest/logo",
     search: "https://images.assettype.com/prajavani/2026-08-13/5b4b20tx/search.svg",
     back: "https://images.assettype.com/prajavani/2026-08-13/6uc29kv2/back.svg",
     filter: "https://images.assettype.com/prajavani/2026-08-13/3jpb2efg/filter.svg",
@@ -5033,6 +5034,12 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     `;
   }
 
+  function renderSponsorLogo() {
+    return `
+      <img class="sponsor-logo" src="${escapeAttribute(ASSETS.sponsorLogo)}" alt="Indian Bank" width="50" height="14" decoding="async">
+    `;
+  }
+
   function renderSiteFooter() {
     return `
       <footer class="app-footer">
@@ -5057,7 +5064,10 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
     if (state.route.view === "home") {
       return `
         <div class="topbar-left-slot">
-          ${renderPvSiteLink()}
+          <div class="pv-partner-stack">
+            ${renderPvSiteLink()}
+            ${renderSponsorLogo()}
+          </div>
         </div>
         ${renderBrandHomeLink("topbar-brand-link")}
         <button type="button" class="icon-button topbar-search-trigger" data-open-search="true" aria-label="${escapeAttribute(getUiText("search_label", "Search commodities, markets, or varieties"))}">

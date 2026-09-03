@@ -2193,12 +2193,22 @@ body {
   transform: translateY(-50%);
 }
 
+.pv-partner-stack {
+  width: 70px;
+  height: 64px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
 .pv-site-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 70px;
-  height: 64px;
+  height: 48px;
   border-radius: 999px;
   outline: none;
 }
@@ -2206,6 +2216,13 @@ body {
 .pv-site-link .pv-site-logo {
   width: 70px;
   height: 48px;
+  object-fit: contain;
+}
+
+.sponsor-logo {
+  display: block;
+  width: 50px;
+  height: 14px;
   object-fit: contain;
 }
 
@@ -4958,6 +4975,12 @@ html::-webkit-scrollbar {
 }
 
 @media (max-width: 414px) {
+  .pv-partner-stack {
+    width: 44px;
+    height: 56px;
+    gap: 1px;
+  }
+
   .pv-site-link {
     width: 44px;
     height: 44px;
@@ -4966,6 +4989,11 @@ html::-webkit-scrollbar {
   .pv-site-link .pv-site-logo {
     width: 44px;
     height: 30px;
+  }
+
+  .sponsor-logo {
+    width: 38px;
+    height: 11px;
   }
 
   .app-footer-inner {
