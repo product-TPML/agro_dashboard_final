@@ -2372,18 +2372,29 @@ body {
 }
 
 .hero-sponsor-logo {
-  width: 72px;
-  height: 21px;
+  width: 112px;
+  height: 50px;
   margin: -6px auto 8px;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+}
+
+.hero-sponsor-label {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 .hero-sponsor-logo .sponsor-logo {
   display: block;
-  width: 72px;
-  height: 21px;
+  width: 112px;
+  height: 33px;
   object-fit: contain;
 }
 
@@ -4985,14 +4996,19 @@ html::-webkit-scrollbar {
   }
 
   .hero-sponsor-logo {
-    width: 50px;
-    height: 15px;
+    width: 86px;
+    height: 39px;
     margin: -4px auto 8px;
+    gap: 3px;
+  }
+
+  .hero-sponsor-label {
+    font-size: 10px;
   }
 
   .hero-sponsor-logo .sponsor-logo {
-    width: 50px;
-    height: 15px;
+    width: 86px;
+    height: 25px;
   }
 
   .app-footer-inner {

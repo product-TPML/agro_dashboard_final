@@ -4797,6 +4797,7 @@
         <div class="hero-copy ${state.isSearchOpen ? "search-active" : ""}">
           <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link", "./pv-logo.svg", getUiText("app_title", "Namma Krishi Prices"))}</h1>
           <div class="hero-sponsor-logo">
+            <span class="hero-sponsor-label">${escapeHtml(getUiText("sponsored_by", "Sponsored by"))}</span>
             ${renderSponsorLogo()}
           </div>
           <p class="hero-subcopy">${escapeHtml(getUiText("home_intro", "Search for commodity, market, or variety prices."))}</p>
@@ -5039,7 +5040,7 @@ const classes = ["brand-inline", "brand-home-link", extraClass].filter(Boolean).
 
   function renderSponsorLogo() {
     return `
-      <img class="sponsor-logo" src="${escapeAttribute(ASSETS.sponsorLogo)}" alt="Indian Bank" width="50" height="14" decoding="async">
+      <img class="sponsor-logo" src="${escapeAttribute(ASSETS.sponsorLogo)}" alt="Indian Bank" width="112" height="33" decoding="async">
     `;
   }
 
