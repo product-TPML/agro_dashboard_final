@@ -2398,6 +2398,31 @@ body {
   object-fit: contain;
 }
 
+/* ponytail: plain flow div, scrolls away under sticky topbar + toolbar */
+.poweredby-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px 0;
+  background: var(--surface);
+}
+
+.poweredby-label {
+  color: #5f6b7a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.poweredby-strip .sponsor-logo {
+  display: block;
+  width: 86px;
+  height: 25px;
+  object-fit: contain;
+}
+
 .hero-subcopy {
   margin: 0 0 18px;
   color: rgba(255, 255, 255, 0.92);

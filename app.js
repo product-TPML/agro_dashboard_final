@@ -4759,6 +4759,10 @@
           </main>
         ` : `
           <main class="page results-page">
+            <div class="poweredby-strip">
+              <span class="poweredby-label">${escapeHtml(getUiText("sponsored_by", "Powered by"))}</span>
+              ${renderSponsorLogo()}
+            </div>
             ${renderResultsToolbar(rows)}
 
             <section class="results-content-shell">
@@ -4797,7 +4801,7 @@
         <div class="hero-copy ${state.isSearchOpen ? "search-active" : ""}">
           <h1 class="hero-logo-heading">${renderBrandHomeLink("hero-brand-link", "./pv-logo.svg", getUiText("app_title", "Namma Krishi Prices"))}</h1>
           <div class="hero-sponsor-logo">
-            <span class="hero-sponsor-label">${escapeHtml(getUiText("sponsored_by", "Sponsored by"))}</span>
+            <span class="hero-sponsor-label">${escapeHtml(getUiText("sponsored_by", "Powered by"))}</span>
             ${renderSponsorLogo()}
           </div>
           <p class="hero-subcopy">${escapeHtml(getUiText("home_intro", "Search for commodity, market, or variety prices."))}</p>
