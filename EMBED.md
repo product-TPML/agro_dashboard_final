@@ -11,7 +11,7 @@ Use the script below in Prajavani content home and article pages. It injects an 
 - Each card displays the variety with the highest available maximum price on that commodity's latest report date and links to that commodity's Dharane page in a new tab.
 - If no report was announced today or yesterday, it collapses and renders nothing instead of stale prices or a failure message.
 - Each card uses the same CDN commodity thumbnail as the dashboard and shows the max-price change from the previous comparable update with the dashboard-style up/down arrow.
-- Clicking a commodity card opens `https://prajavani.net/agriculture/dharane?view=table&type=commodity&commodity=<commodity-name>&origin=embed` in a new tab.
+- Clicking a commodity card opens `https://www.prajavani.net/agriculture/dharane?view=table&type=commodity&commodity=<commodity-name>&origin=embed` in a new tab.
 - Each rotation uses a short 3D top-roll entrance; steep changes receive a continuous color, scale, and card-background emphasis.
 - The Dharane logo and “all prices” CTA link to the Dharane home page.
 - Use `?lang=en` for the English version.
