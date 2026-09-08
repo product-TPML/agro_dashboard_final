@@ -3,7 +3,7 @@
 Use the script below in Prajavani content home and article pages. It injects an auto-height widget with Shadow DOM style isolation and reads the existing dashboard observations and scraper-run JSON files.
 
 ```html
-<script src="https://product-tpml.github.io/agro_dashboard_final/embed.js?lang=kn&v=20260827-tight23"></script>
+<script src="https://product-tpml.github.io/agro_dashboard_final/embed.js?lang=kn&v=20260908-dharane-url1"></script>
 ```
 
 - The compact widget randomly shows two changed-price commodities and rotates to a new pair every nine seconds; it only shows reports announced today or yesterday.
@@ -11,6 +11,7 @@ Use the script below in Prajavani content home and article pages. It injects an 
 - Each card displays the variety with the highest available maximum price on that commodity's latest report date and links to that commodity's Dharane page in a new tab.
 - If no report was announced today or yesterday, it collapses and renders nothing instead of stale prices or a failure message.
 - Each card uses the same CDN commodity thumbnail as the dashboard and shows the max-price change from the previous comparable update with the dashboard-style up/down arrow.
+- Clicking a commodity card opens `https://prajavani.net/agriculture/dharane?view=table&type=commodity&commodity=<commodity-name>&origin=embed` in a new tab.
 - Each rotation uses a short 3D top-roll entrance; steep changes receive a continuous color, scale, and card-background emphasis.
 - The Dharane logo and “all prices” CTA link to the Dharane home page.
 - Use `?lang=en` for the English version.
@@ -22,7 +23,7 @@ Use the script below in Prajavani content home and article pages. It injects an 
 Use this standalone HTML file when the widget code should be included in the embed itself rather than loaded as a separate hosted script:
 
 ```html
-<iframe src="https://product-tpml.github.io/agro_dashboard_final/embed-cloudflare.html?lang=kn&v=20260827-cloudflare1" title="Prajavani Dharane prices" style="display:block;width:100%;height:160px;border:0" loading="lazy"></iframe>
+<iframe src="https://product-tpml.github.io/agro_dashboard_final/embed-cloudflare.html?lang=kn&v=20260908-dharane-url1" title="Prajavani Dharane prices" style="display:block;width:100%;height:160px;border:0" loading="lazy"></iframe>
 ```
 
 The file contains the same UI, responsive behavior, animations, image mapping, and links as `embed.js`. Its only runtime JSON requests are to Cloudflare, with no local JSON fallback. Use `?lang=en` for English when hosted as a page, or change the inline script's `data-lang="kn"` to `data-lang="en"` when pasting the HTML into an English CMS page. The widget ignores duplicate executions within the same embed wrapper and still uses the existing CDN-hosted logo and commodity thumbnails.

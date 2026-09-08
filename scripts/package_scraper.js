@@ -24,6 +24,7 @@ const ROOT_FILES = [
   "translations.json",
 ];
 const SCRIPT_FILES = ["market_aliases.js", "observation_codec.js", "package_scraper.js", "publish_bundle.js", "publish_pages.js", "remote_snapshot_sync.js", "scraper_run_log.js"];
+const SUPPORT_FILES = ["cloudflare_cors_worker.mjs"];
 const GENERATED_ROOT_FILES = new Set(ROOT_FILES);
 const GOOGLE_APPS_SCRIPT_FILES = ["Code.gs"];
 const GENERATED_DIRS = ["data", "scripts", "google-apps-script"];
@@ -88,6 +89,7 @@ function buildStagingDirectory() {
   const scriptsTarget = path.join(staging, "scripts");
   fs.mkdirSync(scriptsTarget, { recursive: true });
   for (const file of SCRIPT_FILES) copyFile(path.join(ROOT_DIR, "scripts", file), path.join(scriptsTarget, file));
+  for (const file of SUPPORT_FILES) copyFile(path.join(ROOT_DIR, "scripts", file), path.join(scriptsTarget, file));
   const appsTarget = path.join(staging, "google-apps-script");
   fs.mkdirSync(appsTarget, { recursive: true });
   for (const file of GOOGLE_APPS_SCRIPT_FILES) copyFile(path.join(ROOT_DIR, "google-apps-script", file), path.join(appsTarget, file));

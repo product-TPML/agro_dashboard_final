@@ -77,8 +77,11 @@ async function stageAndDeploy({ rootDir = process.cwd(), expectedSnapshotFingerp
 
   const bundle = fs.mkdtempSync(path.join(os.tmpdir(), "agro-publish-"));
   try {
-    // Stage root translations.json, every data/*.json (never the SQLite DB), and _headers.
+    // Stage root translations.json, every data/*.json (never the SQLite DB),
+    // the static headers, and the advanced-mode Pages Worker that applies the
+    // exact-origin CORS allowlist to JSON responses.
     fs.copyFileSync(path.join(rootDir, "translations.json"), path.join(bundle, "translations.json"));
+    fs.copyFileSync(path.join(rootDir, "scripts", "cloudflare_cors_worker.mjs"), path.join(bundle, "_worker.js"));
     const dataDir = path.join(rootDir, "data");
     const dataOut = path.join(bundle, "data");
     fs.mkdirSync(dataOut, { recursive: true });
@@ -89,8 +92,6 @@ async function stageAndDeploy({ rootDir = process.cwd(), expectedSnapshotFingerp
       path.join(bundle, "_headers"),
       [
         "/*",
-        "  Access-Control-Allow-Origin: *",
-        "  Access-Control-Allow-Methods: GET, HEAD, OPTIONS",
         "  Cache-Control: no-cache",
         "",
       ].join("\n")
